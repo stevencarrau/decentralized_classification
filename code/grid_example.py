@@ -1,13 +1,12 @@
 from gridworld import *
 from mdp import MDP
-# from pomdp import POMDP
 # from tqdm import tqdm
 nrows = 7
 ncols = 5
 goodtargets = {0}
-badtargets = {20}
+badtargets = {4}
 initial = [33]
-moveobstacles = [30]
+moveobstacles = []
 targets = [list(goodtargets.union(badtargets))]
 obstacles = []
 
@@ -37,12 +36,12 @@ mdp = MDP(states, set(alphabet),transitions)
 randomness = 0
 R = dict([(s,a,next_s),0.0] for s in mdp.states for a in mdp.available(s) for next_s in mdp.post(s,a) )
 R.update([(s,a,next_s),1.0] for s in mdp.states  for a in mdp.available(s) for next_s in mdp.post(s,a) if next_s in goodtargets and s in goodtargets)
-V,goodpolicy =  mdp.T_step_value_iteration(R,10)
+V,goodpolicy =  mdp.T_step_value_iteration(R,20)
 R = dict([(s,a,next_s),0.0] for s in mdp.states for a in mdp.available(s) for next_s in mdp.post(s,a) )
 R.update([(s,a,next_s),1.0] for s in mdp.states  for a in mdp.available(s) for next_s in mdp.post(s,a) if next_s in badtargets and s in badtargets)
-V,badpolicy =  mdp.T_step_value_iteration(R,10)
-MC = mdp.MC_Probability(initial,goodpolicy,10)
-obs = mdp.observation(goodpolicy,0,initial,10)
+V,badpolicy =  mdp.T_step_value_iteration(R,20)
+MC = mdp.MC_Probability(initial,goodpolicy,2)
+obs = mdp.observation(goodpolicy,27,initial,2)
 
 gwg.play(goodpolicy)
 # bad_MC = mdp.construct_MC(badpolicy,'Examples/7x5_bad.txt')
