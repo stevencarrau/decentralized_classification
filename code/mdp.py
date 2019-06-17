@@ -15,12 +15,12 @@ class MDP(NFA):
         for s, a, t, p in transitions:
             self._prob_cache[(s, a, t)] = p
         self._prepare_post_cache()
-        self.Observations = []
-        obs = dict()
-        for s in self.states:
-        	o_value,n_value = self.observation_model(s, gwg)
-            obs.update({s:o_value})
-        self.Observations.append(obs)
+        # self.Observations = []
+        # obs = dict()
+        # for s in self.states:
+        #     o_value,n_value = self.observation_model(s, gwg)
+        #     obs.update({s:o_value})
+        # self.Observations.append(obs)
 
 
     def prob_delta(self, s, a, t):
@@ -89,7 +89,7 @@ class MDP(NFA):
                             for a in self.available(s))[0]
                 delta = max(delta, abs(U1[s] - U[s]))
             t = t - 1
-            print t
+            print(t)
         for s in self.states:
             Vmax = dict()
             for a in self.available(s):
@@ -238,7 +238,7 @@ class MDP(NFA):
                 policyT[s] = acts
             e = abs(max([Vstate1[s] -
                          Vstate[s] for s in self.states]))  # the abs error
-            print e
+            print(e)
                 # print "iteration: {} and the state
                 # value is {}".format(t, Vstate1)
         for s in sinks:
@@ -268,7 +268,7 @@ class MDP(NFA):
         t = 0
         trace[t] = s
         while t < T:
-            print 't = ', t, 'state = ', s
+            print('t = ', t, 'state = ', s)
             act = list(policy[s])[0]
             ns = self.sample(s,act)
             t += 1
@@ -276,37 +276,52 @@ class MDP(NFA):
             trace[t] = ns
             if ns == targ:
                 return trace
-
-    def observation_model(self,s,gwg):
-        # 8-bit observation
-        z_vec = np.zeros(shape=(8,),dtype=int)
-        one_index = []
-        if s in gwg.left_edge:
-            one_index += [0,1,2]
-        if s in gwg.right_edge:
-            one_index += [4,5,6]
-        if s in gwg.top_edge:
-            one_index += [2,3,4]
-        if s in gwg.bottom_edge:
-            one_index += [0,6,7]
-        co_ords = []
-        for j in range(2):
-            co_ords.append(gwg.coords(s[j]))
-        active_state = co_ords[i]
-        del co_ords[i]
-        obs_state = co_ords[0]
-        diff_state = tuple(np.subtract(active_state,obs_state))
-        loc_dict = {(-1,1):0,(0,1):1,(1,1):2,(1,0):3,(1,-1):4,(0,-1):5,(-1,1):6,(-1,0):7}
-        null_o = True
-        if diff_state in loc_dict:
-                one_index += [loc_dict[diff_state]]
-                null_o = False
-        z_vec[list(set(one_index))] = 1
-        return self.obs_vec2int(z_vec)#,null_o
-
-    def obs_vec2int(self,z_vec):
-        z_bin = ''.join(map(str,z_vec))
-        z_int = int(z_bin,2)
-        return z_int
+    #
+    # def occupation_measure(self,init,policy,T,targ=None):
+    #     s = init
+    #     trace = dict()
+    #     t = 0
+    #     trace[t] = s
+    #     while t < T:
+    #         print('t = ', t, 'state = ', s)
+    #         act = list(policy[s])[0]
+    #         ns = self.sample(s, act)
+    #         t += 1
+    #         s = ns
+    #         trace[t] = ns
+    #         if ns == targ:
+    #             return trace
+        
+    # def observation_model(self,s,gwg):
+    #     # 8-bit observation
+    #     z_vec = np.zeros(shape=(8,),dtype=int)
+    #     one_index = []
+    #     if s in gwg.left_edge:
+    #         one_index += [0,1,2]
+    #     if s in gwg.right_edge:
+    #         one_index += [4,5,6]
+    #     if s in gwg.top_edge:
+    #         one_index += [2,3,4]
+    #     if s in gwg.bottom_edge:
+    #         one_index += [0,6,7]
+    #     co_ords = []
+    #     for j in range(2):
+    #         co_ords.append(gwg.coords(s[j]))
+    #     active_state = co_ords[i]
+    #     del co_ords[i]
+    #     obs_state = co_ords[0]
+    #     diff_state = tuple(np.subtract(active_state,obs_state))
+    #     loc_dict = {(-1,1):0,(0,1):1,(1,1):2,(1,0):3,(1,-1):4,(0,-1):5,(-1,1):6,(-1,0):7}
+    #     null_o = True
+    #     if diff_state in loc_dict:
+    #             one_index += [loc_dict[diff_state]]
+    #             null_o = False
+    #     z_vec[list(set(one_index))] = 1
+    #     return self.obs_vec2int(z_vec)#,null_o
+    #
+    # def obs_vec2int(self,z_vec):
+    #     z_bin = ''.join(map(str,z_vec))
+    #     z_int = int(z_bin,2)
+    #     return z_int
 
 

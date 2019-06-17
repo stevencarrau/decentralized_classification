@@ -11,6 +11,7 @@ class Gridworld():
     def __init__(self, initial, nrows=8, ncols=8, nagents=1, targets=[], obstacles=[], moveobstacles = [], regions=dict(),size=30):
         # walls are the obstacles. The edges of the gridworld will be included into the walls.
         # region is a string and can be one of: ['pavement','gravel', 'grass', 'sand']
+        self.initial = initial
         self.current = initial
         self.nrows = nrows  
         self.ncols = ncols
@@ -50,16 +51,16 @@ class Gridworld():
                 self.getProbs(s, a)
 
     def coords(self, s):
-        return (s / self.ncols, s % self.ncols)  # the coordinate for state s.
+        return (int(s / self.ncols), int(s % self.ncols))  # the coordinate for state s.
 
-    def isAllowed(self, (row,col)):
-        if col not in range(self.ncols) or row not in range(self.nrows):
+    def isAllowed(self, co_ords):
+        if co_ords[1] not in range(self.ncols) or co_ords[0] not in range(self.nrows):
             return False
         return True
 
-    def isAllowedState(self,(row,col),returnState):
-        if self.isAllowed((row,col)):
-            return self.rcoords((row,col))
+    def isAllowedState(self,co_ords,returnState):
+        if self.isAllowed(co_ords):
+            return self.rcoords(co_ords)
         return returnState
 
     def getProbRegions(self):
@@ -171,7 +172,7 @@ class Gridworld():
 
     ## Everything from here onwards is for creating the image
 
-    def render(self, size=30):
+    def render(self, size=100):
         self.height = self.nrows * size + self.nrows + 1
         self.width = self.ncols * size + self.ncols + 1
         self.size = size
@@ -241,10 +242,10 @@ class Gridworld():
         # have borders of width 1px
         i, j = self.coords(s)
         if center:
-            return i * (self.size + 1) + 1 + self.size / 2, \
-                   j * (self.size + 1) + 1 + self.size / 2
+            return int(i * (self.size + 1) + 1 + self.size / 2), \
+                   int(j * (self.size + 1) + 1 + self.size / 2)
         else:
-            return i * (self.size + 1) + 1, j * (self.size + 1) + 1
+            return int(i * (self.size + 1) + 1), int(j * (self.size + 1) + 1)
 
     def accessible_blocks(self, s):
         """
@@ -271,8 +272,8 @@ class Gridworld():
             W.append(s + self.ncols)
         return W
 
-    def coord2indx(self, (x, y)):
-        return self.rcoords((x / (self.size + 1), y / (self.size + 1)))
+    def coord2indx(self, xy):
+        return self.rcoords(int((xy[0] / (self.size + 1)), int(xy[1] / (self.size + 1))))
 
     def draw_state_labels(self):
         font = pygame.font.SysFont("FreeSans", 10)
@@ -294,11 +295,11 @@ class Gridworld():
 
         for n in range(self.nagents):
             x, y = self.indx2coord(state[n], center=True)
-            pygame.draw.circle(self.surface, (0, 0, 255), (y, x), self.size / 2)
+            pygame.draw.circle(self.surface, (0, 0, 255), (y, x), int(self.size / 2))
         if len(self.moveobstacles) > 0:
             for s in self.moveobstacles:
                 x, y = self.indx2coord(s, center=True)
-                pygame.draw.circle(self.surface, (205, 92, 0), (y, x), self.size / 2)
+                pygame.draw.circle(self.surface, (205, 92, 0), (y, x), int(self.size / 2))
         if blit:
             self.screen.blit(self.surface, (0, 0))
             pygame.display.flip()
@@ -338,7 +339,7 @@ class Gridworld():
         if bg:
             self.background()
         x, y = self.indx2coord(s, center=True)
-        pygame.draw.circle(self.surface, (205, 92, 0), (y, x), self.size / 2)
+        pygame.draw.circle(self.surface, (205, 92, 0), (y, x), int(self.size / 2))
 
         if blit:
             self.screen.blit(self.surface, (0, 0))
@@ -399,3 +400,24 @@ class Gridworld():
 
         self.bg_rendered = True  # don't render again unless flag is set
         self.surface.blit(self.bg, (0, 0))
+    
+    def play(self,policy=None):
+        
+        while self.current[0] not in self.targets[0]:
+            for idx_j,j in enumerate(self.current):
+                self.render()
+                if policy is None:
+                    while True:
+                        arrow = self.getkeyinput()
+                        if arrow != None:
+                            break
+                else:
+                    arrow = self.actlist[next(iter(policy[j]))]
+                    pygame.time.wait(500)
+                self.current[idx_j] = int(np.random.choice(range(self.prob[arrow][self.current].reshape(-1,).shape[0]),None,False,self.prob[arrow][self.current].reshape(-1,)))
+                # self.current = [int(np.random.choice(self.prob[arrow][self.current].reshape(-1,),None,False,self.prob[arrow][self.current].reshape(-1,)))]
+                self.render()
+        return print("Goal!")
+    
+    def observation(self,nom_pol,est_loc,agent_no,t):
+        self.initial[agent_no]
