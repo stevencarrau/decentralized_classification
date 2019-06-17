@@ -14,7 +14,7 @@ obstacles = []
 
 regionkeys = {'pavement','gravel','grass','sand','deterministic'}
 regions = dict.fromkeys(regionkeys,{-1})
-regions['pavement']= range(nrows*ncols)
+regions['sand']= range(nrows*ncols)
 
 gwg = Gridworld(initial, nrows, ncols, 1, targets, obstacles,moveobstacles,regions)
 gwg.render()
@@ -41,9 +41,10 @@ V,goodpolicy =  mdp.T_step_value_iteration(R,10)
 R = dict([(s,a,next_s),0.0] for s in mdp.states for a in mdp.available(s) for next_s in mdp.post(s,a) )
 R.update([(s,a,next_s),1.0] for s in mdp.states  for a in mdp.available(s) for next_s in mdp.post(s,a) if next_s in badtargets and s in badtargets)
 V,badpolicy =  mdp.T_step_value_iteration(R,10)
+MC = mdp.MC_Probability(initial,goodpolicy,10)
+obs = mdp.observation(goodpolicy,0,initial,10)
 
-gwg.play(badpolicy)
-# good_MC = mdp.construct_MC(goodpolicy,'Examples/7x5_good.txt')
+gwg.play(goodpolicy)
 # bad_MC = mdp.construct_MC(badpolicy,'Examples/7x5_bad.txt')
 
 # Construct product mdp
