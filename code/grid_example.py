@@ -1,5 +1,6 @@
 from gridworld import *
 from mdp import MDP
+from policy import Policy
 # from tqdm import tqdm
 nrows = 10
 ncols = 10
@@ -13,11 +14,11 @@ obstacles = []
 regionkeys = {'pavement','gravel','grass','sand','deterministic'}
 regions = dict.fromkeys(regionkeys,{-1})
 regions['pavement']= range(nrows*ncols)
-# regions_det = dict.fromkeys(regionkeys,{-1})
-# regions_det['deterministic'] = range(nrows*ncols)
+regions_det = dict.fromkeys(regionkeys,{-1})
+regions_det['deterministic'] = range(nrows*ncols)
 
 gwg = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions)
-# det_gw = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions_det)
+det_gw = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions_det)
 gwg.render(multicolor=True)
 gwg.draw_state_labels()
 # gwg.save('Examples/example_7x5.png')
@@ -25,27 +26,38 @@ gwg.draw_state_labels()
 states = range(gwg.nstates)
 alphabet = [0,1,2,3] # North, south, west, east
 transitions = []
+det_trans = []
 for s in states:
     for a in alphabet:
         for t in np.nonzero(gwg.prob[gwg.actlist[a]][s])[0]:
             p = gwg.prob[gwg.actlist[a]][s][t]
             transitions.append((s, alphabet.index(a), t, p))
+        for t2 in np.nonzero(det_gw.prob[det_gw.actlist[a]][s])[0]:
+            p_det = det_gw.prob[det_gw.actlist[a]][s][t2]
+            det_trans.append((s, alphabet.index(a), t2, p_det))
 
 mdp = MDP(states, set(alphabet),transitions)
+nfa = MDP(states,set(alphabet),det_trans) #deterministic transitions
+print("Models built")
 
 # V, goodpolicy = mdp.max_reach_prob(goodtargets, epsilon=0.0001)
 # V, badpolicy = mdp.max_reach_prob(badtargets, epsilon=0.0001)
 randomness = 0
-policy = []
-for k in targets:
-    R = dict([(s,a,next_s),0.0] for s in mdp.states for a in mdp.available(s) for next_s in mdp.post(s,a) )
-    R.update([(s,a,next_s),1.0] for s in mdp.states  for a in mdp.available(s) for next_s in mdp.post(s,a) if next_s in set(k) and s in set(k))
-    V,goodpolicy =  mdp.T_step_value_iteration(R,40)
-    policy.append(goodpolicy)
+pol_array = []
+c_i = 0
+print("Computing policies")
+for i,k in zip(initial,targets):
+    pol_array.append(Policy(mdp,nfa,i,k,40))
+    print("Policy ",c_i," -- complete")
+    c_i += 1
+    # R = dict([(s,a,next_s),0.0] for s in mdp.states for a in mdp.available(s) for next_s in mdp.post(s,a) )
+    # R.update([(s,a,next_s),1.0] for s in mdp.states  for a in mdp.available(s) for next_s in mdp.post(s,a) if next_s in set(k) and s in set(k))
+    # V,goodpolicy = mdp.T_step_value_iteration(R,40)
+    # policy.append(goodpolicy)
 # MC = mdp.MC_Probability(initial,goodpolicy,2)
 # obs = mdp.observation(goodpolicy,27,initial,2)
 
-gwg.play(True,policy,mdp)
+gwg.play(True,pol_array)
 # bad_MC = mdp.construct_MC(badpolicy,'Examples/7x5_bad.txt')
 
 # Construct product mdp

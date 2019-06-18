@@ -36,7 +36,7 @@ class MDP(NFA):
         for t in self.post(state, action):
             prob.append(self.prob_delta(state, action, t))
 
-        next_state = self.post(state, action)[np.random.choice(range(len(self.post(state, action))),1,prob)[0]]
+        next_state = list(self.post(state, action))[np.random.choice(range(len(self.post(state, action))),1,prob)[0]]
         # Note that only one element is chosen from the array, which is the
         # output by random.choice
         return next_state
@@ -269,7 +269,7 @@ class MDP(NFA):
         t = 0
         trace[t] = s
         while t < T:
-            print('t = ', t, 'state = ', s)
+            # print('t = ', t, 'state = ', s)
             act = list(policy[s])[0]
             ns = self.sample(s,act)
             t += 1
@@ -278,26 +278,7 @@ class MDP(NFA):
             if ns == targ:
                 return trace
     #
-    def MC_Probability(self,init,policy,T):
-        MC = self.construct_MC(policy)
-        s = init
-        MC_prob = dict([s_t,1.0] for s_t in self.states)
-        t = 0
-        while t < T:
-            MC_prob_up = dict([s_t, 0.0] for s_t in self.states)
-            for s_i in s:
-                for z in self.states:
-                    MC_prob_up[z] += MC_prob[s_i]*MC[(s_i,z)]
-            MC_prob = MC_prob_up #/sum([MC_prob_up[e] for e in MC_prob_up])
-            #assert sum([MC_prob[e] for e in MC_prob])==1.0
-            s = [s_e for s_e in self.states if MC_prob[s_e] != 0.0]
-            t += 1
-        return MC_prob
-    
-    
-    def observation(self,nom_pol,est_loc,last_sight,t):
-        MC_prob = self.MC_Probability(last_sight,nom_pol,t)
-        return MC_prob[est_loc]
+
         
     # def observation_model(self,s,gwg):
     #     # 8-bit observation

@@ -409,7 +409,7 @@ class Gridworld():
         self.bg_rendered = True  # don't render again unless flag is set
         self.surface.blit(self.bg, (0, 0))
     
-    def play(self,multicolor=True,policy=None,mdp=None):
+    def play(self,multicolor=True,policy=None):
         
         while any([self.current[i] not in self.targets[i] for i in range(self.nagents)]):
             for idx_j,j in enumerate(self.current):
@@ -420,10 +420,10 @@ class Gridworld():
                         if arrow != None:
                             break
                 else:
-                    arrow = self.actlist[next(iter(policy[idx_j][j]))]
+                    arrow = self.actlist[policy[idx_j].sample(j)]
                     pygame.time.wait(50)
                     if mdp is not None:
-                        print("P: ",mdp.observation(nom_pol=policy[idx_j],est_loc=self.targets[0][0],last_sight=[self.current[idx_j]],t=2))
+                        print("P: ",policy[idx_j].observation(est_loc=self.targets[0][0],last_sight=[self.current[idx_j]],t=2))
                 self.current[idx_j] = int(np.random.choice(range(self.prob[arrow][self.current[idx_j]].reshape(-1,).shape[0]),None,False,self.prob[arrow][self.current[idx_j]].reshape(-1,)))
                 # self.current = [int(np.random.choice(self.prob[arrow][self.current].reshape(-1,),None,False,self.prob[arrow][self.current].reshape(-1,)))]
                 self.render(multicolor=multicolor)
