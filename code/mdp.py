@@ -76,7 +76,7 @@ class MDP(NFA):
 
     def T_step_value_iteration(self,R, T):
         """Solving an MDP by value iteration for T-step horizon"""
-        epsilon = 1.0e-2
+        epsilon = 1.0e-4
         U1 = dict([(s, 0) for s in self.states])
         self._prepare_post_cache()
         policy = dict([(s, set()) for s in self.states])
@@ -98,6 +98,8 @@ class MDP(NFA):
                                 for s1 in self.post(s, a)])][0]
             maxV = max(Vmax.values())
             for a in Vmax.keys():
+                # if maxV == Vmax[a]:
+                #     policy[s].add(a)
                 if maxV - Vmax[a] <= epsilon:
                     policy[s].add(a)
         return U, policy

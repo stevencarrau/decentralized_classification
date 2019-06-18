@@ -173,7 +173,7 @@ class Gridworld():
 
     ## Everything from here onwards is for creating the image
 
-    def render(self, size=100,multicolor=False):
+    def render(self, size=100,multicolor=False,nom_policy=False):
         self.height = self.nrows * size + self.nrows + 1
         self.width = self.ncols * size + self.ncols + 1
         self.size = size
@@ -195,6 +195,8 @@ class Gridworld():
         self.updategui = True  # switch to stop updating gui if you want to collect a trace quickly
 
         self.state2circle(state=self.current,multicolor=multicolor)
+        if nom_policy:
+            self.routes(state=self.current,nom_policy=nom_policy,multicolor=multicolor)
 
     def getkeyinput(self):
         events = pygame.event.get()
@@ -308,6 +310,19 @@ class Gridworld():
         if blit:
             self.screen.blit(self.surface, (0, 0))
             pygame.display.flip()
+            
+    def routes(self,state,nom_policy,multicolor=False,blit=True):
+        colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
+        for n in range(self.nagents):
+            line_s = [list(reversed(self.indx2coord(s,center=True))) for s in nom_policy[n].values()]
+            if multicolor:
+                pygame.draw.lines(self.surface,tuple(255*np.array(colors[list(colors)[n]])),False,line_s,10)
+            else:
+                pygame.draw.lines(self.surface, (0,0,255), False, line_s,
+                                  10)
+        if blit:
+            self.screen.blit(self.surface, (0, 0))
+            pygame.display.flip()
 
     def draw_values(self, vals):
         """
@@ -412,6 +427,7 @@ class Gridworld():
     def play(self,multicolor=True,policy=None):
         
         while any([self.current[i] not in self.targets[i] for i in range(self.nagents)]):
+            nom_policy = []
             for idx_j,j in enumerate(self.current):
                 self.render(multicolor=multicolor)
                 if policy is None:
@@ -419,15 +435,17 @@ class Gridworld():
                         arrow = self.getkeyinput()
                         if arrow != None:
                             break
+                    self.current[idx_j] = int(np.random.choice(range(self.prob[arrow][self.current[idx_j]].reshape(-1, ).shape[0]), None,False, self.prob[arrow][self.current[idx_j]].reshape(-1, )))
                 else:
                     arrow = self.actlist[policy[idx_j].sample(j)]
-                    pygame.time.wait(50)
-                    if mdp is not None:
-                        print("P: ",policy[idx_j].observation(est_loc=self.targets[0][0],last_sight=[self.current[idx_j]],t=2))
-                self.current[idx_j] = int(np.random.choice(range(self.prob[arrow][self.current[idx_j]].reshape(-1,).shape[0]),None,False,self.prob[arrow][self.current[idx_j]].reshape(-1,)))
-                # self.current = [int(np.random.choice(self.prob[arrow][self.current].reshape(-1,),None,False,self.prob[arrow][self.current].reshape(-1,)))]
-                self.render(multicolor=multicolor)
-            pygame.time.wait(250)
+                    # pygame.time.wait(50)
+                    # print("P: ",policy[idx_j].observation(est_loc=self.targets[0][0],last_sight=[self.current[idx_j]],t=2))
+                    self.current[idx_j] = int(np.random.choice(range(self.prob[arrow][self.current[idx_j]].reshape(-1,).shape[0]),None,False,self.prob[arrow][self.current[idx_j]].reshape(-1,)))
+                    policy[idx_j].updateNominal(self.current[idx_j])
+                    nom_policy.append(policy[idx_j].nom_trace)
+            self.render(multicolor=multicolor,nom_policy=nom_policy)
+            pygame.time.wait(1000)
+        pygame.quit()
         return print("Goal!")
 
     # class Routes():
