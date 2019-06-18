@@ -4,6 +4,7 @@ import os, sys, getopt, pdb, string
 import random
 import numpy as np
 import pygame
+from matplotlib import colors as mcolors
 import pygame.locals as pgl
 
 class Gridworld():
@@ -172,7 +173,7 @@ class Gridworld():
 
     ## Everything from here onwards is for creating the image
 
-    def render(self, size=100):
+    def render(self, size=100,multicolor=False):
         self.height = self.nrows * size + self.nrows + 1
         self.width = self.ncols * size + self.ncols + 1
         self.size = size
@@ -186,14 +187,14 @@ class Gridworld():
         self.bg = pygame.Surface(self.screen.get_size())
         self.bg_rendered = False  # optimize background render
 
-        self.background()
+        self.background(multicolor)
         self.screen.blit(self.surface, (0, 0))
         pygame.display.flip()
 
         self.build_templates()
         self.updategui = True  # switch to stop updating gui if you want to collect a trace quickly
 
-        self.state2circle(self.current)
+        self.state2circle(state=self.current,multicolor=multicolor)
 
     def getkeyinput(self):
         events = pygame.event.get()
@@ -289,13 +290,17 @@ class Gridworld():
         s = self.coord2indx((coord[0], coord[1]))
         return s
 
-    def state2circle(self, state, bg=True, blit=True):
+    def state2circle(self, state, bg=True, blit=True,multicolor=False):
         if bg:
-            self.background()
+            self.background(multicolor)
 
+        colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
         for n in range(self.nagents):
             x, y = self.indx2coord(state[n], center=True)
-            pygame.draw.circle(self.surface, (0, 0, 255), (y, x), int(self.size / 2))
+            if multicolor:
+                pygame.draw.circle(self.surface, tuple(255*np.array(colors[list(colors)[n]])) , (y, x), int(self.size / 2))
+            else:
+                pygame.draw.circle(self.surface, (0, 0, 255), (y, x), int(self.size / 2))
         if len(self.moveobstacles) > 0:
             for s in self.moveobstacles:
                 x, y = self.indx2coord(s, center=True)
@@ -352,8 +357,8 @@ class Gridworld():
 
         return
 
-    def background(self):
-
+    def background(self,multicolor=False):
+        colors = dict(mcolors.BASE_COLORS)
         if self.bg_rendered:
             self.surface.blit(self.bg, (0, 0))
         else:
@@ -368,7 +373,10 @@ class Gridworld():
                 for t in self.targets[n]:
                     x, y = self.indx2coord(t, center=True)
                     coords = pygame.Rect(y - self.size / 2, x - self.size / 2, self.size, self.size)
-                    pygame.draw.rect(self.bg, (0, 204, 102), coords)
+                    if multicolor:
+                        pygame.draw.rect(self.bg, tuple(255*np.array(colors[list(colors)[n]])), coords)
+                    else:
+                        pygame.draw.rect(self.bg, (0, 204, 102) , coords)
 
                 # Draw Wall in black color.
             # for s in self.edges:
@@ -401,23 +409,28 @@ class Gridworld():
         self.bg_rendered = True  # don't render again unless flag is set
         self.surface.blit(self.bg, (0, 0))
     
-    def play(self,policy=None):
+    def play(self,multicolor=True,policy=None,mdp=None):
         
-        while self.current[0] not in self.targets[0]:
+        while any([self.current[i] not in self.targets[i] for i in range(self.nagents)]):
             for idx_j,j in enumerate(self.current):
-                self.render()
+                self.render(multicolor=multicolor)
                 if policy is None:
                     while True:
                         arrow = self.getkeyinput()
                         if arrow != None:
                             break
                 else:
-                    arrow = self.actlist[next(iter(policy[j]))]
-                    pygame.time.wait(500)
-                self.current[idx_j] = int(np.random.choice(range(self.prob[arrow][self.current].reshape(-1,).shape[0]),None,False,self.prob[arrow][self.current].reshape(-1,)))
+                    arrow = self.actlist[next(iter(policy[idx_j][j]))]
+                    pygame.time.wait(50)
+                    if mdp is not None:
+                        print("P: ",mdp.observation(nom_pol=policy[idx_j],est_loc=self.targets[0][0],last_sight=[self.current[idx_j]],t=2))
+                self.current[idx_j] = int(np.random.choice(range(self.prob[arrow][self.current[idx_j]].reshape(-1,).shape[0]),None,False,self.prob[arrow][self.current[idx_j]].reshape(-1,)))
                 # self.current = [int(np.random.choice(self.prob[arrow][self.current].reshape(-1,),None,False,self.prob[arrow][self.current].reshape(-1,)))]
-                self.render()
+                self.render(multicolor=multicolor)
+            pygame.time.wait(250)
         return print("Goal!")
-    
-    def observation(self,nom_pol,est_loc,agent_no,t):
-        self.initial[agent_no]
+
+    # class Routes():
+    #     def __init__(self,color=(0,0,0),nom_pol):
+    #         self.color=color
+    #         self.route=nom_pol

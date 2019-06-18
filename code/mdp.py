@@ -90,7 +90,7 @@ class MDP(NFA):
                             for a in self.available(s))[0]
                 delta = max(delta, abs(U1[s] - U[s]))
             t = t - 1
-            print(t)
+            # print(t)
         for s in self.states:
             Vmax = dict()
             for a in self.available(s):

@@ -1,22 +1,24 @@
 from gridworld import *
 from mdp import MDP
 # from tqdm import tqdm
-nrows = 7
-ncols = 5
+nrows = 10
+ncols = 10
 goodtargets = {0}
-badtargets = {4}
-initial = [33]
+initial = [33,40,7,80]
 moveobstacles = []
-targets = [list(goodtargets.union(badtargets))]
+targets = [[0],[9],[20],[95]]
 obstacles = []
 
 
 regionkeys = {'pavement','gravel','grass','sand','deterministic'}
 regions = dict.fromkeys(regionkeys,{-1})
-regions['sand']= range(nrows*ncols)
+regions['pavement']= range(nrows*ncols)
+# regions_det = dict.fromkeys(regionkeys,{-1})
+# regions_det['deterministic'] = range(nrows*ncols)
 
-gwg = Gridworld(initial, nrows, ncols, 1, targets, obstacles,moveobstacles,regions)
-gwg.render()
+gwg = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions)
+# det_gw = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions_det)
+gwg.render(multicolor=True)
 gwg.draw_state_labels()
 # gwg.save('Examples/example_7x5.png')
 #
@@ -34,16 +36,16 @@ mdp = MDP(states, set(alphabet),transitions)
 # V, goodpolicy = mdp.max_reach_prob(goodtargets, epsilon=0.0001)
 # V, badpolicy = mdp.max_reach_prob(badtargets, epsilon=0.0001)
 randomness = 0
-R = dict([(s,a,next_s),0.0] for s in mdp.states for a in mdp.available(s) for next_s in mdp.post(s,a) )
-R.update([(s,a,next_s),1.0] for s in mdp.states  for a in mdp.available(s) for next_s in mdp.post(s,a) if next_s in goodtargets and s in goodtargets)
-V,goodpolicy =  mdp.T_step_value_iteration(R,20)
-R = dict([(s,a,next_s),0.0] for s in mdp.states for a in mdp.available(s) for next_s in mdp.post(s,a) )
-R.update([(s,a,next_s),1.0] for s in mdp.states  for a in mdp.available(s) for next_s in mdp.post(s,a) if next_s in badtargets and s in badtargets)
-V,badpolicy =  mdp.T_step_value_iteration(R,20)
-MC = mdp.MC_Probability(initial,goodpolicy,2)
-obs = mdp.observation(goodpolicy,27,initial,2)
+policy = []
+for k in targets:
+    R = dict([(s,a,next_s),0.0] for s in mdp.states for a in mdp.available(s) for next_s in mdp.post(s,a) )
+    R.update([(s,a,next_s),1.0] for s in mdp.states  for a in mdp.available(s) for next_s in mdp.post(s,a) if next_s in set(k) and s in set(k))
+    V,goodpolicy =  mdp.T_step_value_iteration(R,40)
+    policy.append(goodpolicy)
+# MC = mdp.MC_Probability(initial,goodpolicy,2)
+# obs = mdp.observation(goodpolicy,27,initial,2)
 
-gwg.play(goodpolicy)
+gwg.play(True,policy,mdp)
 # bad_MC = mdp.construct_MC(badpolicy,'Examples/7x5_bad.txt')
 
 # Construct product mdp
