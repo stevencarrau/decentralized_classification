@@ -20,7 +20,7 @@ regions_det['deterministic'] = range(nrows*ncols)
 gwg = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions)
 det_gw = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions_det)
 gwg.render(multicolor=True)
-gwg.draw_state_labels()
+# gwg.draw_state_labels()
 # gwg.save('Examples/example_7x5.png')
 #
 states = range(gwg.nstates)

@@ -9,12 +9,13 @@ import pygame.locals as pgl
 
 class Gridworld():
     # a gridworld with uneven terrain
-    def __init__(self, initial, nrows=8, ncols=8, nagents=1, targets=[], obstacles=[], moveobstacles = [], regions=dict(),size=30):
+    def __init__(self, initial, nrows=8, ncols=8, nagents=1, targets=[], obstacles=[], moveobstacles = [], regions=dict(),size=100,obs_range=3):
         # walls are the obstacles. The edges of the gridworld will be included into the walls.
         # region is a string and can be one of: ['pavement','gravel', 'grass', 'sand']
+        self.size = size
         self.initial = initial
         self.current = initial
-        self.nrows = nrows  
+        self.nrows = nrows
         self.ncols = ncols
         self.nagents = nagents
         self.nstates = nrows * ncols
@@ -30,6 +31,10 @@ class Gridworld():
         self.moveobstacles = moveobstacles
         self.states = range(nrows*ncols)
         self.colorstates = set()
+        self.agentcolors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
+        self.agent_list = []
+        for n,n_i in zip(self.current,range(self.nagents)):
+            self.agent_list.append(self.Agent(self.indx2coord(n,center=True),tuple(255*np.array(self.agentcolors[list(self.agentcolors)[n_i]])),size,obs_range))
         for x in range(self.nstates):
             # note that edges are not disjoint, so we cannot use elif
             if x % self.ncols == 0:
@@ -173,11 +178,10 @@ class Gridworld():
 
     ## Everything from here onwards is for creating the image
 
-    def render(self, size=100,multicolor=False,nom_policy=False):
-        self.height = self.nrows * size + self.nrows + 1
-        self.width = self.ncols * size + self.ncols + 1
-        self.size = size
-
+    def render(self,multicolor=False,nom_policy=False):
+        self.height = self.nrows * self.size + self.nrows + 1
+        self.width = self.ncols * self.size + self.ncols + 1
+    
         #       # initialize pygame ( SDL extensions )
         pygame.init()
         pygame.display.set_mode((self.width, self.height))
@@ -186,17 +190,17 @@ class Gridworld():
         self.surface = pygame.Surface(self.screen.get_size())
         self.bg = pygame.Surface(self.screen.get_size())
         self.bg_rendered = False  # optimize background render
-
         self.background(multicolor)
         self.screen.blit(self.surface, (0, 0))
         pygame.display.flip()
-
+    
         self.build_templates()
         self.updategui = True  # switch to stop updating gui if you want to collect a trace quickly
+    
+        for a_i in self.agent_list:
+            a_i.draw(self.screen,nom_policy)
 
-        self.state2circle(state=self.current,multicolor=multicolor)
-        if nom_policy:
-            self.routes(state=self.current,nom_policy=nom_policy,multicolor=multicolor)
+        
 
     def getkeyinput(self):
         events = pygame.event.get()
@@ -249,6 +253,10 @@ class Gridworld():
                    int(j * (self.size + 1) + 1 + self.size / 2)
         else:
             return int(i * (self.size + 1) + 1), int(j * (self.size + 1) + 1)
+    
+    def obsbox(self,s,obsrange):
+        i, j = self.coords(s)
+        return  max(int((j-obsrange) * (self.size + 1) + 1),1),max(int((i-obsrange) * (self.size + 1) + 1),1),min(int((j+obsrange+1) * (self.size + 1) + 1),self.nrows*(self.size+1)),min(int((i+obsrange+1) * (self.size + 1) + 1),self.ncols*(self.size+1))
 
     def accessible_blocks(self, s):
         """
@@ -427,9 +435,9 @@ class Gridworld():
     def play(self,multicolor=True,policy=None):
         
         while any([self.current[i] not in self.targets[i] for i in range(self.nagents)]):
-            nom_policy = []
+            # nom_policy = []
             for idx_j,j in enumerate(self.current):
-                self.render(multicolor=multicolor)
+                # self.render(multicolor=multicolor)
                 if policy is None:
                     while True:
                         arrow = self.getkeyinput()
@@ -441,15 +449,43 @@ class Gridworld():
                     # pygame.time.wait(50)
                     # print("P: ",policy[idx_j].observation(est_loc=self.targets[0][0],last_sight=[self.current[idx_j]],t=2))
                     self.current[idx_j] = int(np.random.choice(range(self.prob[arrow][self.current[idx_j]].reshape(-1,).shape[0]),None,False,self.prob[arrow][self.current[idx_j]].reshape(-1,)))
+                    self.agent_list[idx_j].updatePosition(self.indx2coord(self.current[idx_j],center=True),self.obsbox(self.current[idx_j],self.agent_list[idx_j].obs_range))
                     policy[idx_j].updateNominal(self.current[idx_j])
-                    nom_policy.append(policy[idx_j].nom_trace)
-            self.render(multicolor=multicolor,nom_policy=nom_policy)
-            self.draw_state_labels()
+                    self.agent_list[idx_j].updateRoute([list(reversed(self.indx2coord(r_i,center=True))) for r_i in policy[idx_j].nom_trace.values()])
+            self.render(multicolor=multicolor,nom_policy=True)
+            # self.draw_state_labels()
             pygame.time.wait(1000)
         pygame.quit()
         return print("Goal!")
 
-    # class Routes():
-    #     def __init__(self,color=(0,0,0),nom_pol):
-    #         self.color=color
-    #         self.route=nom_pol
+    class Agent():
+        def __init__(self, loc, color, icon_size,obs_range):
+            self.location = loc
+            self.box = None
+            self.color = color
+            self.size = int(icon_size / 2)
+            self.route = None
+            self.obs_range = obs_range
+    
+        def updateSize(self, size):
+            self.size = size
+    
+        def updatePosition(self, loc,box):
+            self.location = loc
+            self.box = box
+    
+        def updateRoute(self, route):
+            self.route = route
+    
+        def draw(self, surface, route=False):
+            if route:
+                pygame.draw.rect(surface,self.lightener(self.color,0.6),self.box,5)
+                pygame.draw.lines(surface, self.color, False, self.route, int(self.size / 5))
+            pygame.draw.circle(surface, self.color, tuple(reversed(self.location)), self.size)
+            surface.blit(surface, (0, 0))
+            pygame.display.flip()
+            
+        def lightener(self,color,ratio):
+            color = np.array(color)
+            white = np.array([255,255,255])
+            return (1.0-ratio)*color+ratio*white
