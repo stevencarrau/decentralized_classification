@@ -50,10 +50,7 @@ for i,k in zip(initial,targets):
     pol_array.append(Policy(mdp,nfa,i,k,40))
     print("Policy ",c_i," -- complete")
     c_i += 1
-    # R = dict([(s,a,next_s),0.0] for s in mdp.states for a in mdp.available(s) for next_s in mdp.post(s,a) )
-    # R.update([(s,a,next_s),1.0] for s in mdp.states  for a in mdp.available(s) for next_s in mdp.post(s,a) if next_s in set(k) and s in set(k))
-    # V,goodpolicy = mdp.T_step_value_iteration(R,40)
-    # policy.append(goodpolicy)
+
 # MC = mdp.MC_Probability(initial,goodpolicy,2)
 # obs = mdp.observation(goodpolicy,27,initial,2)
 

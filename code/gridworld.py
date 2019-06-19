@@ -444,6 +444,7 @@ class Gridworld():
                     policy[idx_j].updateNominal(self.current[idx_j])
                     nom_policy.append(policy[idx_j].nom_trace)
             self.render(multicolor=multicolor,nom_policy=nom_policy)
+            self.draw_state_labels()
             pygame.time.wait(1000)
         pygame.quit()
         return print("Goal!")
