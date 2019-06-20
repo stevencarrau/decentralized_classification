@@ -7,9 +7,10 @@ ncols = 10
 goodtargets = {0}
 initial = [33,40,7,80]
 moveobstacles = []
-targets = [[0],[9],[20],[95]]
+targets = [[0],[69],[20],[95]]
 obstacles = []
 
+evil_switch = True
 
 regionkeys = {'pavement','gravel','grass','sand','deterministic'}
 regions = dict.fromkeys(regionkeys,{-1})
@@ -47,7 +48,10 @@ pol_array = []
 c_i = 0
 print("Computing policies")
 for i,k in zip(initial,targets):
-    pol_array.append(Policy(mdp,nfa,i,k,40))
+    if evil_switch and i==80:
+        pol_array.append(Policy(mdp,nfa,i,targets[1],40,k))
+    else:
+        pol_array.append(Policy(mdp,nfa,i,k,40,k))
     print("Policy ",c_i," -- complete")
     c_i += 1
 

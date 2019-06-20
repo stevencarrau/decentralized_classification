@@ -279,6 +279,7 @@ class MDP(NFA):
             trace[t] = ns
             if ns == targ:
                 return trace
+        return trace
     #
 
         
