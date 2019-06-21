@@ -14,7 +14,7 @@ evil_switch = True
 
 regionkeys = {'pavement','gravel','grass','sand','deterministic'}
 regions = dict.fromkeys(regionkeys,{-1})
-regions['pavement']= range(nrows*ncols)
+regions['grass']= range(nrows*ncols)
 regions_det = dict.fromkeys(regionkeys,{-1})
 regions_det['deterministic'] = range(nrows*ncols)
 
