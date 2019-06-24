@@ -1,11 +1,13 @@
 
 from nfa import NFA
+from dfa import *
 import numpy as np
+from scipy import stats
 import random
 from tqdm import tqdm
 
 class MDP(NFA):
-    def __init__(self, states, alphabet, transitions=[]):
+    def __init__(self, states=[], alphabet=set(), transitions=[],init=None,L=dict([])):
         # we call the underlying NFA constructor but drop the probabilities
         trans = [(s, a, t) for s, a, t, p in transitions]
         super(MDP, self).__init__(states, alphabet, trans)
@@ -15,16 +17,20 @@ class MDP(NFA):
         for s, a, t, p in transitions:
             self._prob_cache[(s, a, t)] = p
         self._prepare_post_cache()
-        # self.Observations = []
-        # obs = dict()
-        # for s in self.states:
-        #     o_value,n_value = self.observation_model(s, gwg)
-        #     obs.update({s:o_value})
-        # self.Observations.append(obs)
-
+        self.init = init
+        self.L = L
+        
+    def add_labels(self,L):
+        self.L = L
+        
+    def add_init(self,init):
+        self.init = init
 
     def prob_delta(self, s, a, t):
         return self._prob_cache[(s, a, t)]
+    
+    def get_prob(self,t):
+        return self._prob_cache.get(t)
 
     def sample(self, state, action):
         """Sample the next state according to the current state, the action,  and
@@ -280,6 +286,42 @@ class MDP(NFA):
             if ns == targ:
                 return trace
         return trace
+
+def productMDP(mdp, dra):
+    pmdp = MDP()
+    init = (mdp.init, dra.get_transition(mdp.L[mdp.init], dra.initial_state))
+    states = []
+    for s in mdp.states:
+        for q in dra.states:
+            states.append((s, q))
+    N = len(states)
+    pmdp.init = init
+    pmdp.actlist = list(mdp.actlist)
+    pmdp.states = list(states)
+    for a in pmdp.actlist:
+        pmdp.prob[a] = np.zeros((N, N))
+        for i in range(N):
+            (s, q) = pmdp.states[i]
+        
+            pmdp.L[(s, q)] = mdp.L[s]
+            for j in range(N):
+                (next_s, next_q) = pmdp.states[j]
+                if next_q == dra.get_transition(mdp.L[next_s], q):
+                    p = mdp.P(s, a, next_s)
+                    pmdp.prob[a][i, j] = p
+    mdp_acc = []
+    for (J, K) in dra.acc:
+        Jmdp = set([])
+        Kmdp = set([])
+        for s in states:
+            if s[1] in J:
+                Jmdp.add(s)
+            if s[1] in K:
+                Kmdp.add(s)
+        mdp_acc.append((Jmdp, Kmdp))
+    pmdp.acc = mdp_acc
+    return pmdp
+
     #
 
         

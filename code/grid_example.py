@@ -1,13 +1,16 @@
 from gridworld import *
-from mdp import MDP
+from mdp import *
 from policy import Policy
+from agent import Agent
+
 # from tqdm import tqdm
 nrows = 10
 ncols = 10
 goodtargets = {0}
-initial = [33,40,7,80]
+initial = [(33,0),(40,0),(7,0),(80,0)]
 moveobstacles = []
-targets = [[0],[69],[20],[95]]
+targets = [[0,9],[60,69],[20,39],[79,95]]
+public_targets = [[0,9],[60,69],[20,39],[55,95]]
 obstacles = []
 
 evil_switch = True
@@ -18,7 +21,7 @@ regions['grass']= range(nrows*ncols)
 regions_det = dict.fromkeys(regionkeys,{-1})
 regions_det['deterministic'] = range(nrows*ncols)
 
-gwg = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions)
+gwg = Gridworld(initial, nrows, ncols, len(initial), public_targets, obstacles,moveobstacles,regions)
 det_gw = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions_det)
 gwg.render(multicolor=True)
 # gwg.draw_state_labels()
@@ -40,25 +43,18 @@ for s in states:
 mdp = MDP(states, set(alphabet),transitions)
 nfa = MDP(states,set(alphabet),det_trans) #deterministic transitions
 print("Models built")
-
-# V, goodpolicy = mdp.max_reach_prob(goodtargets, epsilon=0.0001)
-# V, badpolicy = mdp.max_reach_prob(badtargets, epsilon=0.0001)
-randomness = 0
-pol_array = []
+agent_array = []
 c_i = 0
 print("Computing policies")
-for i,k in zip(initial,targets):
-    if evil_switch and i==80:
-        pol_array.append(Policy(mdp,nfa,i,targets[1],40,k))
+for i,j,k in zip(initial,targets,public_targets):
+    if evil_switch:
+        agent_array.append(Agent(i,j,k,mdp,nfa))
     else:
-        pol_array.append(Policy(mdp,nfa,i,k,40,k))
+        agent_array.append(Agent(i,k, k, mdp, nfa))
     print("Policy ",c_i," -- complete")
     c_i += 1
 
-# MC = mdp.MC_Probability(initial,goodpolicy,2)
-# obs = mdp.observation(goodpolicy,27,initial,2)
-
-gwg.play(True,pol_array)
+gwg.play(True,agent_array)
 # bad_MC = mdp.construct_MC(badpolicy,'Examples/7x5_bad.txt')
 
 # Construct product mdp
