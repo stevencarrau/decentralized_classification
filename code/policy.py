@@ -19,14 +19,14 @@ class Policy():
 	def computePolicy(self,targ):
 		T = self.lookahead
 		R = dict([(s, a, next_s), 0.0] for s in self.mdp.states for a in self.mdp.available(s) for next_s in self.mdp.post(s, a))
-		R.update([(s, a, next_s), 1.0] for s in self.mdp.states for a in self.mdp.available(s) for next_s in self.mdp.post(s, a) if next_s in set(targ) and s in set(targ))
+		R.update([(s, a, next_s), 1.0] for s in self.mdp.states for a in self.mdp.available(s) for next_s in self.mdp.post(s, a) if next_s in set(targ))
 		V,pol_dict = self.mdp.T_step_value_iteration(R,T)
 		return pol_dict
 		
 	def updatePolicy(self):
 		T = self.lookahead
 		R = dict([(s, a, next_s), 0.0] for s in self.mdp.states for a in self.mdp.available(s) for next_s in self.mdp.post(s, a))
-		R.update([(s, a, next_s), 1.0] for s in self.mdp.states for a in self.mdp.available(s) for next_s in self.mdp.post(s, a) if next_s in set(self.target) and s in set(self.target))
+		R.update([(s, a, next_s), 1.0] for s in self.mdp.states for a in self.mdp.available(s) for next_s in self.mdp.post(s, a) if next_s in set(self.target))
 		V, pol_dict = self.mdp.T_step_value_iteration(R, T)
 		self.policy = pol_dict
 		self.mc = self.mdp.construct_MC(self.policy)

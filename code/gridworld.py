@@ -34,7 +34,7 @@ class Gridworld():
         self.agentcolors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
         self.agent_list = []
         for n,n_i in zip(self.current,range(self.nagents)):
-            self.agent_list.append(self.Agent(self.indx2coord(n,center=True),tuple(255*np.array(self.agentcolors[list(self.agentcolors)[n_i]])),size,obs_range))
+            self.agent_list.append(self.Agent_Vis(self.indx2coord(n[0],center=True),tuple(255*np.array(self.agentcolors[list(self.agentcolors)[n_i]])),size,obs_range))
         for x in range(self.nstates):
             # note that edges are not disjoint, so we cannot use elif
             if x % self.ncols == 0:
@@ -436,7 +436,7 @@ class Gridworld():
         target_union = set()
         for t in self.targets:
             target_union.update(set(t))
-        while any([self.current[i] not in target_union for i in range(self.nagents)]):
+        while any([self.current[i][0] not in target_union for i in range(self.nagents)]):
             # nom_policy = []
             for idx_j,j in enumerate(self.current):
                 # self.render(multicolor=multicolor)
@@ -447,22 +447,22 @@ class Gridworld():
                             break
                     self.current[idx_j] = int(np.random.choice(range(self.prob[arrow][self.current[idx_j]].reshape(-1, ).shape[0]), None,False, self.prob[arrow][self.current[idx_j]].reshape(-1, )))
                 else:
-                    arrow = self.actlist[policy[idx_j].sample(j)]
+                    arrow = self.actlist[policy[idx_j].policy.sample(j)]
                     prev_state = self.current[idx_j]
                     # pygame.time.wait(50)
                     # print("P: ",policy[idx_j].observation(est_loc=self.targets[0][0],last_sight=[self.current[idx_j]],t=2))
-                    self.current[idx_j] = int(np.random.choice(range(self.prob[arrow][self.current[idx_j]].reshape(-1,).shape[0]),None,False,self.prob[arrow][self.current[idx_j]].reshape(-1,)))
-                    self.agent_list[idx_j].updatePosition(self.indx2coord(self.current[idx_j],center=True),self.obsbox(self.current[idx_j],self.agent_list[idx_j].obs_range))
-                    policy[idx_j].updateNominal(self.current[idx_j])
-                    self.agent_list[idx_j].updateRoute([list(reversed(self.indx2coord(r_i,center=True))) for r_i in policy[idx_j].nom_trace.values()])
-                    print("Local likelihood for ",idx_j,": ",policy[idx_j].observation(self.current[idx_j],[prev_state],1))
+                    self.current[idx_j] = policy[idx_j].pmdp.sample(prev_state,policy[idx_j].policy.sample(j))
+                    self.agent_list[idx_j].updatePosition(self.indx2coord(self.current[idx_j][0],center=True),self.obsbox(self.current[idx_j][0],self.agent_list[idx_j].obs_range))
+                    policy[idx_j].policy.updateNominal(self.current[idx_j])
+                    self.agent_list[idx_j].updateRoute([list(reversed(self.indx2coord(r_i[0],center=True))) for r_i in policy[idx_j].policy.nom_trace.values()])
+                    # print("Local likelihood for ",idx_j,": ",policy[idx_j].policy.observation(self.current[idx_j],[prev_state],1))
             self.render(multicolor=multicolor,nom_policy=True)
             # self.draw_state_labels()
             pygame.time.wait(1000)
         pygame.quit()
         return print("Goal!")
 
-    class Agent():
+    class Agent_Vis():
         def __init__(self, loc, color, icon_size,obs_range):
             self.location = loc
             self.box = None
