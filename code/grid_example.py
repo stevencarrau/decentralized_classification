@@ -13,7 +13,7 @@ targets = [[0,9],[60,69],[20,39],[79,95]]
 public_targets = [[0,9],[60,69],[20,39],[55,95]]
 obstacles = []
 
-evil_switch = False
+evil_switch = True
 
 regionkeys = {'pavement','gravel','grass','sand','deterministic'}
 regions = dict.fromkeys(regionkeys,{-1})
@@ -21,7 +21,7 @@ regions['pavement']= range(nrows*ncols)
 regions_det = dict.fromkeys(regionkeys,{-1})
 regions_det['deterministic'] = range(nrows*ncols)
 
-gwg = Gridworld(initial, nrows, ncols, len(initial), public_targets, obstacles,moveobstacles,regions)
+gwg = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions,public_targets=public_targets)
 det_gw = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions_det)
 gwg.render(multicolor=True)
 # gwg.draw_state_labels()

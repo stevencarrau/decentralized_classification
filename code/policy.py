@@ -3,23 +3,23 @@ import random
 
 class Policy():
 	
-	def __init__(self,mdp,nfa,init,target,lookahead,public_target):
+	def __init__(self,mdp,public_mdp,nfa,public_nfa,init,target,lookahead,public_target):
 		self.mdp = mdp
 		self.nfa = nfa  # Deterministic transitions -- used for nominal trace
 		self.init = init
 		self.target = target
 		self.public_target = public_target
 		self.lookahead = lookahead
-		self.policy = self.computePolicy(self.target)
-		self.public_policy = self.computePolicy(self.public_target)
+		self.policy = self.computePolicy(self.target,mdp)
+		self.public_policy = self.computePolicy(self.public_target,public_mdp)
 		self.mc = self.mdp.construct_MC(self.policy)
-		self.public_mc = self.mdp.construct_MC(self.public_policy)
+		self.public_mc = public_mdp.construct_MC(self.public_policy)
 		self.nom_trace = self.nominalTrace(self.init)
 		
-	def computePolicy(self,targ):
+	def computePolicy(self,targ,mdp):
 		T = self.lookahead
-		R = dict([(s, a, next_s), 0.0] for s in self.mdp.states for a in self.mdp.available(s) for next_s in self.mdp.post(s, a))
-		R.update([(s, a, next_s), 1.0] for s in self.mdp.states for a in self.mdp.available(s) for next_s in self.mdp.post(s, a) if next_s in set(targ))
+		R = dict([(s, a, next_s), 0.0] for s in mdp.states for a in mdp.available(s) for next_s in mdp.post(s, a))
+		R.update([(s, a, next_s), 1.0] for s in mdp.states for a in mdp.available(s) for next_s in mdp.post(s, a) if next_s in set(targ))
 		V,pol_dict = self.mdp.T_step_value_iteration(R,T)
 		return pol_dict
 		

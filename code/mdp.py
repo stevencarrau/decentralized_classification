@@ -104,10 +104,10 @@ class MDP(NFA):
                                 for s1 in self.post(s, a)])][0]
             maxV = max(Vmax.values())
             for a in Vmax.keys():
-                # if maxV == Vmax[a]:
-                #     policy[s].add(a)
-                if maxV - Vmax[a] <= epsilon:
+                if maxV == Vmax[a]:
                     policy[s].add(a)
+                # if maxV == Vmax[a] <= epsilon:
+                #     policy[s].add(a)
         return U, policy
 
     # def E_step_value_iteration(self,R,

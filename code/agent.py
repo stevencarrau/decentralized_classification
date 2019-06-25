@@ -34,9 +34,13 @@ class Agent():
 						dra.add_transition(q,q,q+1)
 				else:
 					dra.add_transition(i, q, q)
+		self.public_mdp.add_init(init)
+		self.public_nfa.add_init(init)
 		self.pmdp = self.productMDP(self.mdp,dra)
+		self.public_pmdp = self.productMDP(self.public_mdp,dra)
 		self.pnfa = self.productMDP(self.nfa,dra)
-		self.policy = Policy(self.pmdp,self.pnfa,self.pmdp.init,t_list,40,p_list)
+		self.public_pnfa = self.productMDP(self.public_nfa,dra)
+		self.policy = Policy(self.pmdp,self.public_pmdp,self.pnfa,self.public_pnfa,self.pmdp.init,t_list,40,p_list)
 	
 	def productMDP(self,mdp,dra):
 		init = self.init
