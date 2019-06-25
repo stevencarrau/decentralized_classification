@@ -8,8 +8,8 @@ class Agent():
 		self.targets = target_list
 		self.public_targets = public_list
 		t_num = list(range(len(target_list)))
-		t_list = list(zip(self.targets,[t_num[-1]]+t_num[:-1]))
-		p_list = list(zip(self.public_targets,[t_num[-1]]+t_num[:-1]))
+		t_list = list(zip(self.targets,t_num))#[t_num[-1]]+t_num[:-1]))
+		p_list = list(zip(self.public_targets,t_num))#[t_num[-1]]+t_num[:-1]))
 		self.mdp = mdp
 		self.public_mdp = mdp
 		labels = dict([])
@@ -56,8 +56,8 @@ class Agent():
 				for j in range(N):
 					(next_s, next_q) = states[j]
 					p = mdp.get_prob((s,a,next_s))
-					if type(mdp.L.get(next_s)) is int:
-						if next_q == dra.get_transition(mdp.L.get(next_s),q) and p:
+					if type(mdp.L.get(s)) is int:
+						if next_q == dra.get_transition(mdp.L.get(s),q) and p:
 							trans.append(((s,q),a,(next_s,next_q),p))
 					elif p and q==next_q:
 						trans.append(((s,q),a,(next_s,q),p))
