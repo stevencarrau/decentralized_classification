@@ -23,6 +23,7 @@ class Gridworld():
         self.regions = regions
         self.actlist = ['N', 'S', 'W', 'E', 'R']
         self.targets = targets
+        self.obs_range = obs_range
         if public_targets:
             self.public_targets = public_targets
         else:
@@ -52,13 +53,25 @@ class Gridworld():
         self.edges = self.left_edge + self.top_edge + self.right_edge + self.bottom_edge
         self.walls = self.edges + obstacles
         self.prob = {a: np.zeros((self.nstates, self.nstates)) for a in self.actlist}
-
         self.probOfSuccess = dict([])
         self.getProbRegions()
-
+        self.observable_states = dict([])
         for s in self.states:
+            self.observable_states.update({s:self.obs_zone(s)})
             for a in self.actlist:
                 self.getProbs(s, a)
+
+    def obs_zone(self,s):
+        zone = set()
+        i,j = self.coords(s)
+        max_i = min(i+self.obs_range+0,self.ncols)
+        min_i = max(i-self.obs_range,0)
+        max_j = min(j+self.obs_range+1,self.nrows)
+        min_j = max(j-self.obs_range,0)
+        for s_i in range(min_i,max_i):
+            for s_j in range(min_j,max_j):
+                zone.add(self.rcoords((s_i,s_j)))
+        return zone
 
     def coords(self, s):
         return (int(s / self.ncols), int(s % self.ncols))  # the coordinate for state s.
@@ -436,40 +449,7 @@ class Gridworld():
         self.bg_rendered = True  # don't render again unless flag is set
         self.surface.blit(self.bg, (0, 0))
     
-    def play(self,multicolor=True,policy=None):
-        target_union = set()
-        for t in self.targets:
-            target_union.update(set(t))
-        while any([self.current[i][0] not in target_union for i in range(self.nagents)]):
-            # nom_policy = []
-            for idx_j,j in enumerate(self.current):
-                # self.render(multicolor=multicolor)
-                if policy is None:
-                    while True:
-                        arrow = self.getkeyinput()
-                        if arrow != None:
-                            break
-                    self.current[idx_j] = int(np.random.choice(range(self.prob[arrow][self.current[idx_j]].reshape(-1, ).shape[0]), None,False, self.prob[arrow][self.current[idx_j]].reshape(-1, )))
-                else:
-                    arrow = self.actlist[policy[idx_j].policy.sample(j)]
-                    s,q = self.current[idx_j]
-                    prev_state = self.current[idx_j]
-                    # pygame.time.wait(50)
-                    s = int(np.random.choice(range(self.prob[arrow][s].reshape(-1,).shape[0]),None,False,self.prob[arrow][s].reshape(-1,)))
-                    if s == self.targets[idx_j][q]:
-                        q += 1
-                        if q == len(self.targets[idx_j]):
-                            q=0
-                    self.current[idx_j] = (s,q)
-                    self.agent_list[idx_j].updatePosition(self.indx2coord(self.current[idx_j][0],center=True),self.obsbox(self.current[idx_j][0],self.agent_list[idx_j].obs_range))
-                    policy[idx_j].policy.updateNominal(self.current[idx_j])
-                    self.agent_list[idx_j].updateRoute([list(reversed(self.indx2coord(r_i[0],center=True))) for r_i in policy[idx_j].policy.nom_trace.values()])
-                    print("Local likelihood for ",idx_j,": ",policy[idx_j].policy.observation(self.current[idx_j],[prev_state],1))
-            self.render(multicolor=multicolor,nom_policy=True)
-            # self.draw_state_labels()
-            pygame.time.wait(1000)
-        pygame.quit()
-        return print("Goal!")
+    
 
     class Agent_Vis():
         def __init__(self, loc, color, icon_size,obs_range):

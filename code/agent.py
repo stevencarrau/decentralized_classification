@@ -1,15 +1,22 @@
 from policy import Policy
 from mdp import *
+import math
 
 class Agent():
 	
-	def __init__(self,init=None,target_list=[],public_list=[],mdp=None,nfa=None):
+	def __init__(self,init=None,target_list=[],public_list=[],mdp=None,nfa=None,gw_env=None):
+		self.id_no = id(self)-1000*math.floor(id(self)/1000)
 		self.init = init
+		self.current = init
 		self.targets = target_list
 		self.public_targets = public_list
 		t_num = list(range(len(target_list)))
 		t_list = list(zip(self.targets,t_num))#[t_num[-1]]+t_num[:-1]))
 		p_list = list(zip(self.public_targets,t_num))#[t_num[-1]]+t_num[:-1]))
+		self.gw = gw_env
+		self.viewable_agents = []
+		self.last_seen = {}
+		self.local_belief = {}
 		self.mdp = mdp
 		self.public_mdp = mdp
 		labels = dict([])
@@ -66,3 +73,47 @@ class Agent():
 					elif p and q==next_q:
 						trans.append(((s,q),a,(next_s,q),p))
 		return MDP(states=list(states),alphabet=mdp.alphabet,transitions=trans,init=init,L=labels)
+	
+	def agent_in_view(self,state,agent_states,agent_id):
+		view_agents = []
+		for a_s,a_i in zip(agent_states,agent_id):
+			if len(a_s)>1:
+				if a_s[0] in self.gw.observable_states[state[0]]:
+					view_agents.append(a_i)
+			else:
+				if a_s in self.gw.observable_states[state]:
+					view_agents.append(a_i)
+		return view_agents
+	
+	
+	def updateAgent(self,state):
+		self.current = state
+		
+	##### Vision rules
+	def updateVision(self,state,agent_states):
+		self.viewable_agents = self.agent_in_view(state,agent_states.values(),agent_states.keys())
+		viewable_states = [agent_states[v_s] for v_s in self.viewable_agents]
+		self.updateTime()
+		self.updateBelief(self.viewable_agents,viewable_states)
+		self.updateLastSeen(self.viewable_agents,viewable_states)
+		
+	def initLastSeen(self,agent_id,agent_states):
+		for a_s,a_i in zip(agent_states,agent_id):
+			self.last_seen.update({a_i:[a_s,0]})  # dictionary of lists: [state,time since observed in that state]
+			self.local_belief.update({a_i:self.policy.observation(a_s,[a_s],0)})
+			
+	def updateLastSeen(self,agent_id,agent_states):
+		assert len(agent_id)==len(agent_states)
+		for a_i,a_s in zip(agent_id,agent_states):
+			self.last_seen[a_i] = [a_s,0]
+		
+	def updateTime(self):
+		for l_i in self.last_seen:
+			self.last_seen[l_i][1] += 1
+
+	### Belief Rules
+	def updateBelief(self,viewable_agents,viewable_states):
+		for a_i,a_s in zip(viewable_agents,viewable_states):
+			self.local_belief[a_i] = self.policy.observation(a_s,[self.last_seen[a_i][0]],self.last_seen[a_i][1])
+	
+	
