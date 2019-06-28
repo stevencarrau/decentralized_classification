@@ -3,7 +3,8 @@ from mdp import *
 import math
 import itertools
 from scipy.special import comb
-
+import operator
+from collections import OrderedDict
 
 class ProbablilityNotOne(Exception):
 	pass
@@ -117,6 +118,7 @@ class Agent():
 
 	### Belief Rules
 	def initBelief(self,agent_id,no_bad):
+		self.no_bad = no_bad
 		no_agents = len(agent_id)
 		no_system_states = 0
 		for b_d in range(no_bad+1):
@@ -130,6 +132,7 @@ class Agent():
 		for t_p in itertools.product(*total_list):
 			if sum(t_p) >= no_agents-no_bad:
 				self.local_belief.update({t_p:belief_value})
+		self.actual_belief = self.local_belief
 		assert(sum(self.local_belief.values())==1.0)#,"Sum is "+str(sum(self.local_belief.values())))
 	
 	def updateBelief(self,viewable_agents,viewable_states):
@@ -141,7 +144,24 @@ class Agent():
 			self.local_belief[b_i] = self.likelihood(b_i,viewable_agents,viewable_states)*self.local_belief[b_i]/tot_b
 		if abs(sum(self.local_belief.values())-1.0)>1e-6:
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))
-		sys_t = list(self.local_belief.keys())[np.argmax(list(self.local_belief.values()))]
+
+	
+	def shareBelief(self,belief_arrays):
+		actual_belief = {}
+		if len(belief_arrays) >= 2*self.no_bad + 1: ## Case 1
+			actual_belief = dict()
+			for theta in self.actual_belief:
+				sorted_belief = sorted([b_a[theta] for b_a in belief_arrays],reverse=True)
+				for f in range(self.no_bad):
+					sorted_belief.pop()
+				sorted_belief.append(self.local_belief[theta])
+				actual_belief.update({theta:min(sorted_belief)})
+		else: # Case 2
+			for theta in self.actual_belief:
+				actual_belief.update({theta:min(self.actual_belief[theta],self.local_belief[theta])})
+		# Normalize
+		self.actual_belief = dict([[theta, actual_belief[theta] / sum(actual_belief.values())] for theta in actual_belief])
+		sys_t = list(self.actual_belief.keys())[np.argmax(list(self.actual_belief.values()))]
 		for i,s_i in enumerate(sys_t):
 			if s_i == 0:
 				self.belief_bad.append(i)

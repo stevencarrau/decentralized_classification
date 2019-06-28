@@ -47,6 +47,9 @@ def play_sim(multicolor=True, agent_array=None,grid=None):
         for a_i,p_i in enumerate(agent_array):
             p_i.updateVision(p_i.current,agent_loc)
             grid.agent_list[a_i].updateConnects([p_i.id_idx[v_a] for v_a in p_i.viewable_agents])
+        for a_i,p_i in enumerate(agent_array):
+            belief_packet = [agent_array[p_i.id_idx[v_a]].actual_belief for v_a in p_i.viewable_agents]
+            p_i.shareBelief(belief_packet)
             grid.agent_list[a_i].updateBeliefColor(grid.agent_list[p_i.belief_bad[0]].color)
         grid.render(multicolor=multicolor, nom_policy=True)
         pygame.time.wait(1000)
@@ -59,7 +62,7 @@ nrows = 10
 ncols = 10
 initial = [(33,0),(41,0),(7,0),(80,0)]
 moveobstacles = []
-targets = [[0,9],[60,69],[20,39],[79,95]]
+targets = [[0,9],[60,69],[20,39],[69,95]]
 public_targets = [[0,9],[60,69],[20,39],[55,95]]
 obstacles = []
 obs_range = 8
