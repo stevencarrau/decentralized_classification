@@ -50,28 +50,44 @@ def play_sim(multicolor=True, agent_array=None,grid=None):
         for a_i,p_i in enumerate(agent_array):
             belief_packet = [agent_array[p_i.id_idx[v_a]].actual_belief for v_a in p_i.viewable_agents]
             p_i.shareBelief(belief_packet)
-            grid.agent_list[a_i].updateBeliefColor(grid.agent_list[p_i.belief_bad[0]].color)
+            if p_i.belief_bad:
+                col = grid.agent_list[p_i.belief_bad[0]].color
+            else:
+                col = (255,255,255)
+            grid.agent_list[a_i].updateBeliefColor(col)
         grid.render(multicolor=multicolor, nom_policy=True)
         pygame.time.wait(1000)
     pygame.quit()
     return print("Goal!")
 
-
-# from tqdm import tqdm
 nrows = 10
 ncols = 10
-initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
 moveobstacles = []
-targets = [[0,9],[60,69],[20,39],[69,95],[99,19]]
-public_targets = [[0,9],[60,69],[20,39],[55,95],[99,19]]
 obstacles = []
-obs_range = 5
+# # 5 agents small range
+initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
+targets = [[0,9],[60,69],[20,39],[69,95],[99,11]]
+public_targets = [[0,9],[60,69],[20,39],[55,95],[99,11]]
+obs_range = 4
+
+# 4 agents larger range
+# initial = [(33,0),(41,0),(7,0),(80,0)]
+# targets = [[0,9],[60,69],[20,39],[69,95]]
+# public_targets = [[0,9],[60,69],[20,39],[55,95]]
+# obs_range = 5
+
+# 4 agents big range
+# initial = [(33,0),(41,0),(7,0),(80,0)]
+# targets = [[0,9],[60,69],[20,39],[69,95]]
+# public_targets = [[0,9],[60,69],[20,39],[55,95]]
+# obs_range = 5
+
 
 evil_switch = True
 
 regionkeys = {'pavement','gravel','grass','sand','deterministic'}
 regions = dict.fromkeys(regionkeys,{-1})
-regions['deterministic']= range(nrows*ncols)
+regions['pavement']= range(nrows*ncols)
 regions_det = dict.fromkeys(regionkeys,{-1})
 regions_det['deterministic'] = range(nrows*ncols)
 
@@ -107,9 +123,11 @@ for i,j,k in zip(initial,targets,public_targets):
         agent_array.append(Agent(i,k, k, mdp, nfa,gwg))
     print("Policy ",c_i," -- complete")
     c_i += 1
-
+id_list = [a_l.id_no for a_l in agent_array]
+pol_list = [a_l.policy for a_l in agent_array]
 for a_i in agent_array:
     a_i.initBelief([a_l.id_no for a_l in agent_array],1)
+    a_i.definePolicyDict(id_list,pol_list)
 
 play_sim(True,agent_array,gwg)
 

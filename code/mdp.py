@@ -42,7 +42,7 @@ class MDP(NFA):
         for t in self.post(state, action):
             prob.append(self.prob_delta(state, action, t))
 
-        next_state = list(self.post(state, action))[np.random.choice(range(len(self.post(state, action))),1,prob)[0]]
+        next_state = list(self.post(state, action))[np.random.choice(range(len(self.post(state, action))),1,p=prob)[0]]
         # Note that only one element is chosen from the array, which is the
         # output by random.choice
         return next_state
@@ -286,40 +286,40 @@ class MDP(NFA):
                 return trace
         return trace
 
-def productMDP(mdp, dra):
-    pmdp = MDP()
-    init = (mdp.init, dra.get_transition(mdp.L[mdp.init], dra.initial_state))
-    states = []
-    for s in mdp.states:
-        for q in dra.states:
-            states.append((s, q))
-    N = len(states)
-    pmdp.init = init
-    pmdp.actlist = list(mdp.actlist)
-    pmdp.states = list(states)
-    for a in pmdp.actlist:
-        pmdp.prob[a] = np.zeros((N, N))
-        for i in range(N):
-            (s, q) = pmdp.states[i]
-        
-            pmdp.L[(s, q)] = mdp.L[s]
-            for j in range(N):
-                (next_s, next_q) = pmdp.states[j]
-                if next_q == dra.get_transition(mdp.L[next_s], q):
-                    p = mdp.P(s, a, next_s)
-                    pmdp.prob[a][i, j] = p
-    mdp_acc = []
-    for (J, K) in dra.acc:
-        Jmdp = set([])
-        Kmdp = set([])
-        for s in states:
-            if s[1] in J:
-                Jmdp.add(s)
-            if s[1] in K:
-                Kmdp.add(s)
-        mdp_acc.append((Jmdp, Kmdp))
-    pmdp.acc = mdp_acc
-    return pmdp
+# def productMDP(mdp, dra):
+#     pmdp = MDP()
+#     init = (mdp.init, dra.get_transition(mdp.L[mdp.init], dra.initial_state))
+#     states = []
+#     for s in mdp.states:
+#         for q in dra.states:
+#             states.append((s, q))
+#     N = len(states)
+#     pmdp.init = init
+#     pmdp.actlist = list(mdp.actlist)
+#     pmdp.states = list(states)
+#     for a in pmdp.actlist:
+#         pmdp.prob[a] = np.zeros((N, N))
+#         for i in range(N):
+#             (s, q) = pmdp.states[i]
+#
+#             pmdp.L[(s, q)] = mdp.L[s]
+#             for j in range(N):
+#                 (next_s, next_q) = pmdp.states[j]
+#                 if next_q == dra.get_transition(mdp.L[next_s], q):
+#                     p = mdp.P(s, a, next_s)
+#                     pmdp.prob[a][i, j] = p
+#     mdp_acc = []
+#     for (J, K) in dra.acc:
+#         Jmdp = set([])
+#         Kmdp = set([])
+#         for s in states:
+#             if s[1] in J:
+#                 Jmdp.add(s)
+#             if s[1] in K:
+#                 Kmdp.add(s)
+#         mdp_acc.append((Jmdp, Kmdp))
+#     pmdp.acc = mdp_acc
+#     return pmdp
 
     #
 

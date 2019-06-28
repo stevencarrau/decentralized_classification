@@ -80,6 +80,9 @@ class Agent():
 						trans.append(((s,q),a,(next_s,q),p))
 		return MDP(states=list(states),alphabet=mdp.alphabet,transitions=trans,init=init,L=labels)
 	
+	def definePolicyDict(self,id_list,policy_array):
+		self.policy_list = dict([[i,p_i] for i,p_i in zip(id_list,policy_array)])
+	
 	def agent_in_view(self,state,agent_states,agent_id):
 		view_agents = []
 		for a_s,a_i in zip(agent_states,agent_id):
@@ -132,7 +135,7 @@ class Agent():
 		for t_p in itertools.product(*total_list):
 			if sum(t_p) >= no_agents-no_bad:
 				self.local_belief.update({t_p:belief_value})
-		self.actual_belief = self.local_belief
+		self.actual_belief = self.local_belief.copy()
 		if abs(sum(self.local_belief.values())-1.0)>1e-6:
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))#,"Sum is "+str(sum(self.local_belief.values())))
 	
@@ -168,10 +171,10 @@ class Agent():
 				self.belief_bad.append(i)
 		
 	def likelihood(self,sys_status,viewable_agents,viewable_states):
-		epsilon = 1e-5
+		epsilon = 1e-9
 		view_prob = []
 		for a_i,a_s in zip(viewable_agents,viewable_states):
-			view_prob.append(self.policy.observation(a_s,[self.last_seen[a_i][0]],self.last_seen[a_i][1]))
+			view_prob.append(self.policy_list[a_i].observation(a_s,[self.last_seen[a_i][0]],self.last_seen[a_i][1]))
 		view_index = [self.id_idx[v_a] for v_a in viewable_agents]
 		prob_i = 1.0
 		for v_i,v_p in zip(view_index,view_prob):
