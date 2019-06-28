@@ -64,30 +64,36 @@ nrows = 10
 ncols = 10
 moveobstacles = []
 obstacles = []
-# # 5 agents small range
-initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
-targets = [[0,9],[60,69],[20,39],[69,95],[99,11]]
-public_targets = [[0,9],[60,69],[20,39],[55,95],[99,11]]
+# # # 5 agents small range
+# initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
+# targets = [[0,9],[60,69],[20,39],[69,95],[99,11]]
+# public_targets = [[0,9],[60,69],[20,39],[55,95],[99,11]]
+# obs_range = 4
+
+# # # 6 agents small range
+initial = [(33,0),(41,0),(7,0),(80,0),(69,1),(92,0)]
+targets = [[0,9],[60,69],[20,39],[69,95],[99,11],[9,91]]
+public_targets = [[0,9],[60,69],[20,39],[55,95],[99,11],[9,91]]
 obs_range = 4
 
-# 4 agents larger range
+# #4 agents larger range
 # initial = [(33,0),(41,0),(7,0),(80,0)]
 # targets = [[0,9],[60,69],[20,39],[69,95]]
 # public_targets = [[0,9],[60,69],[20,39],[55,95]]
 # obs_range = 5
 
-# 4 agents big range
+# #4 agents big range
 # initial = [(33,0),(41,0),(7,0),(80,0)]
 # targets = [[0,9],[60,69],[20,39],[69,95]]
 # public_targets = [[0,9],[60,69],[20,39],[55,95]]
-# obs_range = 5
+# obs_range = 4
 
 
 evil_switch = True
 
 regionkeys = {'pavement','gravel','grass','sand','deterministic'}
 regions = dict.fromkeys(regionkeys,{-1})
-regions['pavement']= range(nrows*ncols)
+regions['grass']= range(nrows*ncols)
 regions_det = dict.fromkeys(regionkeys,{-1})
 regions_det['deterministic'] = range(nrows*ncols)
 
