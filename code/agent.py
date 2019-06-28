@@ -1,6 +1,12 @@
 from policy import Policy
 from mdp import *
 import math
+import itertools
+from scipy.special import comb
+
+
+class ProbablilityNotOne(Exception):
+	pass
 
 class Agent():
 	
@@ -16,7 +22,6 @@ class Agent():
 		self.gw = gw_env
 		self.viewable_agents = []
 		self.last_seen = {}
-		self.local_belief = {}
 		self.mdp = mdp
 		self.public_mdp = mdp
 		labels = dict([])
@@ -47,7 +52,7 @@ class Agent():
 		self.public_pmdp = self.productMDP(self.public_mdp,dra)
 		self.pnfa = self.productMDP(self.nfa,dra)
 		self.public_pnfa = self.productMDP(self.public_nfa,dra)
-		self.policy = Policy(self.pmdp,self.public_pmdp,self.pnfa,self.public_pnfa,self.pmdp.init,t_list,40,p_list)
+		self.policy = Policy(self.pmdp,self.public_pmdp,self.pnfa,self.public_pnfa,self.pmdp.init,t_list,50,p_list)
 	
 	def productMDP(self,mdp,dra):
 		init = self.init
@@ -100,7 +105,6 @@ class Agent():
 	def initLastSeen(self,agent_id,agent_states):
 		for a_s,a_i in zip(agent_states,agent_id):
 			self.last_seen.update({a_i:[a_s,0]})  # dictionary of lists: [state,time since observed in that state]
-			self.local_belief.update({a_i:self.policy.observation(a_s,[a_s],0)})
 			
 	def updateLastSeen(self,agent_id,agent_states):
 		assert len(agent_id)==len(agent_states)
@@ -112,8 +116,46 @@ class Agent():
 			self.last_seen[l_i][1] += 1
 
 	### Belief Rules
+	def initBelief(self,agent_id,no_bad):
+		no_agents = len(agent_id)
+		no_system_states = 0
+		for b_d in range(no_bad+1):
+			no_system_states += comb(no_agents,b_d)
+		belief_value = 1.0/no_system_states
+		base_list =[0,1] # 0 is bad, 1 is good
+		total_list = [base_list for n in range(len(agent_id))]
+		self.id_idx = dict([[k,j] for j,k in enumerate(agent_id)])
+		self.local_belief = {}
+		self.belief_bad = []
+		for t_p in itertools.product(*total_list):
+			if sum(t_p) >= no_agents-no_bad:
+				self.local_belief.update({t_p:belief_value})
+		assert(sum(self.local_belief.values())==1.0)#,"Sum is "+str(sum(self.local_belief.values())))
+	
 	def updateBelief(self,viewable_agents,viewable_states):
+		tot_b = 0.0
+		self.belief_bad = []
+		for b_i in self.local_belief:
+			tot_b += self.likelihood(b_i,viewable_agents,viewable_states)*self.local_belief[b_i]
+		for b_i in self.local_belief:
+			self.local_belief[b_i] = self.likelihood(b_i,viewable_agents,viewable_states)*self.local_belief[b_i]/tot_b
+		if abs(sum(self.local_belief.values())-1.0)>1e-6:
+			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))
+		sys_t = list(self.local_belief.keys())[np.argmax(list(self.local_belief.values()))]
+		for i,s_i in enumerate(sys_t):
+			if s_i == 0:
+				self.belief_bad.append(i)
+		
+	def likelihood(self,sys_status,viewable_agents,viewable_states):
+		epsilon = 1e-5
+		view_prob = []
 		for a_i,a_s in zip(viewable_agents,viewable_states):
-			self.local_belief[a_i] = self.policy.observation(a_s,[self.last_seen[a_i][0]],self.last_seen[a_i][1])
-	
-	
+			view_prob.append(self.policy.observation(a_s,[self.last_seen[a_i][0]],self.last_seen[a_i][1]))
+		view_index = [self.id_idx[v_a] for v_a in viewable_agents]
+		prob_i = 1.0
+		for v_i,v_p in zip(view_index,view_prob):
+			if sys_status[v_i] == 0: # if bad
+				prob_i *= 1.0-v_p+epsilon
+			else:
+				prob_i *= v_p+epsilon
+		return prob_i

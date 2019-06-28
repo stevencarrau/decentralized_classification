@@ -5,6 +5,7 @@ import random
 import numpy as np
 import pygame
 from matplotlib import colors as mcolors
+import math
 import pygame.locals as pgl
 
 class Gridworld():
@@ -17,6 +18,9 @@ class Gridworld():
         self.current = initial
         self.nrows = nrows
         self.ncols = ncols
+        self.height = self.nrows * self.size + self.nrows + 1
+        self.width = self.ncols * self.size + self.ncols + 1
+        self.connect_width = 700
         self.nagents = nagents
         self.nstates = nrows * ncols
         self.nactions = 5
@@ -38,8 +42,11 @@ class Gridworld():
         self.colorstates = set()
         self.agentcolors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
         self.agent_list = []
+        radius = min(self.height/4-100,self.connect_width/2-100)
+        c_dict = dict([n, np.array([self.width+self.connect_width/2,self.height/4],dtype=int) + np.array([radius*math.sin(n_v),radius*math.cos(n_v)],dtype=int)] for n,n_v in enumerate(np.linspace(0,2*math.pi,self.nagents,endpoint=False)))
+        spacing = np.linspace(75, self.connect_width - 100, self.nagents,dtype=int)
         for n,n_i in zip(self.current,range(self.nagents)):
-            self.agent_list.append(self.Agent_Vis(self.indx2coord(n[0],center=True),tuple(255*np.array(self.agentcolors[list(self.agentcolors)[n_i]])),size,obs_range))
+            self.agent_list.append(self.Agent_Vis(self.indx2coord(n[0],center=True),tuple(255*np.array(self.agentcolors[list(self.agentcolors)[n_i]])),size,obs_range,tuple(reversed(c_dict[n_i])),c_dict,(spacing[n_i]+self.width,int(self.height/2)+150)))
         for x in range(self.nstates):
             # note that edges are not disjoint, so we cannot use elif
             if x % self.ncols == 0:
@@ -196,29 +203,32 @@ class Gridworld():
     ## Everything from here onwards is for creating the image
 
     def render(self,multicolor=False,nom_policy=False):
-        self.height = self.nrows * self.size + self.nrows + 1
-        self.width = self.ncols * self.size + self.ncols + 1
     
         #       # initialize pygame ( SDL extensions )
         pygame.init()
-        pygame.display.set_mode((self.width, self.height))
+        pygame.display.set_mode((self.width+self.connect_width, self.height))
         pygame.display.set_caption('Gridworld')
         self.screen = pygame.display.get_surface()
         self.surface = pygame.Surface(self.screen.get_size())
-        self.bg = pygame.Surface(self.screen.get_size())
+        self.bg = self.surface.subsurface(pygame.Rect(0,0,self.width, self.height)).copy()
         self.bg_rendered = False  # optimize background render
+        self.connected = self.surface.subsurface(pygame.Rect(self.width,0,self.connect_width,self.height/2)).copy()
+        self.belief = self.surface.subsurface(pygame.Rect(self.width,self.height/2,self.connect_width,self.height/2)).copy()
+        
         self.background(multicolor)
-        self.screen.blit(self.surface, (0, 0))
-        pygame.display.flip()
-    
+        self.connection_background()
+        self.belief_background()
+        
         self.build_templates()
         self.updategui = True  # switch to stop updating gui if you want to collect a trace quickly
     
         for a_i in self.agent_list:
-            a_i.draw(self.screen,nom_policy)
-
-        
-
+            a_i.draw(self.screen,self.surface,nom_policy)
+            a_i.draw_connect_line(self.screen,self.surface)
+        for a_i in self.agent_list:
+            a_i.draw_connect(self.screen, self.surface)
+            a_i.draw_belief(self.screen,self.surface)
+    
     def getkeyinput(self):
         events = pygame.event.get()
         for event in events:
@@ -273,7 +283,11 @@ class Gridworld():
     
     def obsbox(self,s,obsrange):
         i, j = self.coords(s)
-        return  max(int((j-obsrange) * (self.size + 1) + 1),1),max(int((i-obsrange) * (self.size + 1) + 1),1),min(int((j+obsrange+1) * (self.size + 1) + 1),self.nrows*(self.size+1)),min(int((i+obsrange+1) * (self.size + 1) + 1),self.ncols*(self.size+1))
+        x = max(int((j-obsrange) * (self.size + 1) + 1),1)
+        y = max(int((i-obsrange) * (self.size + 1) + 1),1)
+        s_x = min(int((j+obsrange+1) * (self.size + 1) + 1),self.nrows*(self.size+1)) - x
+        s_y = min(int((i+obsrange+1) * (self.size + 1) + 1),self.ncols*(self.size+1)) - y
+        return x,y,s_x,s_y
 
     def accessible_blocks(self, s):
         """
@@ -448,17 +462,40 @@ class Gridworld():
 
         self.bg_rendered = True  # don't render again unless flag is set
         self.surface.blit(self.bg, (0, 0))
-    
-    
 
+    def connection_background(self):
+        colors = dict(mcolors.BASE_COLORS)
+        self.connected.fill((150, 150, 150))
+        self.surface.blit(self.connected,(self.width,0))
+        
+
+    def belief_background(self):
+        font = pygame.font.SysFont("FreeSans", 16)
+        self.belief.fill((211, 211, 211))
+        self.surface.blit(self.belief, (self.width, int(self.height/2)))
+        spacing = np.linspace(25,self.connect_width-150,self.nagents)
+        for s in spacing[1:]:
+            pygame.draw.line(self.belief, (0, 0, 0),(s-25,0), (s-25,self.height/2), 10)
+            self.surface.blit(self.belief, (self.width,self.height/2))
+            pygame.display.flip()
+        for i,s_p in zip(range(self.nagents),spacing):
+            txt = font.render("Agent %d Belief:" % i, True, (0, 0, 0))
+            self.surface.blit(txt,(s_p+self.width,self.height/2+50))
+            pygame.display.flip()
+        
     class Agent_Vis():
-        def __init__(self, loc, color, icon_size,obs_range):
+        def __init__(self, loc, color, icon_size,obs_range, c_loc,c_dict,belief_loc):
             self.location = loc
             self.box = None
             self.color = color
             self.size = int(icon_size / 2)
             self.route = None
             self.obs_range = obs_range
+            self.connect_loc = c_loc
+            self.con_dict = c_dict
+            self.connects = None
+            self.belief_loc = belief_loc
+            self.belief_color = None
     
         def updateSize(self, size):
             self.size = size
@@ -466,18 +503,46 @@ class Gridworld():
         def updatePosition(self, loc,box):
             self.location = loc
             self.box = box
-    
+            
         def updateRoute(self, route):
             self.route = route
+            
+        def updateConnects(self,connects):
+            self.connects = []
+            for c_i in connects:
+                self.connects.append(self.con_dict[c_i])
     
-        def draw(self, surface, route=False):
+        def updateBeliefColor(self,color):
+            self.belief_color = color
+    
+        def draw(self,screen, surface, route=False):
             if route:
                 pygame.draw.rect(surface,self.lightener(self.color,0.6),self.box,5)
                 pygame.draw.lines(surface, self.color, False, self.route, int(self.size / 5))
             pygame.draw.circle(surface, self.color, tuple(reversed(self.location)), self.size)
-            surface.blit(surface, (0, 0))
+            screen.blit(surface, (0, 0))
             pygame.display.flip()
             
+        def draw_connect(self,screen,surface):
+            pygame.draw.circle(surface,self.color,tuple(reversed(self.connect_loc)),self.size)
+            screen.blit(surface, (0, 0))
+            pygame.display.flip()
+        
+        def draw_connect_line(self,screen,surface):
+            if self.connects:
+                for l_i in self.connects:
+                    pygame.draw.line(surface,(0,0,0),tuple(reversed(self.connect_loc)),tuple(l_i),10)
+                screen.blit(surface, (0, 0))
+                pygame.display.flip()
+            else:
+                pass
+        
+        def draw_belief(self,screen,surface):
+            if self.belief_color:
+                pygame.draw.circle(surface, self.belief_color, self.belief_loc, self.size)
+                screen.blit(surface, (0, 0))
+                pygame.display.flip()
+        
         def lightener(self,color,ratio):
             color = np.array(color)
             white = np.array([255,255,255])

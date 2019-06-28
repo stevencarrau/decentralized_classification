@@ -82,7 +82,6 @@ class MDP(NFA):
 
     def T_step_value_iteration(self,R, T):
         """Solving an MDP by value iteration for T-step horizon"""
-        epsilon = 1.0e-4
         U1 = dict([(s, 0) for s in self.states])
         self._prepare_post_cache()
         policy = dict([(s, set()) for s in self.states])

@@ -20,16 +20,16 @@ class Policy():
 		T = self.lookahead
 		R = dict([(s, a, next_s), 0.0] for s in mdp.states for a in mdp.available(s) for next_s in mdp.post(s, a))
 		R.update([(s, a, next_s), 1.0] for s in mdp.states for a in mdp.available(s) for next_s in mdp.post(s, a) if next_s in set(targ))
-		V,pol_dict = self.mdp.T_step_value_iteration(R,T)
+		V,pol_dict = mdp.E_step_value_iteration(R,set(),set())
 		return pol_dict
 		
-	def updatePolicy(self):
+	def updatePolicy(self,targ,mdp):
 		T = self.lookahead
-		R = dict([(s, a, next_s), 0.0] for s in self.mdp.states for a in self.mdp.available(s) for next_s in self.mdp.post(s, a))
-		R.update([(s, a, next_s), 1.0] for s in self.mdp.states for a in self.mdp.available(s) for next_s in self.mdp.post(s, a) if next_s in set(self.target))
-		V, pol_dict = self.mdp.T_step_value_iteration(R, T)
+		R = dict([(s, a, next_s), 0.0] for s in mdp.states for a in mdp.available(s) for next_s in mdp.post(s, a))
+		R.update([(s, a, next_s), 1.0] for s in mdp.states for a in mdp.available(s) for next_s in mdp.post(s, a) if next_s in set(targ))
+		V, pol_dict = mdp.T_step_value_iteration(R, T)
 		self.policy = pol_dict
-		self.mc = self.mdp.construct_MC(self.policy)
+		self.mc = mdp.construct_MC(self.policy)
 		self.updateNominal(self.init)
 	
 	def nominalTrace(self,loc):
