@@ -133,7 +133,8 @@ class Agent():
 			if sum(t_p) >= no_agents-no_bad:
 				self.local_belief.update({t_p:belief_value})
 		self.actual_belief = self.local_belief
-		assert(sum(self.local_belief.values())==1.0)#,"Sum is "+str(sum(self.local_belief.values())))
+		if abs(sum(self.local_belief.values())-1.0)>1e-6:
+			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))#,"Sum is "+str(sum(self.local_belief.values())))
 	
 	def updateBelief(self,viewable_agents,viewable_states):
 		tot_b = 0.0

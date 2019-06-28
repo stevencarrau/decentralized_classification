@@ -60,12 +60,12 @@ def play_sim(multicolor=True, agent_array=None,grid=None):
 # from tqdm import tqdm
 nrows = 10
 ncols = 10
-initial = [(33,0),(41,0),(7,0),(80,0)]
+initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
 moveobstacles = []
-targets = [[0,9],[60,69],[20,39],[69,95]]
-public_targets = [[0,9],[60,69],[20,39],[55,95]]
+targets = [[0,9],[60,69],[20,39],[69,95],[99,19]]
+public_targets = [[0,9],[60,69],[20,39],[55,95],[99,19]]
 obstacles = []
-obs_range = 8
+obs_range = 5
 
 evil_switch = True
 
