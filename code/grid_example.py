@@ -2,17 +2,24 @@ from gridworld import *
 from mdp import *
 from policy import Policy
 from agent import Agent
+import json
 
 def play_sim(multicolor=True, agent_array=None,grid=None):
+    plotting_dictionary = dict()
+    time_t = 0
     agent_loc = dict([[a.id_no, a.current] for a in agent_array])
+    time_p = {}
     # Initialize missing status
     for a_a in agent_array:
         a_a.initLastSeen(agent_loc.keys(),agent_loc.values())
+        time_p.update({a_a.id_no: a_a.writeOutputTimeStamp()})
+    plotting_dictionary.update({time_t: time_p})
     target_union = set()
     for t in grid.targets:
         target_union.update(set(t))
-    while any([grid.current[i][0] not in target_union for i in range(grid.nagents)]):
-        # nom_policy = []
+    while any([grid.current[i][0] not in target_union for i in range(grid.nagents)]) and time_t<100:
+        time_p = {}
+        time_t += 1
         for idx_j, j in enumerate(grid.current):
             if agent_array is None:
                 while True:
@@ -55,26 +62,63 @@ def play_sim(multicolor=True, agent_array=None,grid=None):
             else:
                 col = (255,255,255)
             grid.agent_list[a_i].updateBeliefColor(col)
-        grid.render(multicolor=multicolor, nom_policy=True)
-        pygame.time.wait(1000)
+            time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
+        plotting_dictionary.update({time_t: time_p})
+        # grid.render(multicolor=multicolor, nom_policy=True)
+        # pygame.time.wait(1000)
+    write_JSON(str(len(agent_loc))+'agents_'+str(grid.obs_range)+'range.json', stringify_keys(plotting_dictionary))
     pygame.quit()
     return print("Goal!")
+
+def write_JSON(filename,data):
+    with open(filename,'w') as outfile:
+        json.dump(stringify_keys(data), outfile)
+
+def stringify_keys(d):
+    """Convert a dict's keys to strings if they are not."""
+    for key in d.keys():
+
+        # check inner dict
+        if isinstance(d[key], dict):
+            value = stringify_keys(d[key])
+        else:
+            value = d[key]
+
+        # convert nonstring to string if needed
+        if not isinstance(key, str):
+            try:
+                d[str(key)] = value
+            except Exception:
+                try:
+                    d[repr(key)] = value
+                except Exception:
+                    raise
+
+            # delete old key
+            del d[key]
+    return d
 
 nrows = 10
 ncols = 10
 moveobstacles = []
 obstacles = []
 # # # 5 agents small range
-# initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
-# targets = [[0,9],[60,69],[20,39],[69,95],[99,11]]
-# public_targets = [[0,9],[60,69],[20,39],[55,95],[99,11]]
-# obs_range = 4
+initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
+targets = [[0,9],[60,69],[20,39],[69,95],[99,11]]
+public_targets = [[0,9],[60,69],[20,39],[55,95],[99,11]]
+obs_range = 4
 
 # # # 6 agents small range
-initial = [(33,0),(41,0),(7,0),(80,0),(69,1),(92,0)]
-targets = [[0,9],[60,69],[20,39],[69,95],[99,11],[9,91]]
-public_targets = [[0,9],[60,69],[20,39],[55,95],[99,11],[9,91]]
-obs_range = 4
+# initial = [(33,0),(41,0),(7,0),(80,0),(69,1),(92,0)]
+# targets = [[0,9],[60,69],[20,39],[69,95],[99,11],[9,91]]
+# public_targets = [[0,9],[60,69],[20,39],[55,95],[99,11],[9,91]]
+# obs_range = 2
+
+# # # 8 agents small range
+initial = [(50,0),(43,0),(75,0),(88,0),(13,0),(37,0),(57,0),(73,0)]
+targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[31,39],[51,59],[55,71]]
+public_targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[31,39],[51,59],[79,71]]
+obs_range = 2
 
 # #4 agents larger range
 # initial = [(33,0),(41,0),(7,0),(80,0)]
@@ -87,7 +131,7 @@ obs_range = 4
 # targets = [[0,9],[60,69],[20,39],[69,95]]
 # public_targets = [[0,9],[60,69],[20,39],[55,95]]
 # obs_range = 4
-
+#
 
 evil_switch = True
 

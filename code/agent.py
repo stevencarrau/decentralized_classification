@@ -55,6 +55,15 @@ class Agent():
 		self.public_pnfa = self.productMDP(self.public_nfa,dra)
 		self.policy = Policy(self.pmdp,self.public_pmdp,self.pnfa,self.public_pnfa,self.pmdp.init,t_list,50,p_list)
 	
+	def writeOutputTimeStamp(self):
+		out_dict = dict()
+		out_dict.update({'AgentLoc': self.current})
+		out_dict.update({'ActBelief': self.actual_belief})
+		out_dict.update({'LastSeen': self.last_seen})
+		out_dict.update({'Visible': self.viewable_agents})
+		out_dict.update({'NominalTrace': self.policy.nom_trace})
+		return out_dict
+	
 	def productMDP(self,mdp,dra):
 		init = self.init
 		states = []
