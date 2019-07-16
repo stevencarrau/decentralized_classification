@@ -11,8 +11,8 @@ def play_sim(multicolor=True, agent_array=None,grid=None):
     time_p = {}
     # Initialize missing status
     for a_a in agent_array:
-        a_a.initLastSeen(agent_loc.keys(),agent_loc.values())
-        time_p.update({a_a.id_no: a_a.writeOutputTimeStamp()})
+        a_a.initLastSeen(agent_loc.keys(), agent_loc.values())
+        time_p.update({a_a.id_no: a_a.writeOutputTimeStamp(agent_loc.keys())})
     plotting_dictionary.update({time_t: time_p})
     target_union = set()
     for t in grid.targets:
@@ -115,10 +115,10 @@ obs_range = 4
 # obs_range = 2
 
 # # # 8 agents small range
-initial = [(50,0),(43,0),(75,0),(88,0),(13,0),(37,0),(57,0),(73,0)]
-targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[31,39],[51,59],[55,71]]
-public_targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[31,39],[51,59],[79,71]]
-obs_range = 2
+# initial = [(50,0),(43,0),(75,0),(88,0),(13,0),(37,0),(57,0),(73,0)]
+# targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[31,39],[51,59],[55,71]]
+# public_targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[31,39],[51,59],[79,71]]
+# obs_range = 2
 
 # #4 agents larger range
 # initial = [(33,0),(41,0),(7,0),(80,0)]
