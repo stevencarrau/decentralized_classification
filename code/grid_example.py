@@ -66,7 +66,7 @@ def play_sim(multicolor=True, agent_array=None,grid=None):
         plotting_dictionary.update({time_t: time_p})
         # grid.render(multicolor=multicolor, nom_policy=True)
         # pygame.time.wait(1000)
-    write_JSON(str(len(agent_loc))+'agents_'+str(grid.obs_range)+'range.json', stringify_keys(plotting_dictionary))
+    write_JSON(str(len(agent_loc))+'agents_'+str(grid.obs_range)+'range_evilrand.json', stringify_keys(plotting_dictionary))
     pygame.quit()
     return print("Goal!")
 
