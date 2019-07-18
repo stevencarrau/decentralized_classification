@@ -17,7 +17,7 @@ from gridworld import *
 
 # ---------- PART 1: Globals
 
-with open('5agents_4range.json') as json_file:
+with open('5agents_4range_evilrand.json') as json_file:
 	data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 96
@@ -64,8 +64,8 @@ def update(i):
 	global plot_data, df
 	l_d = plot_data[0]
 	f_d = plot_data[1]
-	for l,l_f in zip(l_d,f_d):
-		values = df[str(i)][0]['ActBelief']
+	for l,l_f,id_no in zip(l_d,f_d,list(df[str(0)].keys())):
+		values = df[str(i)][id_no]['ActBelief']
 		cat_range = range(N)
 		value_dict = dict([[c_r, 0.0] for c_r in cat_range])
 		for v_d in value_dict.keys():

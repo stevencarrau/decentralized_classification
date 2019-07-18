@@ -3,6 +3,7 @@ from mdp import *
 import math
 import itertools
 from scipy.special import comb
+import numpy as np
 import operator
 from collections import OrderedDict
 
@@ -17,6 +18,9 @@ class Agent():
 		self.current = init
 		self.targets = target_list
 		self.public_targets = public_list
+		self.evil = False
+		if target_list != public_list:
+			self.evil = True
 		t_num = list(range(len(target_list)))
 		t_list = list(zip(self.targets,t_num))#[t_num[-1]]+t_num[:-1]))
 		p_list = list(zip(self.public_targets,t_num))#[t_num[-1]]+t_num[:-1]))
@@ -160,7 +164,12 @@ class Agent():
 			self.local_belief[b_i] = self.likelihood(b_i,viewable_agents,viewable_states)*self.local_belief[b_i]/tot_b
 		if abs(sum(self.local_belief.values())-1.0)>1e-6:
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))
-
+		if self.evil:
+			random_belief = np.random.rand(len(self.local_belief))
+			random_belief /= np.sum(random_belief)
+			for b_i,r_b in zip(self.local_belief,random_belief):
+				self.local_belief[b_i] = r_b
+				self.actual_belief[b_i] = r_b
 	
 	def shareBelief(self,belief_arrays):
 		actual_belief = {}
@@ -177,10 +186,22 @@ class Agent():
 				actual_belief.update({theta:min(self.actual_belief[theta],self.local_belief[theta])})
 		# Normalize
 		self.actual_belief = dict([[theta, actual_belief[theta] / sum(actual_belief.values())] for theta in actual_belief])
+		if self.evil:
+			random_belief = np.random.rand(len(self.local_belief))
+			random_belief /= np.sum(random_belief)
+			for b_i,r_b in zip(self.local_belief,random_belief):
+				self.local_belief[b_i] = r_b
+				self.actual_belief[b_i] = r_b
 		sys_t = list(self.actual_belief.keys())[np.argmax(list(self.actual_belief.values()))]
 		for i,s_i in enumerate(sys_t):
 			if s_i == 0:
 				self.belief_bad.append(i)
+	
+	def resetBelief(self,belief,belief_arrays):
+		for j in belief_arrays:
+			if j is not self:
+				j.actual_belief[belief] = -1
+		self.resetFlag = False
 		
 	def likelihood(self,sys_status,viewable_agents,viewable_states):
 		epsilon = 1e-9
