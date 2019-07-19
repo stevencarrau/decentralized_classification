@@ -17,22 +17,30 @@ from gridworld import *
 
 # ---------- PART 1: Globals
 
-with open('5agents_4range_evilrand.json') as json_file:
+with open('5agents_4range_total.json') as json_file:
 	data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 96
 fig = plt.figure(figsize=(2000/my_dpi, 1600/my_dpi), dpi=my_dpi)
 my_palette = plt.cm.get_cmap("Set2",len(df.index))
 categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
+belief_good = df['0'][0]['GoodBelief']
+belief_bad = df['0'][0]['BadBelief']
 N = len(categories)
 angles = [n / float(N) * 2 * pi for n in range(N)]
 angles += angles[:1]
 axis_array = []
 l_data = []
 f_data = []
+belief_x_good = []
+belief_x_bad = []
+belief_y_bad = []
+belief_y_good = []
+
+frames = 100
 
 for row in range(0, len(df.index)):
-	ax = plt.subplot(4, N, row+1+int(N/2)*int(row/(N/2)), polar=True)
+	ax = plt.subplot(4, N+1, row+1+int((N+1)/2)*int(row/(N/2)), polar=True)
 	ax.set_theta_offset(pi/2)
 	ax.set_theta_direction(-1)
 	ax.set_ylim(0,100)
@@ -58,13 +66,14 @@ def update_all(i):
 	rad_obj = update(i)
 	grid_obj = grid_update(i)
 	conn_obj = connect_update(i)
-	return rad_obj + grid_obj+conn_obj
+	belf_obj = belief_update(i)
+	return rad_obj + grid_obj+conn_obj + belf_obj
 
 def update(i):
 	global plot_data, df
 	l_d = plot_data[0]
 	f_d = plot_data[1]
-	for l,l_f,id_no in zip(l_d,f_d,list(df[str(0)].keys())):
+	for l,l_f,id_no in zip(l_d,f_d,categories):
 		values = df[str(i)][id_no]['ActBelief']
 		cat_range = range(N)
 		value_dict = dict([[c_r, 0.0] for c_r in cat_range])
@@ -97,7 +106,7 @@ def grid_init(nrows, ncols, obs_range):
 	ag_array = []
 	plt.grid(which="minor", ls="-", lw=1)
 	i = 0
-	for id_no in list(df[str(0)].keys()):
+	for id_no in categories:
 		p_t = df[str(0)][id_no]['PublicTargets']
 		color = my_palette(i)
 		init_loc = tuple(reversed(coords(df[str(0)][id_no]['AgentLoc'][0], ncols)))
@@ -112,6 +121,30 @@ def grid_init(nrows, ncols, obs_range):
 			ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
 		i += 1
 	return ag_array
+
+def belief_chart_init():
+	ax = plt.subplot(222)
+	ax.set_xlim([0,frames])
+	ax.set_ylim([-0.1,1.2])
+	ax.yaxis.set_ticks(np.arange(0,1.1,0.1))
+	plt.rc('text',usetex=True)
+	plt.xlabel(r't')
+	plt.ylabel(r'Belief $\left(b^a_j(\theta)\right)$')
+	plt_array = []
+	for i,id_no in enumerate(categories):
+		belief_x_bad.append([])
+		belief_x_bad[i].append(0)
+		belief_y_bad.append([])
+		belief_y_bad[i].append(df['0'][id_no]['ActBelief'][belief_bad])
+		belief_x_good.append([])
+		belief_x_good[i].append(0)
+		belief_y_good.append([])
+		belief_y_good[i].append(df['0'][id_no]['ActBelief'][belief_good])
+		px1, = ax.plot([0,20], [0,0.1*i], color=my_palette(i), linewidth=3, linestyle='solid', label=r'Actual belief: $b^a_'+str(i)+r'(\theta^\star)$')
+		px2, = ax.plot([0,20], [1.0,0.1*i], color=my_palette(i), linewidth=3, linestyle='dashed', label=r'Incorrect belief $b^a_'+str(i)+r'(\theta_0)$')
+		plt_array.append((px1,px2))
+	leg = ax.legend(loc='upper right')
+	return plt_array
 
 def con_init():
 	ax = plt.subplot(224)
@@ -139,7 +172,7 @@ def con_init():
 def grid_update(i):
 	global ax_ar, df, ncols, obs_range
 	write_objects = []
-	for a_x, id_no in zip(ax_ar, list(df[str(0)].keys())):
+	for a_x, id_no in zip(ax_ar, categories):
 		c_i, l_i, p_i = a_x
 		loc = tuple(reversed(coords(df[str(i)][id_no]['AgentLoc'][0], ncols)))
 		c_i.set_center(loc)
@@ -149,6 +182,21 @@ def grid_update(i):
 		p_i.set_ydata(route_y)
 		write_objects += [c_i] + [l_i] + [p_i]
 	return write_objects
+
+def belief_update(i):
+	global bel_lines, df, belief_x_good, belief_y_good, belief_x_bad, belief_y_bad
+	change_array = []
+	for j, id_no in enumerate(categories):
+		belief_x_bad[j].append(i)
+		belief_x_good[j].append(i)
+		belief_y_good[j].append(df[str(i)][id_no]['ActBelief'][belief_good])
+		belief_y_bad[j].append(df[str(i)][id_no]['ActBelief'][belief_bad])
+		bel_lines[j][0].set_xdata(belief_x_good[j])
+		bel_lines[j][0].set_ydata(belief_y_good[j])
+		bel_lines[j][1].set_xdata(belief_x_bad[j])
+		bel_lines[j][1].set_ydata(belief_y_bad[j])
+		change_array += bel_lines[j]
+	return change_array
 
 def connect_update(i):
 	global con_dict, df
@@ -200,8 +248,12 @@ obs_range = 4
 # obs_range = 4
 
 con_dict = con_ar = con_init()
+bel_lines = belief_chart_init()
+# belief_update(10)
+# belief_update(20)
+# belief_update(40)
 ax_ar = grid_init(nrows, ncols, obs_range)
-ani = FuncAnimation(fig, update_all, frames=100, interval=200, blit=True)
+ani = FuncAnimation(fig, update_all, frames=frames, interval=500, blit=True,repeat=False)
 plt.show()
 
 # fig = plt.figure(figsize=(4,4))

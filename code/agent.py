@@ -12,12 +12,13 @@ class ProbablilityNotOne(Exception):
 
 class Agent():
 	
-	def __init__(self,init=None,target_list=[],public_list=[],mdp=None,nfa=None,gw_env=None):
+	def __init__(self,init=None,target_list=[],public_list=[],mdp=None,nfa=None,gw_env=None,belief_tracks=None):
 		self.id_no = id(self)-1000*math.floor(id(self)/1000)
 		self.init = init
 		self.current = init
 		self.targets = target_list
 		self.public_targets = public_list
+		self.belief_tracks = belief_tracks
 		self.evil = False
 		if target_list != public_list:
 			self.evil = True
@@ -69,6 +70,8 @@ class Agent():
 		if init:
 			out_dict.update({'PublicTargets': self.public_targets})
 			out_dict.update({'Id_no': list(init)})
+			out_dict.update({'BadBelief':self.belief_tracks[0]})
+			out_dict.update({'GoodBelief':self.belief_tracks[1]})
 		return out_dict
 	
 	def productMDP(self,mdp,dra):
@@ -139,9 +142,12 @@ class Agent():
 	def initBelief(self,agent_id,no_bad):
 		self.no_bad = no_bad
 		no_agents = len(agent_id)
-		no_system_states = 0
-		for b_d in range(no_bad+1):
-			no_system_states += comb(no_agents,b_d)
+		## Combinarotic approach
+		# no_system_states = 0
+		# for b_d in range(no_bad+1):
+		# 	no_system_states += comb(no_agents,b_d)
+		## Unknown number of bad agents
+		no_system_states = 2**no_agents
 		belief_value = 1.0/no_system_states
 		base_list =[0,1] # 0 is bad, 1 is good
 		total_list = [base_list for n in range(len(agent_id))]
@@ -149,8 +155,11 @@ class Agent():
 		self.local_belief = {}
 		self.belief_bad = []
 		for t_p in itertools.product(*total_list):
-			if sum(t_p) >= no_agents-no_bad:
-				self.local_belief.update({t_p:belief_value})
+			# ## Combinartoic approach
+			# if sum(t_p) >= no_agents-no_bad:
+			# 	self.local_belief.update({t_p:belief_value})
+			## Unknown number of bad
+			self.local_belief.update({t_p: belief_value})
 		self.actual_belief = self.local_belief.copy()
 		if abs(sum(self.local_belief.values())-1.0)>1e-6:
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))#,"Sum is "+str(sum(self.local_belief.values())))

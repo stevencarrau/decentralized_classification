@@ -66,7 +66,7 @@ def play_sim(multicolor=True, agent_array=None,grid=None):
         plotting_dictionary.update({time_t: time_p})
         # grid.render(multicolor=multicolor, nom_policy=True)
         # pygame.time.wait(1000)
-    write_JSON(str(len(agent_loc))+'agents_'+str(grid.obs_range)+'range_evilrand.json', stringify_keys(plotting_dictionary))
+    write_JSON(str(len(agent_loc))+'agents_'+str(grid.obs_range)+'range_total.json', stringify_keys(plotting_dictionary))
     pygame.quit()
     return print("Goal!")
 
@@ -143,7 +143,7 @@ regions_det['deterministic'] = range(nrows*ncols)
 
 gwg = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions,public_targets=public_targets,obs_range=obs_range)
 det_gw = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions_det)
-gwg.render(multicolor=True)
+# gwg.render(multicolor=True)
 # gwg.draw_state_labels()
 # gwg.save('Examples/example_7x5.png')
 #
@@ -166,11 +166,15 @@ print("Models built")
 agent_array = []
 c_i = 0
 print("Computing policies")
+bad_b = ()
+for i in range(len(initial)):
+    bad_b += (0,)
+belief_tracks = [str(bad_b),str(tuple([int(i==j) for i,j in zip(targets,public_targets)]))]
 for i,j,k in zip(initial,targets,public_targets):
     if evil_switch:
-        agent_array.append(Agent(i,j,k,mdp,nfa,gwg))
+        agent_array.append(Agent(i,j,k,mdp,nfa,gwg,belief_tracks))
     else:
-        agent_array.append(Agent(i,k, k, mdp, nfa,gwg))
+        agent_array.append(Agent(i,k, k, mdp, nfa,gwg,belief_tracks))
     print("Policy ",c_i," -- complete")
     c_i += 1
 id_list = [a_l.id_no for a_l in agent_array]
