@@ -17,7 +17,7 @@ from gridworld import *
 
 # ---------- PART 1: Globals
 
-with open('5agents_4range_total.json') as json_file:
+with open('6agents_2range_total.json') as json_file:
 	data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 96
@@ -37,10 +37,10 @@ belief_x_bad = []
 belief_y_bad = []
 belief_y_good = []
 
-frames = 100
+frames = len(data)
 
 for row in range(0, len(df.index)):
-	ax = plt.subplot(4, N+1, row+1+int((N+1)/2)*int(row/(N/2)), polar=True)
+	ax = plt.subplot(4, N+1, row+1+int(1+(N+1)/2)*int(row/((N)/2)), polar=True)
 	ax.set_theta_offset(pi/2)
 	ax.set_theta_direction(-1)
 	ax.set_ylim(0,100)

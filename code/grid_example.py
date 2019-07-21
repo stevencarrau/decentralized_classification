@@ -4,7 +4,7 @@ from policy import Policy
 from agent import Agent
 import json
 
-def play_sim(multicolor=True, agent_array=None,grid=None):
+def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
     plotting_dictionary = dict()
     time_t = 0
     agent_loc = dict([[a.id_no, a.current] for a in agent_array])
@@ -17,7 +17,8 @@ def play_sim(multicolor=True, agent_array=None,grid=None):
     target_union = set()
     for t in grid.targets:
         target_union.update(set(t))
-    while any([grid.current[i][0] not in target_union for i in range(grid.nagents)]) and time_t<100:
+    while any([grid.current[i][0] not in target_union for i in range(grid.nagents)]) and time_t<tot_t:
+        print("Time: "+str(time_t))
         time_p = {}
         time_t += 1
         for idx_j, j in enumerate(grid.current):
@@ -103,10 +104,10 @@ ncols = 10
 moveobstacles = []
 obstacles = []
 # # # 5 agents small range
-initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
-targets = [[0,9],[60,69],[20,39],[69,95],[99,11]]
-public_targets = [[0,9],[60,69],[20,39],[55,95],[99,11]]
-obs_range = 4
+# initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
+# targets = [[0,9],[60,69],[20,39],[69,95],[99,11]]
+# public_targets = [[0,9],[60,69],[20,39],[55,95],[99,11]]
+# obs_range = 4
 
 # # # 6 agents small range
 # initial = [(33,0),(41,0),(7,0),(80,0),(69,1),(92,0)]
@@ -115,10 +116,10 @@ obs_range = 4
 # obs_range = 2
 
 # # # 8 agents small range
-# initial = [(50,0),(43,0),(75,0),(88,0),(13,0),(37,0),(57,0),(73,0)]
-# targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[31,39],[51,59],[55,71]]
-# public_targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[31,39],[51,59],[79,71]]
-# obs_range = 2
+initial = [(50,0),(43,0),(75,0),(88,0),(13,0),(37,0),(57,0),(73,0)]
+targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[5,39],[51,59],[55,71]]
+public_targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[31,39],[51,59],[79,71]]
+obs_range = 2
 
 # #4 agents larger range
 # initial = [(33,0),(41,0),(7,0),(80,0)]
@@ -183,6 +184,6 @@ for a_i in agent_array:
     a_i.initBelief([a_l.id_no for a_l in agent_array],1)
     a_i.definePolicyDict(id_list,pol_list)
 
-play_sim(True,agent_array,gwg)
+play_sim(True,agent_array,gwg,25)
 
 
