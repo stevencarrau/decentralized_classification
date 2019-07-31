@@ -17,7 +17,7 @@ from gridworld import *
 
 # ---------- PART 1: Globals
 
-with open('6agents_2range_total.json') as json_file:
+with open('5agents_4range_stat.json') as json_file:
 	data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 96
@@ -25,7 +25,7 @@ fig = plt.figure(figsize=(2000/my_dpi, 1600/my_dpi), dpi=my_dpi)
 my_palette = plt.cm.get_cmap("Set2",len(df.index))
 categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
 belief_good = df['0'][0]['GoodBelief']
-belief_bad = df['0'][0]['BadBelief']
+belief_bad = '(1, 1, 1, 1, 1)'# df['0'][0]['BadBelief']
 N = len(categories)
 angles = [n / float(N) * 2 * pi for n in range(N)]
 angles += angles[:1]
