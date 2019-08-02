@@ -4,7 +4,7 @@ from policy import Policy
 from agent import Agent
 import json
 
-def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100,error_prob=0.2):
+def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
     plotting_dictionary = dict()
     time_t = 0
     agent_loc = dict([[a.id_no, a.current] for a in agent_array])
@@ -13,7 +13,7 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100,error_prob=0.
     for a_a in agent_array:
         a_a.initLastSeen(agent_loc.keys(), agent_loc.values())
         time_p.update({a_a.id_no: a_a.writeOutputTimeStamp(agent_loc.keys())})
-    plotting_dictionary.update({time_t: time_p})
+    plotting_dictionary.update({str(time_t): time_p})
     target_union = set()
     for t in grid.targets:
         target_union.update(set(t))
@@ -24,29 +24,21 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100,error_prob=0.
         ## Movement update
         for a_i in agent_array:
             prev_state = a_i.current
-            s,q = a_i.pmdp.sample(prev_state,a_i.policy.sample(prev_state))
-            a_i.updateAgent((s,q))
+            s, q = a_i.pmdp.sample(prev_state, a_i.policy.sample(prev_state))
+            a_i.updateAgent((s, q))
             agent_loc[a_i.id_no] = a_i.current
             a_i.policy.updateNominal(a_i.current)
             print("Local likelihood for ", a_i.id_no, ": ",
-                      a_i.policy.observation((s,q), [prev_state], 1))
+                      a_i.policy.observation((s, q), [prev_state], 1))
         ## Local update
-        for a_i,p_i in enumerate(agent_array):
-            p_i.updateVision(p_i.current,agent_loc,error_prob)
-            # grid.agent_list[a_i].updateConnects([p_i.id_idx[v_a] for v_a in p_i.viewable_agents])
+        for a_i,  p_i in enumerate(agent_array):
+            p_i.updateVision(p_i.current, agent_loc)
         ## Sharing update
-        for a_i,p_i in enumerate(agent_array):
+        for a_i, p_i in enumerate(agent_array):
             belief_packet = [agent_array[p_i.id_idx[v_a]].actual_belief for v_a in p_i.viewable_agents]
             p_i.shareBelief(belief_packet)
-            # if p_i.belief_bad:
-            #     col = grid.agent_list[p_i.belief_bad[0]].color
-            # else:
-            #     col = (255,255,255)
-            # grid.agent_list[a_i].updateBeliefColor(col)
             time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
-        plotting_dictionary.update({time_t: time_p})
-        # grid.render(multicolor=multicolor, nom_policy=True)
-        # pygame.time.wait(1000)
+        plotting_dictionary.update({str(time_t): time_p})
     write_JSON(str(len(agent_loc))+'agents_'+str(grid.obs_range)+'range_stat.json', stringify_keys(plotting_dictionary))
     pygame.quit()
     return print("Goal!")
@@ -88,6 +80,7 @@ initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
 targets = [[0,9],[60,69],[20,39],[69,95],[99,11]]
 public_targets = [[0,9],[60,69],[20,39],[55,95],[99,11]]
 obs_range = 4
+np.random.seed(0)
 
 # # # 6 agents small range
 # initial = [(33,0),(41,0),(7,0),(80,0),(69,1),(92,0)]
@@ -150,13 +143,13 @@ print("Computing policies")
 bad_b = ()
 for i in range(len(initial)):
     bad_b += (0,)
-belief_tracks = [str(bad_b),str(tuple([int(i==j) for i,j in zip(targets,public_targets)]))]
-for i,j,k in zip(initial,targets,public_targets):
+belief_tracks = [str(bad_b), str(tuple([int(i==j) for i,j in zip(targets,public_targets)]))]
+for i, j, k in zip(initial, targets,public_targets):
     if evil_switch:
-        agent_array.append(Agent(i,j,k,mdp,gwg,belief_tracks))
+        agent_array.append(Agent(i, j, k, mdp, gwg, belief_tracks))
     else:
-        agent_array.append(Agent(i,k, k, mdp,gwg,belief_tracks))
-    print("Policy ",c_i," -- complete")
+        agent_array.append(Agent(i, k, k, mdp, gwg, belief_tracks))
+    print("Policy ", c_i, " -- complete")
     c_i += 1
 id_list = [a_l.id_no for a_l in agent_array]
 pol_list = [a_l.policy for a_l in agent_array]
@@ -164,6 +157,6 @@ for a_i in agent_array:
     a_i.initBelief([a_l.id_no for a_l in agent_array],1)
     a_i.definePolicyDict(id_list,pol_list)
 
-play_sim(True,agent_array,gwg,100,0.2)
+play_sim(True,agent_array,gwg,100)
 
 
