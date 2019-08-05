@@ -3,15 +3,18 @@ import random
 
 class Policy():
 	
-	def __init__(self,mdp,public_mdp,nfa,public_nfa,init,target,lookahead,public_target):
+	def __init__(self,mdp,public_mdp,init,target,lookahead,public_target):
 		self.mdp = mdp
-		self.nfa = nfa  # Deterministic transitions -- used for nominal trace
+		# self.nfa = nfa  # Deterministic transitions -- used for nominal trace
 		self.init = init
 		self.target = target
 		self.public_target = public_target
 		self.lookahead = lookahead
 		self.policy = self.computePolicy(self.target,mdp)
-		self.public_policy = self.computePolicy(self.public_target,public_mdp)
+		if target != public_target:
+			self.public_policy = self.computePolicy(self.public_target,public_mdp)
+		else:
+			self.public_policy = self.policy
 		self.mc = self.mdp.construct_MC(self.policy)
 		self.public_mc = public_mdp.construct_MC(self.public_policy)
 		self.nom_trace = self.nominalTrace(self.init)
@@ -34,7 +37,7 @@ class Policy():
 	
 	def nominalTrace(self,loc):
 		T = self.lookahead
-		return self.nfa.computeTrace(loc,self.public_policy,T, self.public_target)
+		return self.mdp.computeTrace(loc,self.public_policy,T, self.public_target)
 	
 	def updateNominal(self,loc):
 		self.nom_trace = self.nominalTrace(loc)

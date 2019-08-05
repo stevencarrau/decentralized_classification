@@ -174,7 +174,7 @@ class MDP(NFA):
 
 
     def E_step_value_iteration(self,R,sink,targstates,
-                        epsilon=0.1, gamma=0.8):
+                        epsilon=1e-3, gamma=0.8):
         policyT = dict([])
         Vstate1 = dict([])
         Vstate1.update({s: 0 for s in self.states})
@@ -190,7 +190,7 @@ class MDP(NFA):
                     Q[(s, a)] = sum([self.prob_delta(s, a, next_s) *
                                      (gamma*Vstate[next_s] + R[(s,a,next_s)])
                                      for next_s in self.post(s, a)])
-                    if Q[(s, a)] >= optimal:
+                    if Q[(s, a)] > optimal:
                         optimal = Q[(s, a)]
                         act = a
                     else:
@@ -200,7 +200,7 @@ class MDP(NFA):
                     if Q[(s, act)] == optimal:
                         acts.add(act)
                 Vstate1[s] = optimal
-                policyT[s] = acts
+                policyT[s] = {random.choice(tuple(acts))}
             e = max(np.abs([Vstate1[s] -
                          Vstate[s] for s in self.states]))  # the abs error
             print(e)
