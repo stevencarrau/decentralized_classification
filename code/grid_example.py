@@ -39,7 +39,7 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
             p_i.shareBelief(belief_packet)
             time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
         plotting_dictionary.update({str(time_t): time_p})
-    write_JSON(str(len(agent_loc))+'agents_'+str(grid.obs_range)+'range_stat.json', stringify_keys(plotting_dictionary))
+    write_JSON(str(len(agent_loc))+'agents_'+str(grid.obs_range)+'range_long.json', stringify_keys(plotting_dictionary))
     pygame.quit()
     return print("Goal!")
 
@@ -76,10 +76,10 @@ ncols = 10
 moveobstacles = []
 obstacles = []
 # # # 5 agents small range
-initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
-targets = [[0,9],[60,69],[20,39],[69,95],[99,11]]
-public_targets = [[0,9],[60,69],[20,39],[55,95],[99,11]]
-obs_range = 4
+# initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
+# targets = [[0,9],[60,69],[20,39],[69,95],[99,11]]
+# public_targets = [[0,9],[60,69],[20,39],[55,95],[99,11]]
+# obs_range = 4
 np.random.seed(0)
 
 # # # 6 agents small range
@@ -89,10 +89,10 @@ np.random.seed(0)
 # obs_range = 2
 
 # # # 8 agents small range
-# initial = [(50,0),(43,0),(75,0),(88,0),(13,0),(37,0),(57,0),(73,0)]
-# targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[5,39],[51,59],[55,71]]
-# public_targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[31,39],[51,59],[79,71]]
-# obs_range = 2
+initial = [(50,0),(43,0),(75,0),(88,0),(13,0),(37,0),(57,0),(73,0)]
+targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[5,39],[51,59],[55,71]]
+public_targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[31,39],[51,59],[79,71]]
+obs_range = 3
 
 # #4 agents larger range
 # initial = [(33,0),(41,0),(7,0),(80,0)]
@@ -157,6 +157,6 @@ for a_i in agent_array:
     a_i.initBelief([a_l.id_no for a_l in agent_array],1)
     a_i.definePolicyDict(id_list,pol_list)
 
-play_sim(True,agent_array,gwg,100)
+play_sim(True,agent_array,gwg,500)
 
 

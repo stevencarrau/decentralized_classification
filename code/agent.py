@@ -158,11 +158,11 @@ class Agent():
 		self.no_bad = no_bad
 		no_agents = len(agent_id)
 		## Combinarotic approach
-		no_system_states = 0
-		for b_d in range(no_bad+1):
-			no_system_states += comb(no_agents,b_d)
+		# no_system_states = 0
+		# for b_d in range(no_bad+1):
+		# 	no_system_states += comb(no_agents,b_d)
 		# ## Unknown number of bad agents
-		# no_system_states = 2**no_agents
+		no_system_states = 2**no_agents
 		belief_value = 1.0/no_system_states
 		base_list =[0,1] # 0 is bad, 1 is good
 		total_list = [base_list for n in range(len(agent_id))]
@@ -170,11 +170,11 @@ class Agent():
 		self.local_belief = {}
 		self.belief_bad = []
 		for t_p in itertools.product(*total_list):
-			## Combinartoic approach
-			if sum(t_p) >= no_agents-no_bad:
-				self.local_belief.update({t_p:belief_value})
+			# ## Combinartoic approach
+			# if sum(t_p) >= no_agents-no_bad:
+			# 	self.local_belief.update({t_p:belief_value})
 			# ## Unknown number of bad
-			# self.local_belief.update({t_p: belief_value})
+			self.local_belief.update({t_p: belief_value})
 		self.actual_belief = self.local_belief.copy()
 		if abs(sum(self.local_belief.values())-1.0)>1e-6:
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))#,"Sum is "+str(sum(self.local_belief.values())))
