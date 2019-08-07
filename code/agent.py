@@ -18,6 +18,8 @@ class Agent():
 		self.id_no = id(self)-1000*math.floor(id(self)/1000)
 		self.init = init
 		self.current = init
+		self.alpha = 0.9
+		self.burn_rate = 0.9
 		self.targets = target_list
 		self.public_targets = public_list
 		self.belief_tracks = belief_tracks
@@ -124,7 +126,7 @@ class Agent():
 	def observation(self, obs_states, ref_agent, error_prob):
 		prob_view = np.array([])
 		for o_s in obs_states:
-			prob_view = np.append(prob_view, np.exp(-1.0/error_prob**2/4*(np.sum(np.square(np.array(self.gw.coords(o_s))-np.array(self.gw.coords(ref_agent)))))))
+			prob_view = np.append(prob_view, 1.0/2.0/math.pi/error_prob*np.exp(-1.0/2/error_prob**2*(np.sum(np.square(np.array(self.gw.coords(o_s))-np.array(self.gw.coords(ref_agent)))))))
 		prob_view /= prob_view.sum()
 		return prob_view
 		
@@ -181,18 +183,19 @@ class Agent():
 	
 	def updateBelief(self, viewable_agents, viewable_states):
 		tot_b = 0.0
+		self.alpha *= self.burn_rate
 		self.belief_bad = []
 		view_prob = self.ViewProbability(viewable_agents,viewable_states)
 		for b_i in self.local_belief:
 			tot_b += self.likelihood(b_i, viewable_agents, view_prob)*self.local_belief[b_i]
 		for b_i in self.local_belief:
-			self.local_belief[b_i] = self.likelihood(b_i, viewable_agents, view_prob)*self.local_belief[b_i]/tot_b
+			self.local_belief[b_i] = (1-self.alpha)*self.local_belief[b_i] + self.alpha*self.likelihood(b_i, viewable_agents, view_prob)*self.local_belief[b_i]/tot_b
 		if abs(sum(self.local_belief.values())-1.0)>1e-6:
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))
 		if self.evil:
 			random_belief = np.random.rand(len(self.local_belief))
 			random_belief /= np.sum(random_belief)
-			for b_i,r_b in zip(self.local_belief,random_belief):
+			for b_i,r_b in zip(self.local_belief, random_belief):
 				self.local_belief[b_i] = r_b
 				self.actual_belief[b_i] = r_b
 	
@@ -205,7 +208,8 @@ class Agent():
 				for f in range(self.no_bad):
 					sorted_belief.pop()
 				sorted_belief.append(self.local_belief[theta])
-				actual_belief.update({theta:min(sorted_belief)})
+				actual_belief.update({theta:min(sorted_belief)}) # Minimum
+				# actual_belief.update({theta:np.average(sorted_belief)}) #Averaging
 		else: # Case 2
 			for theta in self.actual_belief:
 				actual_belief.update({theta:min(self.actual_belief[theta],self.local_belief[theta])})
@@ -262,9 +266,9 @@ class Agent():
 			# Find the mission's planned location for the agent
 			policy_prob = []
 			for obs_s in obs_states:
-				policy_prob.append(self.policy_list[a_i].observation((obs_s,a_s[1]),[self.last_seen[a_i][0]],self.last_seen[a_i][1]))
+				policy_prob.append(self.policy_list[a_i].observation((obs_s,a_s[1]), [self.last_seen[a_i][0]], self.last_seen[a_i][1]))
 			# Find the most likely location of agent in the mission and then the probability of the observed location based on that position.
-			obs_probs = self.observation(obs_states,obs_states[np.argmax(np.asarray(policy_prob))], self.error_prob)
+			obs_probs = self.observation(obs_states, obs_states[np.argmax(np.asarray(policy_prob))], self.error_prob)
 			# Add it to probability tuple
 			view_prob.append(obs_probs[obs_states.index(a_s[0])]/obs_probs.max())
 		return view_prob

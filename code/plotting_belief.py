@@ -17,7 +17,8 @@ from gridworld import *
 
 # ---------- PART 1: Globals
 
-with open('Examples/4agents_5range_stat.json') as json_file:
+# with open('Examples/5agents_4range_average.json') as json_file:
+with open('8agents_3range_stat.json') as json_file:
 	data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 96
@@ -253,7 +254,10 @@ bel_lines = belief_chart_init()
 # belief_update(20)
 # belief_update(40)
 ax_ar = grid_init(nrows, ncols, obs_range)
+# update()
+# plt.show()
 ani = FuncAnimation(fig, update_all, frames=frames, interval=500, blit=True,repeat=False)
+# ani.save('decen.gif',dpi=80,writer='imagemagick')
 plt.show()
 
 # fig = plt.figure(figsize=(4,4))
