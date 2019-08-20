@@ -18,8 +18,8 @@ class Agent():
 		self.id_no = id(self)-1000*math.floor(id(self)/1000)
 		self.init = init
 		self.current = init
-		self.alpha = 0.9
-		self.burn_rate = 0.9
+		self.alpha = 1.0
+		self.burn_rate = 0.99
 		self.targets = target_list
 		self.public_targets = public_list
 		self.belief_tracks = belief_tracks

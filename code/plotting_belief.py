@@ -17,8 +17,7 @@ from gridworld import *
 
 # ---------- PART 1: Globals
 
-# with open('Examples/5agents_4range_average.json') as json_file:
-with open('8agents_3range_stat.json') as json_file:
+with open('Examples/5agents_4range_stat.json') as json_file:
 	data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 96
