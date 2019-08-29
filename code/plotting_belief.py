@@ -17,10 +17,12 @@ from gridworld import *
 
 # ---------- PART 1: Globals
 
-with open('Examples/5agents_4range_stat.json') as json_file:
+with open('8agents_3range_wheel.json') as json_file:
 	data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 96
+Writer = matplotlib.animation.writers['ffmpeg']
+writer = Writer(fps=2.5, metadata=dict(artist='Me'), bitrate=1800)
 fig = plt.figure(figsize=(2000/my_dpi, 1600/my_dpi), dpi=my_dpi)
 my_palette = plt.cm.get_cmap("Set2",len(df.index))
 categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
@@ -36,8 +38,8 @@ belief_x_good = []
 belief_x_bad = []
 belief_y_bad = []
 belief_y_good = []
-
-frames = len(data)
+# plt.show()
+frames = 100
 
 for row in range(0, len(df.index)):
 	ax = plt.subplot(4, N+1, row+1+int(1+(N+1)/2)*int(row/((N)/2)), polar=True)
@@ -140,8 +142,8 @@ def belief_chart_init():
 		belief_x_good[i].append(0)
 		belief_y_good.append([])
 		belief_y_good[i].append(df['0'][id_no]['ActBelief'][belief_good])
-		px1, = ax.plot([0,20], [0,0.1*i], color=my_palette(i), linewidth=3, linestyle='solid', label=r'Actual belief: $b^a_'+str(i)+r'(\theta^\star)$')
-		px2, = ax.plot([0,20], [1.0,0.1*i], color=my_palette(i), linewidth=3, linestyle='dashed', label=r'Incorrect belief $b^a_'+str(i)+r'(\theta_0)$')
+		px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=3, linestyle='solid', label=r'Actual belief: $b^a_'+str(i)+r'(\theta^\star)$')
+		px2, = ax.plot([0,0.0], [0.0,0.0], color=my_palette(i), linewidth=3, linestyle='dashed', label=r'Incorrect belief $b^a_'+str(i)+r'(\theta_0)$')
 		plt_array.append((px1,px2))
 	leg = ax.legend(loc='upper right')
 	return plt_array
@@ -202,9 +204,15 @@ def connect_update(i):
 	global con_dict, df
 	change_array = []
 	for id_no in categories:
-		for v_i in df[str(i)][id_no]['Visible']:
-			con_dict[(id_no,str(v_i))].set(visible=True,zorder=0)
-			change_array.append(con_dict[(id_no,str(v_i))])
+		for id_other in categories:
+			if int(id_other) in df[str(i)][id_no]['Visible']:
+				if con_dict[(id_no,id_other)]._visible != True:
+					con_dict[(id_no, id_other)].set(visible=True, zorder=0)
+					change_array.append(con_dict[(id_no, id_other)])
+			else:
+				if con_dict[(id_no,id_other)]._visible == True:
+					con_dict[(id_no, id_other)].set(visible=False, zorder=0)
+					change_array.append(con_dict[(id_no, id_other)])
 	return change_array
 	
 
@@ -255,9 +263,12 @@ bel_lines = belief_chart_init()
 ax_ar = grid_init(nrows, ncols, obs_range)
 # update()
 # plt.show()
+# update_all(100)
 ani = FuncAnimation(fig, update_all, frames=frames, interval=500, blit=True,repeat=False)
+ani.save('8_agents-3range-wheel.mp4',writer = writer)
+# plt.show()
 # ani.save('decen.gif',dpi=80,writer='imagemagick')
-plt.show()
+
 
 # fig = plt.figure(figsize=(4,4))
 # ax = fig.add_subplot(111, projection='polar')

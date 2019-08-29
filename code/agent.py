@@ -14,21 +14,23 @@ class ProbablilityNotOne(Exception):
 
 class Agent():
 	
-	def __init__(self,init=None,target_list=[],public_list=[],mdp=None,gw_env=None,belief_tracks=None):
+	def __init__(self,init=None,target_list=[],public_list=[],mdp=None,gw_env=None,belief_tracks=None,bad_models=[]):
 		self.id_no = id(self)-1000*math.floor(id(self)/1000)
 		self.init = init
 		self.current = init
 		self.alpha = 1.0
-		self.burn_rate = 0.99
+		self.burn_rate = 1.0
 		self.targets = target_list
 		self.public_targets = public_list
 		self.belief_tracks = belief_tracks
+		self.bad_model = bad_models
 		self.evil = False
 		if target_list != public_list:
 			self.evil = True
 		t_num = list(range(len(target_list)))
 		t_list = list(zip(self.targets,t_num))#[t_num[-1]]+t_num[:-1]))
 		p_list = list(zip(self.public_targets,t_num))#[t_num[-1]]+t_num[:-1]))
+		b_list = list(zip(self.bad_model,t_num))
 		self.gw = gw_env
 		self.viewable_agents = []
 		self.last_seen = {}
@@ -37,16 +39,13 @@ class Agent():
 		self.error_prob = 0.4
 		labels = dict([])
 		pub_labels = dict([])
-		for q,s in enumerate(self.targets):
+		for q, s in enumerate(self.targets):
 			labels[s] = q
 		for q, s in enumerate(self.public_targets):
 			pub_labels[s] = q
+		
 		self.mdp.add_init(init)
 		self.mdp.add_labels(labels)
-		# self.nfa = nfa
-		# self.public_nfa = nfa
-		# self.nfa.add_init(init)
-		# self.nfa.add_labels(labels)
 		dra = DRA(0,range(len(self.targets)))
 		for q in range(len(self.targets)):
 			for i in range(len(self.targets)):
@@ -61,9 +60,19 @@ class Agent():
 		# self.public_nfa.add_init(init)
 		self.pmdp = self.productMDP(self.mdp,dra)
 		self.public_pmdp = self.productMDP(self.public_mdp,dra)
-		# self.pnfa = self.productMDP(self.nfa,dra)
-		# self.public_pnfa = self.productMDP(self.public_nfa,dra)
-		self.policy = Policy(self.pmdp,self.public_pmdp,self.pmdp.init,t_list,50,p_list)
+	
+		bad_dra = DRA(0, range(len(self.bad_model)))
+		for q in range(len(self.bad_model)):
+			for i in range(len(self.bad_model)):
+				if q == i:
+					if q==len(self.bad_model)-1:
+						bad_dra.add_transition(q, q, 0)
+					else:
+						bad_dra.add_transition(q, q,q +1)
+				else:
+					bad_dra.add_transition(i, q, q)
+		self.bad_pmdp = self.productMDP(self.public_mdp,bad_dra)
+		self.policy = Policy(self.pmdp, self.public_pmdp, self.pmdp.init, t_list, 50, p_list,self.bad_pmdp,b_list)
 	
 	def writeOutputTimeStamp(self,init=[]):
 		out_dict = dict()
@@ -247,16 +256,22 @@ class Agent():
 		self.resetFlag = False
 		
 	def likelihood(self,sys_status,viewable_agents,view_prob):
-		epsilon = 1e-9
+		epsilon = 0 # 1e-9
 
 		# Work through each element of the tuple, if is likely then good if its unlikely then bad.
 		view_index = [self.id_idx[v_a] for v_a in viewable_agents]
 		prob_i = 1.0
 		for v_i, v_p in zip(view_index, view_prob):
-			if sys_status[v_i] == 0: # if bad
-				prob_i *= 1.0-v_p+epsilon
+			if len(v_p)>1:
+				if sys_status[v_i] == 0:
+					prob_i *= v_p[1] # Probability for bad model
+				else:
+					prob_i *= v_p[0] # Probability for good model
 			else:
-				prob_i *= v_p+epsilon
+				if sys_status[v_i] == 0: # if bad
+					prob_i *= 1.0-v_p+epsilon
+				else:
+					prob_i *= v_p+epsilon
 		return prob_i
 	
 	def ViewProbability(self, viewable_agents, viewable_states):
@@ -265,10 +280,16 @@ class Agent():
 			obs_states = list(self.gw.observable_states[self.current[0]])
 			# Find the mission's planned location for the agent
 			policy_prob = []
+			bad_prob = []
 			for obs_s in obs_states:
 				policy_prob.append(self.policy_list[a_i].observation((obs_s,a_s[1]), [self.last_seen[a_i][0]], self.last_seen[a_i][1]))
+				bad_prob.append(self.policy_list[a_i].bad_observation((obs_s,a_s[1]), [self.last_seen[a_i][0]], self.last_seen[a_i][1]))
 			# Find the most likely location of agent in the mission and then the probability of the observed location based on that position.
 			obs_probs = self.observation(obs_states, obs_states[np.argmax(np.asarray(policy_prob))], self.error_prob)
+			bad_probs = self.observation(obs_states, obs_states[np.argmax(np.asarray(bad_prob))], self.error_prob)
 			# Add it to probability tuple
-			view_prob.append(obs_probs[obs_states.index(a_s[0])]/obs_probs.max())
+			if self.bad_model:
+				view_prob.append([obs_probs[obs_states.index(a_s[0])],bad_probs[obs_states.index(a_s[0])]])
+			else:
+				view_prob.append(obs_probs[obs_states.index(a_s[0])]/obs_probs.max())
 		return view_prob

@@ -3,7 +3,7 @@ import random
 
 class Policy():
 	
-	def __init__(self,mdp,public_mdp,init,target,lookahead,public_target):
+	def __init__(self,mdp,public_mdp,init,target,lookahead,public_target,bad_mdp=[],bad_target=[]):
 		self.mdp = mdp
 		# self.nfa = nfa  # Deterministic transitions -- used for nominal trace
 		self.init = init
@@ -18,6 +18,11 @@ class Policy():
 		self.mc = self.mdp.construct_MC(self.policy)
 		self.public_mc = public_mdp.construct_MC(self.public_policy)
 		self.nom_trace = self.nominalTrace(self.init)
+		if bad_target:
+			self.bad_target = bad_target
+			self.bad_mdp = bad_mdp
+			self.bad_pol = self.computePolicy(self.bad_target,self.bad_mdp)
+			self.bad_mc = self.bad_mdp.construct_MC(self.bad_pol)
 		
 	def computePolicy(self,targ,mdp):
 		T = self.lookahead
@@ -51,7 +56,9 @@ class Policy():
 		random.shuffle(s_l)
 		return s_l[0]
 	
-	def mcProb(self, init, T):
+	def mcProb(self, init, T,mc=[]):
+		if mc ==[]:
+			mc = self.public_mc
 		s = init
 		MC_prob = dict([s_t, 1.0] for s_t in self.mdp.states)
 		t = 0
@@ -59,7 +66,7 @@ class Policy():
 			MC_prob_up = dict([s_t, 0.0] for s_t in self.mdp.states)
 			for s_i in s:
 				for z in self.mdp.states:
-					MC_prob_up[z] += MC_prob[s_i] * self.public_mc[(s_i, z)]
+					MC_prob_up[z] += MC_prob[s_i] * mc[(s_i, z)]
 			MC_prob = MC_prob_up  # /sum([MC_prob_up[e] for e in MC_prob_up])
 			# assert sum([MC_prob[e] for e in MC_prob])==1.0
 			s = [s_e for s_e in self.mdp.states if MC_prob[s_e] != 0.0]
@@ -68,4 +75,8 @@ class Policy():
 	
 	def observation(self, est_loc, last_sight, t):
 		MC_prob = self.mcProb(last_sight, t)
+		return MC_prob[est_loc]
+	
+	def bad_observation(self,est_loc,last_sight,t):
+		MC_prob = self.mcProb(last_sight, t,self.bad_mc)
 		return MC_prob[est_loc]
