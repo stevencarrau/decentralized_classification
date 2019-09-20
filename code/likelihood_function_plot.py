@@ -5,6 +5,7 @@ matplotlib.use('pgf')
 # matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import matplotlib.patheffects as pe
 import pandas as pd
 from math import ceil
 from math import pi
@@ -108,52 +109,76 @@ def grid_init(nrows, ncols, obs_range):
 	plt.yticks(range(nrows), row_labels)
 	ax.set_xticks([x - 0.5 for x in range(1, ncols)], minor=True)
 	ax.set_yticks([y - 0.5 for y in range(1, nrows)], minor=True)
-	ax.set_xlim(-0.5, nrows - 0.5)
-	ax.set_ylim(-0.5, ncols - 0.5)
+	ax.set_xlim(-0.5, ncols - 0.5)
+	ax.set_ylim(-0.5, nrows - 0.5)
 	ax.invert_yaxis()
 	ag_array = []
 	plt.grid(which="minor", ls="-", lw=1*scale_factor)
 	i = 2
 	# for id_no in categories:
 	# p_t = df[str(0)][id_no]['PublicTargets']
+	#
 	color = my_palette(i)
-	init_loc = (0,0)
+	init_loc = (0,2)
 	c_i = plt.Circle(init_loc, 0.4, color=color)
 	# route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0], ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
 	cir_ax = ax.add_artist(c_i)
-	ax.annotate(r'$q_i$', xy=(init_loc[0] - 0.05/scale_factor, init_loc[1] +  0.05/scale_factor))
-	lin_ax = ax.add_patch(patches.Rectangle(np.array(init_loc) - obs_range - 0.5, 2 * obs_range + 1, 2 * obs_range + 1, fill=False,color=color, clip_on=True, alpha=1.0, ls='--', lw=2.5*scale_factor))
+	lin_ax = ax.add_patch(patches.Rectangle(np.array(init_loc) - obs_range - 0.5, 2 * obs_range + 1, 2 * obs_range + 1, fill=False,color=color,zorder=2, clip_on=True, alpha=1.0, ls='--', lw=2.5*scale_factor))
+	ax.annotate(r'$q_i$', xy=(init_loc[0] - 0.1/scale_factor, init_loc[1] +  0.1/scale_factor))
 	# plt_ax, = ax.plot(route_x, route_y, color=color, linewidth=10, linestyle='solid')
 	# ag_array.append([cir_ax, lin_ax, plt_ax])
 	ag_array.append([cir_ax, lin_ax])
-	fill_wind = [0,1,2, 4,5,6, 8,9,10 ]
-	prob = [0.08,0.1,0.15,  0.1,0.15,0.25,  0.15,0.25,0.4,  0.25,0.4,0.6]
-	for k,p_s in zip(fill_wind,prob):
-		s_c = coords(k, ncols)
-		ax.fill([s_c[1] + 0.49, s_c[1] - 0.49, s_c[1] - 0.49, s_c[1] + 0.49],
-		        [s_c[0] - 0.49, s_c[0] - 0.49, s_c[0] + 0.49, s_c[0] + 0.49], color=color, alpha=p_s)
+	# fill_wind = [7,8,9,10,11,13,14,15,16,17,19,20,21,22,23,25,26,27,28,29,31,32,33,34,35]
+	# prob = [0.05,0.06,0.08,0.1,0.15,  0.06,0.08,0.1,0.15,0.25,  0.08,0.1,0.15,0.25,0.4,   0.1,0.15,0.25,0.4,0.6,  0.08,0.1,0.15,0.25,0.4]
+	# for k,p_s in zip(fill_wind,prob):
+	# 	s_c = coords(k, ncols)
+	# 	ax.fill([s_c[1] + 0.49, s_c[1] - 0.49, s_c[1] - 0.49, s_c[1] + 0.49],
+	# 	        [s_c[0] - 0.49, s_c[0] - 0.49, s_c[0] + 0.49, s_c[0] + 0.49], color=color, alpha=p_s)
+	#
 	
 	
-	p_t = [1,14]
+	# Good
+	p_t = [3,4]
 	i = 3
-	color = my_palette(i)
+	# color = my_palette(i)
+	color = (0.0, 35.0 / 256.0, 102.0 / 256.0)
 	for k in p_t:
 		s_c = coords(k, ncols)
 		ax.fill([s_c[1] + 0.4, s_c[1] - 0.4, s_c[1] - 0.4, s_c[1] + 0.4],
-		        [s_c[0] - 0.4, s_c[0] - 0.4, s_c[0] + 0.4, s_c[0] + 0.4], color=color, alpha=0.9)
-	init_loc = (2, 2)
-	c_i = plt.Circle(init_loc, 0.4, color=color)
-	ax.annotate(r'$q_j$', xy=(init_loc[0] - 0.05/scale_factor, init_loc[1] + 0.05/scale_factor))
+		        [s_c[0] - 0.4, s_c[0] - 0.4, s_c[0] + 0.4, s_c[0] + 0.4], facecolor=color, alpha=0.9,edgecolor=(0,1,0),linewidth=2*scale_factor)
+	init_loc = (2, 1)
+	c_i = plt.Circle(init_loc, 0.45, facecolor=color,edgecolor=(0,1,0))
+	ax.annotate(r'$q^1_{j,t}$', xy=(init_loc[0] - 0.1 / scale_factor, init_loc[1] + 0.1 / scale_factor),color=(1,1,1),zorder=3)
 	# route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0], ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
-	route_x = [1,2,2,2,2,1,1,1,1]
-	route_y = [0,0,1,2,3,3,2,1,0]
+	route_x = [0,0,1,2,3,3,2,1,0]
+	route_y = [1,0,0,0,0,1,1,1,1]
 	cir_ax = ax.add_artist(c_i)
-	init_loc = (2, 0)
-	ax.annotate(r'$s^j_i$', xy=(init_loc[0] + 0.025/scale_factor, init_loc[1] + 0.05/scale_factor))
+	plt_ax, = ax.plot(route_x, route_y, color=color, linewidth=2*scale_factor, linestyle='solid',path_effects=[pe.Stroke(linewidth=3*scale_factor,foreground=(0,1,0)),pe.Normal()],zorder=-1)
+	
+	# Bad
+	p_t = [12,19]
+	i = 3
+	# color = my_palette(i)
+	color = (0.0, 35.0 / 256.0, 102.0 / 256.0)
+	for k in p_t:
+		s_c = coords(k, ncols)
+		ax.fill([s_c[1] + 0.4, s_c[1] - 0.4, s_c[1] - 0.4, s_c[1] + 0.4],
+		        [s_c[0] - 0.4, s_c[0] - 0.4, s_c[0] + 0.4, s_c[0] + 0.4], facecolor=color, alpha=0.9,edgecolor=(1.0,0,0),linewidth=2*scale_factor)
+	route_x = [0,1,2,3,3,2,1,0,0]
+	route_y = [3,3,3,3,4,4,4,4,3]
+	init_loc = (2, 4)
+	c_i = plt.Circle(init_loc, 0.45, facecolor=color,edgecolor=(1,0,0))
+	ax.annotate(r'$q^0_{j,t}$', xy=(init_loc[0] - 0.1 / scale_factor, init_loc[1] + 0.1 / scale_factor),color=(1,1,1),zorder=3)
+	cir_ax = ax.add_artist(c_i)
+	plt_ax, = ax.plot(route_x, route_y, color=color, linewidth=2*scale_factor, linestyle='solid',
+	                  path_effects=[pe.Stroke(linewidth=3*scale_factor, foreground=(1, 0, 0)), pe.Normal()],zorder=-1)
+	
+	init_loc = (2, 2)
 	c_i = plt.Circle(init_loc, 0.4, color=color,alpha=0.4)
+	ax.annotate(r'$s^j_i$', xy=(init_loc[0] - 0.1 / scale_factor, init_loc[1] + 0.1 / scale_factor))
 	cir_ax2 = ax.add_artist(c_i)
 	# lin_ax = ax.add_patch(patches.Rectangle(np.array(init_loc) - obs_range - 0.5, 2 * obs_range + 1, 2 * obs_range + 1, fill=False,color=color, clip_on=True, alpha=0.5, ls='--', lw=3))
-	plt_ax, = ax.plot(route_x, route_y, color=color, linewidth=3*scale_factor, linestyle='solid')
+	
 	ag_array.append([cir_ax, plt_ax])
 	
 	return ag_array
@@ -264,7 +289,7 @@ def coords(s, ncols):
 
 # ---------- PART 2:
 
-nrows = 4
+nrows = 6
 ncols = 4
 moveobstacles = []
 obstacles = []
@@ -304,7 +329,7 @@ time_i = 10
 ax_ar = grid_init(nrows, ncols, obs_range)
 # grid_update(50)
 # plt.show()
-texfig.savefig("observation"+str(time_i))
+texfig.savefig("likelihood"+str(time_i))
 # update()
 # plt.show()
 # ani = FuncAnimation(fig, update_all, frames=frames, interval=500, blit=True,repeat=False)

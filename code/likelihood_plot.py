@@ -1,7 +1,7 @@
 import json
 import matplotlib
-# matplotlib.use('pgf')
-matplotlib.use('Qt5Agg')
+matplotlib.use('pgf')
+# matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pandas as pd
@@ -9,25 +9,25 @@ from math import ceil
 from math import pi
 import math
 from ast import literal_eval
+import itertools
 from matplotlib.animation import FuncAnimation
 from matplotlib.offsetbox import (DrawingArea,OffsetImage,AnnotationBbox)
 import numpy as np
 from gridworld import *
-# import texfig
+import texfig
 
 
 
 # ---------- PART 1: Globals
 
-with open('4agents_1range_narrow_backup.json') as json_file:
+with open('4agents_3range_tight.json') as json_file:
 	data = json.load(json_file)
 df = pd.DataFrame(data)
-my_dpi = 96
-Writer = matplotlib.animation.writers['ffmpeg']
-writer = Writer(fps=2.5, metadata=dict(artist='Me'), bitrate=1800)
-# fig = texfig.figure(width=2000/my_dpi,dpi=my_dpi)
-fig = plt.figure(figsize=(2000/my_dpi, 2000/my_dpi), dpi=my_dpi)
-# fig = plt.figure(figsize=(2000/my_dpi, 1600/my_dpi), dpi=my_dpi)
+my_dpi = 100
+scale_factor = 1.0
+# Writer = matplotlib.animation.writers['ffmpeg']
+# writer = Writer(fps=2.5, metadata=dict(artist='Me'), bitrate=1800)
+fig = texfig.figure(width=3.3*scale_factor, dpi=my_dpi)
 my_palette = plt.cm.get_cmap("tab10",len(df.index))
 categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
 belief_good = df['0'][0]['GoodBelief']
@@ -43,31 +43,33 @@ belief_x_bad = []
 belief_y_bad = []
 belief_y_good = []
 # plt.show()
-frames = 200
+frames = 50
 
-for row in range(0, len(df.index)):
-	ax = plt.subplot(4, N+1, row+1+int(1+(N+1)/2)*int(row/((N)/2)), polar=True)
-	ax.set_theta_offset(pi/2)
-	ax.set_theta_direction(-1)
-	ax.set_ylim(0,100)
-	plt.xticks(angles[:-1], range(N), color='grey', size=8)
-	for col,xtick in enumerate(ax.get_xticklabels()):
-		xtick.set(color=my_palette(col),fontweight='bold',fontsize=16)
-	ax.set_rlabel_position(0)
-	plt.yticks([25, 50, 75, 100], ["0.25", "0.50", "0.75", "1.00"], color="grey", size=7)
-	# for j_z, a_i in enumerate(angles[:-1]):
-	# 	da = DrawingArea(20,20,10,10)
-	# 	p_c = patches.Circle((0,0), radius=12, color=my_palette(j_z), clip_on=False)
-	# 	da.add_artist(p_c)
-	# 	ab = AnnotationBbox(da,(0,101))
-	# 	ax.add_artist(ab)
-	l, = ax.plot([],[],color=my_palette(row),linewidth=2,linestyle='solid')
-	l_f, = ax.fill([],[],color=my_palette(row),alpha=0.4)
-	axis_array.append(ax)
-	l_data.append(l)
-	f_data.append(l_f)
-	ax.spines["bottom"] = ax.spines["inner"]
-plot_data = [l_data, f_data]
+marker = itertools.cycle(('p', 'd', 'x', '*'))
+
+# for row in range(0, len(df.index)):
+# 	ax = plt.subplot(4, N+1, row+1+int(1+(N+1)/2)*int(row/((N)/2)), polar=True)
+# 	ax.set_theta_offset(pi/2)
+# 	ax.set_theta_direction(-1)
+# 	ax.set_ylim(0,100)
+# 	plt.xticks(angles[:-1], range(N), color='grey', size=8)
+# 	for col,xtick in enumerate(ax.get_xticklabels()):
+# 		xtick.set(color=my_palette(col),fontweight='bold',fontsize=16)
+# 	ax.set_rlabel_position(0)
+# 	plt.yticks([25, 50, 75, 100], ["0.25", "0.50", "0.75", "1.00"], color="grey", size=7)
+# 	# for j_z, a_i in enumerate(angles[:-1]):
+# 	# 	da = DrawingArea(20,20,10,10)
+# 	# 	p_c = patches.Circle((0,0), radius=12, color=my_palette(j_z), clip_on=False)
+# 	# 	da.add_artist(p_c)
+# 	# 	ab = AnnotationBbox(da,(0,101))
+# 	# 	ax.add_artist(ab)
+# 	l, = ax.plot([],[],color=my_palette(row),linewidth=2,linestyle='solid')
+# 	l_f, = ax.fill([],[],color=my_palette(row),alpha=0.4)
+# 	axis_array.append(ax)
+# 	l_data.append(l)
+# 	f_data.append(l_f)
+# 	ax.spines["bottom"] = ax.spines["inner"]
+# plot_data = [l_data, f_data]
 
 def update_all(i):
 	rad_obj = update(i)
@@ -99,7 +101,7 @@ def update(i):
 
 def grid_init(nrows, ncols, obs_range):
 	# fig_new = plt.figure(figsize=(1000/my_dpi,1000/my_dpi),dpi=my_dpi)
-	ax = plt.subplot(223)
+	ax = plt.subplot(111)
 	t = 0
 	row_labels = range(nrows)
 	col_labels = range(ncols)
@@ -107,8 +109,8 @@ def grid_init(nrows, ncols, obs_range):
 	plt.yticks(range(nrows), row_labels)
 	ax.set_xticks([x - 0.5 for x in range(1, ncols)], minor=True)
 	ax.set_yticks([y - 0.5 for y in range(1, nrows)], minor=True)
-	ax.set_xlim(-0.5,ncols-0.5)
-	ax.set_ylim(-0.5,nrows-0.5)
+	ax.set_xlim(-0.5,nrows-0.5)
+	ax.set_ylim(-0.5,ncols-0.5)
 	ax.invert_yaxis()
 	ag_array = []
 	plt.grid(which="minor", ls="-", lw=1)
@@ -122,10 +124,7 @@ def grid_init(nrows, ncols, obs_range):
 		cir_ax = ax.add_artist(c_i)
 		lin_ax = ax.add_patch(patches.Rectangle(np.array(init_loc)-obs_range-0.5, 2*obs_range+1, 2*obs_range+1,fill=False, color=color, clip_on=True, alpha=0.5, ls='--', lw=4))
 		plt_ax, = ax.plot(route_x, route_y, color=color, linewidth=5, linestyle='solid')
-		route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['BadTrace'][s][0], ncols))) for s in
-		                         df[str(t)][str(id_no)]['BadTrace']])
-		plt_ax2, = ax.plot(route_x, route_y, color=color, linewidth=5, linestyle='--',dashes=[3, 8, 2, 5, 1, 6],alpha=0.8)
-		ag_array.append([cir_ax, lin_ax, plt_ax,plt_ax2])
+		ag_array.append([cir_ax, lin_ax, plt_ax])
 		for k in p_t:
 			s_c = coords(k, ncols)
 			ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
@@ -133,14 +132,16 @@ def grid_init(nrows, ncols, obs_range):
 	return ag_array
 
 def belief_chart_init():
-	ax = plt.subplot(222)
+	ax = plt.subplot(111)
 	ax.set_xlim([0,frames])
 	ax.set_ylim([-0.1,1.2])
-	ax.yaxis.set_ticks(np.arange(0,1.1,0.1))
+	ax.yaxis.set_ticks(np.arange(0,1.1,0.25))
+	ax.xaxis.set_ticks(np.arange(0,frames+1,10))
 	plt.rc('text',usetex=True)
 	plt.xlabel(r't')
 	plt.ylabel(r'Belief $\left(b^a_j(\theta)\right)$')
 	plt_array = []
+	j = 1
 	for i,id_no in enumerate(categories):
 		belief_x_bad.append([])
 		belief_x_bad[i].append(0)
@@ -150,14 +151,15 @@ def belief_chart_init():
 		belief_x_good[i].append(0)
 		belief_y_good.append([])
 		belief_y_good[i].append(df['0'][id_no]['ActBelief'][belief_good])
-		px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=3, linestyle='solid', label=r'Actual belief: $b^a_'+str(i)+r'(\theta^\star)$')
-		px2, = ax.plot([0,0.0], [0.0,0.0], color=my_palette(i), linewidth=3, linestyle='dashed', label=r'Incorrect belief $b^a_'+str(i)+r'(\theta_0)$')
+		px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=3*scale_factor, linestyle='solid', label=r'Actual belief: $b^a_'+str(i)+r'(\theta^\star)$',marker=next(marker),markevery=slice(i+2,50,4),markersize=8*scale_factor,dashes=[j,3,1,2])
+		px2, = ax.plot([0,0.0], [0.0,0.0], visible =False, color=my_palette(i), linewidth=3*scale_factor, linestyle='dashed', label=r'Incorrect belief $b^a_'+str(i)+r'(\theta_0)$',dashes=[j,3,1,2])
 		plt_array.append((px1,px2))
-	leg = ax.legend(loc='right')
+		j+=1
+	# leg = ax.legend(loc='lower right')
 	return plt_array
 
 def con_init():
-	ax = plt.subplot(224)
+	ax = plt.subplot(111)
 	plt.axis('off')
 	ax.set_xlim([-ax.get_window_extent().height/2, ax.get_window_extent().height/2])
 	ax.set_ylim([-ax.get_window_extent().height/2, ax.get_window_extent().height/2])
@@ -183,18 +185,14 @@ def grid_update(i):
 	global ax_ar, df, ncols, obs_range
 	write_objects = []
 	for a_x, id_no in zip(ax_ar, categories):
-		c_i, l_i, p_i,p_2 = a_x
+		c_i, l_i, p_i = a_x
 		loc = tuple(reversed(coords(df[str(i)][id_no]['AgentLoc'][0], ncols)))
 		c_i.set_center(loc)
 		l_i.set_xy(np.array(loc)-obs_range-0.5)
-		# route_x, route_y = zip(*[tuple(reversed(coords(df[str(i)][str(id_no)]['NominalTrace'][s][0], ncols))) for s in df[str(i)][str(id_no)]['NominalTrace']])
-		# p_i.set_xdata(route_x)
-		# p_i.set_ydata(route_y)
-		# route_x2, route_y2 = zip(*[tuple(reversed(coords(df[str(i)][str(id_no)]['BadTrace'][s][0], ncols))) for s in
-		#                          df[str(i)][str(id_no)]['BadTrace']])
-		# p_2.set_xdata(route_x2)
-		# p_2.set_ydata(route_y2)
-		write_objects += [c_i] + [l_i] + [p_i] + [p_2]
+		route_x, route_y = zip(*[tuple(reversed(coords(df[str(i)][str(id_no)]['NominalTrace'][s][0], ncols))) for s in df[str(i)][str(id_no)]['NominalTrace']])
+		p_i.set_xdata(route_x)
+		p_i.set_ydata(route_y)
+		write_objects += [c_i] + [l_i] + [p_i]
 	return write_objects
 
 def belief_update(i):
@@ -218,26 +216,26 @@ def connect_update(i):
 	for id_no in categories:
 		for id_other in categories:
 			if int(id_other) in df[str(i)][id_no]['Visible']:
-				# if con_dict[(id_no,id_other)]._visible != True:
-				con_dict[(id_no, id_other)].set(visible=True, zorder=0)
-				change_array.append(con_dict[(id_no, id_other)])
+				if con_dict[(id_no,id_other)]._visible != True:
+					con_dict[(id_no, id_other)].set(visible=True, zorder=0)
+					change_array.append(con_dict[(id_no, id_other)])
 			else:
-				# if con_dict[(id_no,id_other)]._visible == True:
-				con_dict[(id_no, id_other)].set(visible=False, zorder=0)
-				change_array.append(con_dict[(id_no, id_other)])
+				if con_dict[(id_no,id_other)]._visible == True:
+					con_dict[(id_no, id_other)].set(visible=False, zorder=0)
+					change_array.append(con_dict[(id_no, id_other)])
 	return change_array
 	
 
 
 def coords(s,ncols):
-	return (int(s % ncols),int(s /ncols))
+	return (int(s /ncols), int(s % ncols))
 
 
 
 # ---------- PART 2:
 
 nrows = 10
-ncols = 6
+ncols = 10
 moveobstacles = []
 obstacles = []
 # # # 5 agents small range
@@ -267,16 +265,19 @@ obs_range = 3
 # public_targets = [[0,9],[60,69],[20,39],[55,95]]
 # obs_range = 4
 
-con_dict = con_ar = con_init()
+# con_dict = con_ar = con_init()
+time_i = 50
 bel_lines = belief_chart_init()
-ax_ar = grid_init(nrows, ncols, obs_range)
+for j in range(time_i+1):
+	belief_update(j)
+# ax_ar = grid_init(nrows, ncols, obs_range)
 # update_all(50)
-# texfig.savefig("test")
+texfig.savefig("results_"+str(time_i))
 # update()
 # plt.show()
-ani = FuncAnimation(fig, update_all, frames=frames, interval=500, blit=True,repeat=False)
-plt.show()
-# ani.save('4_agents-2range_narrow.mp4',writer = writer)
+# ani = FuncAnimation(fig, update_all, frames=frames, interval=500, blit=True,repeat=False)
+# plt.show()
+# ani.save('8_agents-3range-wheel.mp4',writer = writer)
 # ani.save('decen.gif',dpi=80,writer='imagemagick')
 
 

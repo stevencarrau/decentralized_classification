@@ -71,9 +71,9 @@ class Gridworld():
     def obs_zone(self,s):
         zone = set()
         i,j = self.coords(s)
-        max_i = min(i+self.obs_range+0,self.ncols)
+        max_i = min(i+self.obs_range,self.ncols)
         min_i = max(i-self.obs_range,0)
-        max_j = min(j+self.obs_range+1,self.nrows)
+        max_j = min(j+self.obs_range,self.nrows)
         min_j = max(j-self.obs_range,0)
         for s_i in range(min_i,max_i):
             for s_j in range(min_j,max_j):

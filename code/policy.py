@@ -10,19 +10,26 @@ class Policy():
 		self.target = target
 		self.public_target = public_target
 		self.lookahead = lookahead
-		self.policy = self.computePolicy(self.target,mdp)
 		if target != public_target:
 			self.public_policy = self.computePolicy(self.public_target,public_mdp)
+			self.policy = self.computePolicy(self.target,mdp)
+			self.public_mdp = public_mdp
 		else:
-			self.public_policy = self.policy
+			self.public_policy = self.computePolicy(self.public_target,public_mdp)
+			self.policy = self.public_policy
+			self.public_mdp = mdp
 		self.mc = self.mdp.construct_MC(self.policy)
 		self.public_mc = public_mdp.construct_MC(self.public_policy)
-		self.nom_trace = self.nominalTrace(self.init)
+		self.nom_trace = self.nominalTrace(self.init,self.public_mdp,self.public_policy)
 		if bad_target:
 			self.bad_target = bad_target
 			self.bad_mdp = bad_mdp
-			self.bad_pol = self.computePolicy(self.bad_target,self.bad_mdp)
+			if target != public_target:
+				self.bad_pol = self.policy
+			else:
+				self.bad_pol = self.computePolicy(self.bad_target, self.bad_mdp)
 			self.bad_mc = self.bad_mdp.construct_MC(self.bad_pol)
+			self.bad_trace = self.nominalTrace(self.init,self.bad_mdp,self.bad_pol)
 		
 	def computePolicy(self,targ,mdp):
 		T = self.lookahead
@@ -40,12 +47,18 @@ class Policy():
 		self.mc = mdp.construct_MC(self.policy)
 		self.updateNominal(self.init)
 	
-	def nominalTrace(self,loc):
+	def nominalTrace(self,loc,mdp,policy=None):
 		T = self.lookahead
-		return self.mdp.computeTrace(loc,self.public_policy,T, self.public_target)
-	
-	def updateNominal(self,loc):
-		self.nom_trace = self.nominalTrace(loc)
+		if policy:
+			return mdp.computeTrace(loc,policy,T)
+		else:
+			return mdp.computeTrace(loc,self.public_policy,T)
+	def updateNominal(self,loc,mdp=None):
+		if mdp:
+			self.nom_trace = self.nominalTrace(loc,mdp)
+		self.nom_trace = self.nominalTrace(loc,self.public_mdp)
+		if self.bad_pol:
+			self.bad_trace = self.nominalTrace(loc,self.bad_mdp,self.bad_pol)
 	
 	def changeTarget(self,new_target):
 		self.target = new_target

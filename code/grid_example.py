@@ -28,8 +28,8 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
             a_i.updateAgent((s, q))
             agent_loc[a_i.id_no] = a_i.current
             a_i.policy.updateNominal(a_i.current)
-            print("Local likelihood for ", a_i.id_no, ": ",
-                      a_i.policy.observation((s, q), [prev_state], 1))
+            # print("Local likelihood for ", a_i.id_no, ": ",
+            #           a_i.policy.observation((s, q), [prev_state], 1))
         ## Local update
         for a_i,  p_i in enumerate(agent_array):
             p_i.updateVision(p_i.current, agent_loc)
@@ -39,7 +39,7 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
             p_i.shareBelief(belief_packet)
             time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
         plotting_dictionary.update({str(time_t): time_p})
-    write_JSON(str(len(agent_loc))+'agents_'+str(grid.obs_range)+'range_wheel.json', stringify_keys(plotting_dictionary))
+    write_JSON(str(len(agent_loc))+'agents_'+str(grid.obs_range)+'range_narrow_backup.json', stringify_keys(plotting_dictionary))
     pygame.quit()
     return print("Goal!")
 
@@ -72,7 +72,7 @@ def stringify_keys(d):
     return d
 
 nrows = 10
-ncols = 10
+ncols = 6
 moveobstacles = []
 obstacles = []
 # # # 5 agents small range
@@ -102,12 +102,33 @@ obstacles = []
 # bad_models = [[8,10],[3,38],[10,85],[91,33],[11,19],[62,68],[23,57],[55,71]]
 # obs_range = 4
 
-## Spokes on a wheel
-initial = [(0,0),(9,0),(90,0),(99,0),(5,0),(40,0),(94,0),(59,0)]
-public_targets = [[33,0],[36,9],[63,90],[66,99],[54,5],[55,4],[45,94],[44,59]]
-bad_models = [[18,88],[11,91],[36,9],[2,82],[69,99],[27,77],[4,30],[72,22]]
-targets = [[33,0],[36,9],[63,90],[66,99],[54,5],[27,77],[45,94],[72,22]]
-obs_range = 3
+# ## 8 Spokes on a wheel
+# initial = [(0,0),(9,0),(90,0),(99,0),(5,0),(40,0),(94,0),(59,0)]
+# public_targets = [[33,0],[36,9],[63,90],[66,99],[54,5],[55,4],[45,94],[44,59]]
+# bad_models = [[18,88],[11,91],[36,9],[2,82],[69,99],[27,77],[4,30],[72,22]]
+# targets = [[33,0],[36,9],[63,90],[66,99],[54,5],[27,77],[45,94],[72,22]]
+# obs_range = 3
+
+# ## 6 Spokes on a wheel
+# initial = [(0,0),(9,0),(90,0),(99,0),(5,0),(40,0)]
+# public_targets = [[33,0],[36,9],[63,90],[66,99],[54,5],[45,94]]
+# bad_models = [[18,88],[11,91],[36,9],[2,82],[69,99],[96,59]]
+# targets = [[33,0],[36,9],[63,90],[66,99],[54,5],[96,59]]
+# obs_range = 4
+#
+# ## 6 Spokes on a wheel - Tighter centers
+# initial = [(0,0),(9,0),(90,0),(99,0),(5,0),(40,0)]
+# public_targets = [[43,0],[46,9],[53,90],[56,99],[64,5],[35,94]]
+# bad_models = [[18,88],[11,91],[36,9],[2,82],[69,99],[96,59]]
+# targets = [[43,0],[46,9],[53,90],[56,99],[64,5],[96,59]]
+# obs_range = 3
+
+## 4 Spokes on a wheel - Tighter centers
+initial = [(1,0),(4,0),(55,0),(35,0)]
+public_targets = [[26,1],[27,4],[32,55],[33,58]]
+bad_models = [[25,0],[28,5],[31,54],[35,59]]
+targets = [[26,1],[27,4],[32,55],[35,59]]
+obs_range = 1
 
 
 # #4 agents larger range
@@ -160,7 +181,7 @@ for i, j, k, l in zip(initial, targets, public_targets, bad_models):
     if evil_switch:
         agent_array.append(Agent(i, j, k, mdp, gwg, belief_tracks, l))
     else:
-        agent_array.append(Agent(i, k, k, mdp, gwg, belief_tracks, l))
+        agent_array.append(Agent(i, j, k, mdp, gwg, belief_tracks, l))
     print("Policy ", c_i, " -- complete")
     c_i += 1
 id_list = [a_l.id_no for a_l in agent_array]
@@ -169,6 +190,6 @@ for a_i in agent_array:
     a_i.initBelief([a_l.id_no for a_l in agent_array],1)
     a_i.definePolicyDict(id_list,pol_list)
 
-play_sim(True,agent_array,gwg,250)
+play_sim(True,agent_array,gwg,200)
 
 

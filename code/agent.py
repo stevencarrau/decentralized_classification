@@ -19,7 +19,7 @@ class Agent():
 		self.init = init
 		self.current = init
 		self.alpha = 1.0
-		self.burn_rate = 1.0
+		self.burn_rate = 1.00
 		self.targets = target_list
 		self.public_targets = public_list
 		self.belief_tracks = belief_tracks
@@ -35,17 +35,26 @@ class Agent():
 		self.viewable_agents = []
 		self.last_seen = {}
 		self.mdp = mdp
-		self.public_mdp = mdp
-		self.error_prob = 0.4
+		self.public_mdp = deepcopy(mdp)
+		self.error_prob = 0.2
 		labels = dict([])
 		pub_labels = dict([])
-		for q, s in enumerate(self.targets):
-			labels[s] = q
-		for q, s in enumerate(self.public_targets):
-			pub_labels[s] = q
+		bad_labels = dict([])
+		for q_t, s_t in enumerate(self.targets):
+			labels[s_t] = q_t
+		for q_p, s_p in enumerate(self.public_targets):
+			pub_labels[s_p] = q_p
+		for q_b, s_b in enumerate(bad_models):
+			bad_labels[s_b] = q_b
 		
 		self.mdp.add_init(init)
 		self.mdp.add_labels(labels)
+		self.public_mdp.add_init(init)
+		self.public_mdp.add_labels(pub_labels)
+		self.bad_mdp = deepcopy(mdp)
+		self.bad_mdp.add_init(init)
+		self.bad_mdp.add_labels(bad_labels)
+		
 		dra = DRA(0,range(len(self.targets)))
 		for q in range(len(self.targets)):
 			for i in range(len(self.targets)):
@@ -56,11 +65,23 @@ class Agent():
 						dra.add_transition(q,q,q+1)
 				else:
 					dra.add_transition(i, q, q)
-		self.public_mdp.add_init(init)
+
 		# self.public_nfa.add_init(init)
 		self.pmdp = self.productMDP(self.mdp,dra)
-		self.public_pmdp = self.productMDP(self.public_mdp,dra)
-	
+		
+		public_dra = DRA(0,range(len(self.public_targets)))
+		for q in range(len(self.public_targets)):
+			for i in range(len(self.public_targets)):
+				if q == i:
+					if q==len(self.public_targets)-1:
+						public_dra.add_transition(q,q,0)
+					else:
+						public_dra.add_transition(q,q,q+1)
+				else:
+					public_dra.add_transition(i, q, q)
+		
+		self.public_pmdp = self.productMDP(self.public_mdp,public_dra)
+		
 		bad_dra = DRA(0, range(len(self.bad_model)))
 		for q in range(len(self.bad_model)):
 			for i in range(len(self.bad_model)):
@@ -71,7 +92,7 @@ class Agent():
 						bad_dra.add_transition(q, q,q +1)
 				else:
 					bad_dra.add_transition(i, q, q)
-		self.bad_pmdp = self.productMDP(self.public_mdp,bad_dra)
+		self.bad_pmdp = self.productMDP(self.bad_mdp,bad_dra)
 		self.policy = Policy(self.pmdp, self.public_pmdp, self.pmdp.init, t_list, 50, p_list,self.bad_pmdp,b_list)
 	
 	def writeOutputTimeStamp(self,init=[]):
@@ -81,6 +102,7 @@ class Agent():
 		out_dict.update({'LastSeen': deepcopy(self.last_seen)})
 		out_dict.update({'Visible': self.viewable_agents})
 		out_dict.update({'NominalTrace': self.policy.nom_trace})
+		out_dict.update({'BadTrace': self.policy.bad_trace})
 		if init:
 			out_dict.update({'PublicTargets': self.public_targets})
 			out_dict.update({'Id_no': list(init)})
