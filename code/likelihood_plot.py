@@ -45,7 +45,7 @@ belief_y_good = []
 # plt.show()
 frames = 50
 
-marker = itertools.cycle(('p', 'd', 'x', '*'))
+line_types = itertools.cycle(["--","-.",":","-"])
 
 # for row in range(0, len(df.index)):
 # 	ax = plt.subplot(4, N+1, row+1+int(1+(N+1)/2)*int(row/((N)/2)), polar=True)
@@ -139,7 +139,7 @@ def belief_chart_init():
 	ax.xaxis.set_ticks(np.arange(0,frames+1,10))
 	plt.rc('text',usetex=True)
 	plt.xlabel(r't')
-	plt.ylabel(r'Belief $\left(b^a_j(\theta)\right)$')
+	plt.ylabel(r'Actual Belief $\left(b^a_j(\theta^\star)\right)$')
 	plt_array = []
 	j = 1
 	for i,id_no in enumerate(categories):
@@ -151,11 +151,13 @@ def belief_chart_init():
 		belief_x_good[i].append(0)
 		belief_y_good.append([])
 		belief_y_good[i].append(df['0'][id_no]['ActBelief'][belief_good])
-		px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=3*scale_factor, linestyle='solid', label=r'Actual belief: $b^a_'+str(i)+r'(\theta^\star)$',marker=next(marker),markevery=slice(i+2,50,4),markersize=8*scale_factor,dashes=[j,3,1,2])
-		px2, = ax.plot([0,0.0], [0.0,0.0], visible =False, color=my_palette(i), linewidth=3*scale_factor, linestyle='dashed', label=r'Incorrect belief $b^a_'+str(i)+r'(\theta_0)$',dashes=[j,3,1,2])
+		px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=3*scale_factor, linestyle=next(line_types), label=r'Agent '+str(i))
+		# px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=3*scale_factor, linestyle=next(line_types), label=r'Actual belief: $b^a_'+str(i)+r'(\theta^\star)$')
+		# px2, = ax.plot([0,0.0], [0.0,0.0], visible =False, color=my_palette(i), linewidth=3*scale_factor, linestyle='dashed', label=r'Incorrect belief $b^a_'+str(i)+r'(\theta_0)$',dashes=[j,3,1,2])
+		px2 = None
 		plt_array.append((px1,px2))
 		j+=1
-	# leg = ax.legend(loc='lower right')
+	leg = ax.legend(loc='right')
 	return plt_array
 
 def con_init():
@@ -205,8 +207,8 @@ def belief_update(i):
 		belief_y_bad[j].append(df[str(i)][id_no]['ActBelief'][belief_bad])
 		bel_lines[j][0].set_xdata(belief_x_good[j])
 		bel_lines[j][0].set_ydata(belief_y_good[j])
-		bel_lines[j][1].set_xdata(belief_x_bad[j])
-		bel_lines[j][1].set_ydata(belief_y_bad[j])
+		# bel_lines[j][1].set_xdata(belief_x_bad[j])
+		# bel_lines[j][1].set_ydata(belief_y_bad[j])
 		change_array += bel_lines[j]
 	return change_array
 
