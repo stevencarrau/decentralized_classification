@@ -61,3 +61,4 @@ Save both a PDF and a PGF file with the given filename.
 def savefig(filename, *args, **kwargs):
     plt.savefig(filename + '.pdf', *args, **kwargs)
     plt.savefig(filename + '.pgf', *args, **kwargs)
+    plt.savefig(filename + '.png', *args, **kwargs)

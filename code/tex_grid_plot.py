@@ -1,11 +1,12 @@
 import json
 import matplotlib
 
-matplotlib.use('pgf')
-# matplotlib.use('Qt5Agg')
+# matplotlib.use('pgf')
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import matplotlib.patheffects as pe
+import matplotlib.path as mpath
+import matplotlib.patches as mpatches
+import matplotlib.collections as collections
 import pandas as pd
 from math import ceil
 from math import pi
@@ -15,7 +16,9 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.offsetbox import (DrawingArea, OffsetImage, AnnotationBbox)
 import numpy as np
 from gridworld import *
-import texfig
+# import texfig
+from scipy.spatial import ConvexHull
+
 
 # ---------- PART 1: Globals
 
@@ -23,12 +26,25 @@ import texfig
 # 	data = json.load(json_file)
 # df = pd.DataFrame(data)
 my_dpi = 100
-scale_factor = 0.5
+scale_factor = 1.0
 # Writer = matplotlib.animation.writers['ffmpeg']
 # writer = Writer(fps=2.5, metadata=dict(artist='Me'), bitrate=1800)
-fig = texfig.figure(width=3.3*scale_factor,ratio=1, dpi=my_dpi)
-# fig = plt.figure(figsize=(400/my_dpi, 1600/my_dpi), dpi=my_dpi)
-my_palette = plt.cm.get_cmap("Set2", 10)
+fig = plt.figure()
+# fig = texfig.figure(width=3.3*scale_factor,ratio=1, dpi=my_dpi)
+my_palette =  plt.cm.get_cmap("tab10",4)
+drone_locs = [(2,2),(4,2),(2,8),(7,7)]
+drone_routes = [[(2,2),(1.5,0),(0,1),(0,3),(1,5),(2,4),(2,2)],
+[(4,2),(5,1),(7,0),(9,2),(7,4),(4,2)],
+[(2,8),(3,5.5),(4,5),(5,7),(3,8.5),(2,8)],
+[(7,7),(8,6),(5,5),(6,6),(6,7),(6,8),(7,7)]
+]
+
+bad_routes = [[(2,2),(3,0),(4,3),(3,4),(2,2)],
+              [(4,2),(6,2),(7,3),(6,4),(4,2)],
+              [(2,8),(1,5),(0,7),(0.5,9),(1,9.25),(2,8)],
+              [(7,7),(8,6),(9,7),(9.25,9.25),(7.5,9.25),(7,7)]
+               ]
+
 # categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
 # belief_good = df['0'][0]['GoodBelief']
 # belief_bad = df['0'][0]['BadBelief']
@@ -97,95 +113,143 @@ my_palette = plt.cm.get_cmap("Set2", 10)
 # 		l_f.set_xy(np.array([angles, val]).T)
 # 	# plot_data = [l_d,f_d]
 # 	return l_d + f_d
+def convexhull(p):
+	p = np.array(p)
+	hull = ConvexHull(p)
+	return p[hull.vertices,:]
+
+def curvline(start,end,rad,t=100,arrows=1,push=0.8):
+    #Compute midpoint
+    rad = rad/100.
+    x1, y1 = start
+    x2, y2 = end
+    y12 = (y1 + y2) / 2
+    dy = (y2 - y1)
+    cy = y12 + (rad) * dy
+    #Prepare line
+    tau = np.linspace(0,1,t)
+    xsupport = np.linspace(x1,x2,t)
+    ysupport = [(1-i)**2 * y1 + 2*(1-i)*i*cy + (i**2)*y2 for i in tau]
+    #Create arrow data
+    arset = list(np.linspace(0,1,arrows+2))
+    c = zip([xsupport[int(t*a*push)] for a in arset[1:-1]],
+                      [ysupport[int(t*a*push)] for a in arset[1:-1]])
+    dt = zip([xsupport[int(t*a*push)+1]-xsupport[int(t*a*push)] for a in arset[1:-1]],
+                      [ysupport[int(t*a*push)+1]-ysupport[int(t*a*push)] for a in arset[1:-1]])
+    arrowpath = zip(c,dt)
+    return xsupport, ysupport, arrowpath
+
+def plotcurv(start,end,rad,color,t=100,arrows=1,arwidth=.25,style='-'):
+    x, y, c = curvline(start,end,rad,t,arrows)
+    plt.plot(x,y,linestyle=style,color=color)
+    for d,dt in c:
+        plt.arrow(d[0],d[1],dt[0],dt[1], shape='full', lw=0,
+                  length_includes_head=False, head_width=arwidth,color=color)
+    return c
+
+class UpdateablePatchCollection(collections.PatchCollection):
+    def __init__(self,patches,*args,**kwargs):
+        self.patches = patches
+        collections.PatchCollection.__init__(self, patches, *args, **kwargs)
+
+    def get_paths(self):
+        self.set_paths(self.patches)
+        return self._paths
+
+
+def aircraft(ax,col,dxdy):
+	drone_circles = [
+		mpatches.Wedge([0, 0], 0.08, 0, 360, width=0.025, color=col),
+		mpatches.Wedge([0.26, 0.26], 0.24, 0, 360, width=0.025, color=col),
+		mpatches.Wedge([-0.26, -0.26], 0.24, 0, 360,width=0.025,color=col),
+		mpatches.Wedge([0.26, -0.26], 0.24, 0, 360, width=0.025,color=col),
+		mpatches.Wedge([-0.26, 0.26], 0.24, 0, 360,width=0.025,color=col),
+		mpatches.Wedge([0.26, 0.26], 0.21, 0, 360, width=0.025,color=col),
+		mpatches.Wedge([-0.26, -0.26], 0.21, 0, 360, width=0.025, color=col),
+		mpatches.Wedge([0.26, -0.26], 0.21, 0, 360, width=0.025,color=col),
+		mpatches.Wedge([-0.26, 0.26], 0.21, 0, 360, width=0.025,color=col),
+		mpatches.Wedge([0.26, 0.26], 0.25, 0, 360, width=0.025,color=col),
+		mpatches.Wedge([-0.26, -0.26], 0.25, 0, 360, width=0.025,color=col),
+		mpatches.Wedge([0.26, -0.26], 0.25, 0, 360, width=0.025,color=col),
+		mpatches.Wedge([-0.26, 0.26], 0.25, 0, 360, width=0.025,color=col),
+		mpatches.Wedge([0.26, 0.26], 0.025, 0, 360, width=0.025,color=col),
+		mpatches.Wedge([-0.26, -0.26], 0.025, 0, 360, width=0.025,color=col),
+		mpatches.Wedge([0.26, -0.26], 0.025, 0, 360, width=0.025,color=col),
+		mpatches.Wedge([-0.26, 0.26], 0.025, 0, 360, width=0.025,color=col)]
+	for a_i in drone_circles:
+		a_i.set_center(a_i.center + np.array(dxdy))
+
+	drone_verts = [
+		[[-0.01, 0.27], [0, 0.26]],
+		[[-0.01, 0.25], [0, 0.26]],
+		[[-0.01, 0.01], [0.0, 0.0]],
+		[[0.01, -0.25], [0, 0.26]],
+		[[0.01, -0.27], [0, 0.26]],
+		[[0.01, -0.01], [0.0, 0.0]],
+		[[-0.01, 0.25], [0, -0.26]],
+		[[-0.01, 0.27], [0, -0.26]],
+		[[-0.01, 0.01], [0.0, 0.0]],
+		[[0.01, -0.25], [0, -0.26]],
+		[[0.01, -0.27], [0, -0.26]],
+		[[0.01, -0.01], [0.0, 0.0]]
+	]
+	for d_v in drone_verts:
+		d_v[0][0] += dxdy[0]
+		d_v[0][1] += dxdy[0]
+		d_v[1][0] += dxdy[1]
+		d_v[1][1] += dxdy[1]
+	drone_lines = []
+	for d_v in drone_verts:
+		l, = ax.plot(d_v[0], d_v[1], color=col, linewidth=4.0, linestyle='solid')
+		drone_lines.append(l)
+	drone_patch = UpdateablePatchCollection(drone_circles, edgecolors=col, facecolors=col)
+	ax.add_collection(drone_patch)
 
 
 def grid_init(nrows, ncols, obs_range):
 	# fig_new = plt.figure(figsize=(1000/my_dpi,1000/my_dpi),dpi=my_dpi)
 	ax = plt.subplot(111)
+	
 	t = 0
-	row_labels = range(nrows)
-	col_labels = range(ncols)
-	plt.xticks(range(ncols), col_labels)
-	plt.yticks(range(nrows), row_labels)
-	ax.set_xticks([x - 0.5 for x in range(1, ncols)], minor=True)
-	ax.set_yticks([y - 0.5 for y in range(1, nrows)], minor=True)
-	ax.set_xlim(-0.5, ncols - 0.5)
-	ax.set_ylim(-0.5, nrows - 0.5)
+	# row_labels = range(nrows)
+	# col_labels = range(ncols)
+	# plt.xticks(range(ncols), col_labels)
+	# plt.yticks(range(nrows), row_labels)
+	# ax.set_xticks([x - 0.5 for x in range(1, ncols)], minor=True)
+	# ax.set_yticks([y - 0.5 for y in range(1, nrows)], minor=True)
+	ax.set_xlim(-0.75, nrows - 0.25)
+	ax.set_ylim(-0.75, ncols - 0.25)
 	ax.invert_yaxis()
+	# img = plt.imread('UT_Map.jpeg')
+	# ax.imshow(img,extent=[-0.5,9.5,-0.5,9.5])
+	# ax.axis('tight')
+	plt.axis('off')
 	ag_array = []
-	plt.grid(which="minor", ls="-", lw=1*scale_factor)
-	i = 2
-	# for id_no in categories:
-	# p_t = df[str(0)][id_no]['PublicTargets']
-	#
-	color = my_palette(i)
-	init_loc = (0,2)
-	c_i = plt.Circle(init_loc, 0.4, color=color)
-	# route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0], ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
-	cir_ax = ax.add_artist(c_i)
-	lin_ax = ax.add_patch(patches.Rectangle(np.array(init_loc) - obs_range - 0.5, 2 * obs_range + 1, 2 * obs_range + 1, fill=False,color=color,zorder=2, clip_on=True, alpha=1.0, ls='--', lw=2.5*scale_factor))
-	ax.annotate(r'$q_i$', xy=(init_loc[0] - 0.1/scale_factor, init_loc[1] +  0.1/scale_factor))
-	# plt_ax, = ax.plot(route_x, route_y, color=color, linewidth=10, linestyle='solid')
-	# ag_array.append([cir_ax, lin_ax, plt_ax])
-	ag_array.append([cir_ax, lin_ax])
-	# fill_wind = [7,8,9,10,11,13,14,15,16,17,19,20,21,22,23,25,26,27,28,29,31,32,33,34,35]
-	# prob = [0.05,0.06,0.08,0.1,0.15,  0.06,0.08,0.1,0.15,0.25,  0.08,0.1,0.15,0.25,0.4,   0.1,0.15,0.25,0.4,0.6,  0.08,0.1,0.15,0.25,0.4]
-	# for k,p_s in zip(fill_wind,prob):
-	# 	s_c = coords(k, ncols)
-	# 	ax.fill([s_c[1] + 0.49, s_c[1] - 0.49, s_c[1] - 0.49, s_c[1] + 0.49],
-	# 	        [s_c[0] - 0.49, s_c[0] - 0.49, s_c[0] + 0.49, s_c[0] + 0.49], color=color, alpha=p_s)
-	#
+	init_loc = drone_locs[0]
 	
-	
-	# Good
-	# p_t = [3,4]
-	i = 3
-	# color = my_palette(i)
-	color = (0.0, 35.0 / 256.0, 102.0 / 256.0)
-	# for k in p_t:
-	# 	s_c = coords(k, ncols)
-	# 	ax.fill([s_c[1] + 0.4, s_c[1] - 0.4, s_c[1] - 0.4, s_c[1] + 0.4],
-	# 	        [s_c[0] - 0.4, s_c[0] - 0.4, s_c[0] + 0.4, s_c[0] + 0.4], facecolor=color, alpha=0.9,edgecolor=(0,1,0),linewidth=2*scale_factor)
-	init_loc = (2, 1)
-	c_i = plt.Circle(init_loc, 0.45, facecolor=color,edgecolor=(0,1,0))
-	ax.annotate(r'$q^1_{j,t}$', xy=(init_loc[0] - 0.1 / scale_factor, init_loc[1] + 0.1 / scale_factor),color=(1,1,1),zorder=3)
-	# route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0], ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
-	route_x = [0,0,1,2,3,3,2,1,0]
-	route_y = [1,0,0,0,0,1,1,1,1]
-	cir_ax = ax.add_artist(c_i)
-	plt_ax, = ax.plot(route_x, route_y, color=color, linewidth=2*scale_factor, linestyle='solid',zorder=-1)
-	plt.arrow(1,0, -0.2,0 , shape='full', lw=0,
-	          length_includes_head=True, head_width=.6 * scale_factor, color=color)
-	plt.arrow(1,1, 0.2,0 , shape='full', lw=0,
-	          length_includes_head=True, head_width=.6 * scale_factor, color=color)
-	
-	
-	# Bad
-	# p_t = [12,19]
-	i = 3
-	# color = my_palette(i)
-	color = (0.0, 35.0 / 256.0, 102.0 / 256.0)
-	# for k in p_t:
-	# 	s_c = coords(k, ncols)
-	# 	ax.fill([s_c[1] + 0.4, s_c[1] - 0.4, s_c[1] - 0.4, s_c[1] + 0.4],
-	# 	        [s_c[0] - 0.4, s_c[0] - 0.4, s_c[0] + 0.4, s_c[0] + 0.4], facecolor=color, alpha=0.9,edgecolor=(1.0,0,0),linewidth=2*scale_factor)
-	route_x = [0,1,2,3,3,2,1,0,0]
-	route_y = [3,3,3,3,4,4,4,4,3]
-	init_loc = (2, 4)
-	c_i = plt.Circle(init_loc, 0.45, facecolor=color,edgecolor=(1,0,0))
-	ax.annotate(r'$q^0_{j,t}$', xy=(init_loc[0] - 0.1 / scale_factor, init_loc[1] + 0.1 / scale_factor),color=(1,1,1),zorder=3)
-	cir_ax = ax.add_artist(c_i)
-	plt_ax, = ax.plot(route_x, route_y, color=color, linewidth=2*scale_factor, linestyle=':',zorder=-1)
-	plt.arrow(1,3, -0.2,0 , shape='full', lw=0,length_includes_head=True, head_width=.6 * scale_factor, color=color)
-	plt.arrow(1,4, 0.2,0 , shape='full', lw=0,length_includes_head=True, head_width=.6 * scale_factor, color=color)
-	init_loc = (2, 2)
-	c_i = plt.Circle(init_loc, 0.4, color=color,alpha=0.4)
-	ax.annotate(r'$s^j_i$', xy=(init_loc[0] - 0.1 / scale_factor, init_loc[1] + 0.1 / scale_factor))
-	cir_ax2 = ax.add_artist(c_i)
-	# lin_ax = ax.add_patch(patches.Rectangle(np.array(init_loc) - obs_range - 0.5, 2 * obs_range + 1, 2 * obs_range + 1, fill=False,color=color, clip_on=True, alpha=0.5, ls='--', lw=3))
-	
-	ag_array.append([cir_ax, plt_ax])
-	
+	aircraft(ax,my_palette(i),(0,0))
+	# lin_ax = ax.add_patch(
+	# 	mpatches.Circle(np.array(init_loc),obs_range, fill=True,
+	# 	                  color=(1,1,0), clip_on=True, alpha=0.15, ls='--', lw=1 * scale_factor))
+	# init_loc = drone_locs[2]
+	# lin_ax2 = ax.add_patch(
+	# 	mpatches.Circle(np.array(init_loc),comms_range, fill=True,
+	# 	                  color=(0,0.64,0), clip_on=True, alpha=0.15, ls='--', lw=1 * scale_factor))
+	# plt.grid(which="minor", ls="-", lw=1)
+	# for i in range(4):
+	# 	color = my_palette(i)
+	# 	init_loc = drone_locs[i]
+	# 	aircraft(ax, color, init_loc)
+		# outline = [mpath.Path.MOVETO]
+		# for ind_i,x_i in enumerate(drone_routes[i][:-1]):
+		# 	plotcurv(drone_routes[i][ind_i],drone_routes[i][ind_i+1],50,color,200,arrows=1)
+		# for ind_j,xj in enumerate(bad_routes[i][:-1]):
+		# 	plotcurv(bad_routes[i][ind_j],bad_routes[i][ind_j+1],50,color,200,style="dashed")
+		# for r_i in drone_routes[i]:
+		# 	outline.append(mpath.Path.CURVE3)
+		# outline[-1] = mpath.Path.CLOSEPOLY
+		# path1 = mpatches.PathPatch(mpath.Path(drone_routes[i],outline))
+		
 	return ag_array
 
 
@@ -294,8 +358,8 @@ def coords(s, ncols):
 
 # ---------- PART 2:
 
-nrows = 6
-ncols = 4
+nrows = 1
+ncols = 1
 moveobstacles = []
 obstacles = []
 # # # 5 agents small range
@@ -317,7 +381,8 @@ obstacles = []
 # obs_range = 2
 
 # #4 agents larger range
-obs_range = 2
+obs_range = 3.0
+comms_range = 2
 
 # #4 agents big range
 # initial = [(33,0),(41,0),(7,0),(80,0)]
@@ -325,18 +390,19 @@ obs_range = 2
 # public_targets = [[0,9],[60,69],[20,39],[55,95]]
 # obs_range = 4
 
-time_i = 10
 # con_dict = con_ar = con_init()
 # bel_lines = belief_chart_init()
 # belief_update(10)
 # belief_update(20)
 # belief_update(40)
+i=2
 ax_ar = grid_init(nrows, ncols, obs_range)
 # grid_update(50)
 # plt.show()
-texfig.savefig("likelihood"+str(time_i))
+# texfig.savefig("init_environment",transparent=True)
 # update()
 # plt.show()
+plt.savefig('drone'+str(i)+'.png',transparent=True)
 # ani = FuncAnimation(fig, update_all, frames=frames, interval=500, blit=True,repeat=False)
 # plt.show()
 # ani.save('8_agents-3range-wheel.mp4',writer = writer)

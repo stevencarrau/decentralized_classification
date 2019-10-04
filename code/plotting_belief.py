@@ -19,7 +19,7 @@ from gridworld import *
 
 # ---------- PART 1: Globals
 
-with open('4agents_1range_narrow_backup.json') as json_file:
+with open('4agents_3range_tight.json') as json_file:
 	data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 96
@@ -43,7 +43,7 @@ belief_x_bad = []
 belief_y_bad = []
 belief_y_good = []
 # plt.show()
-frames = 200
+frames = 50
 
 for row in range(0, len(df.index)):
 	ax = plt.subplot(4, N+1, row+1+int(1+(N+1)/2)*int(row/((N)/2)), polar=True)
@@ -230,7 +230,8 @@ def connect_update(i):
 
 
 def coords(s,ncols):
-	return (int(s % ncols),int(s /ncols))
+	return (int(s /ncols), int(s % ncols))
+
 
 
 
@@ -259,7 +260,7 @@ obstacles = []
 # obs_range = 2
 
 # #4 agents larger range
-obs_range = 3
+obs_range = 2
 
 # #4 agents big range
 # initial = [(33,0),(41,0),(7,0),(80,0)]
@@ -274,9 +275,9 @@ ax_ar = grid_init(nrows, ncols, obs_range)
 # texfig.savefig("test")
 # update()
 # plt.show()
-ani = FuncAnimation(fig, update_all, frames=frames, interval=500, blit=True,repeat=False)
-plt.show()
-# ani.save('4_agents-2range_narrow.mp4',writer = writer)
+ani = FuncAnimation(fig, update_all, frames=frames, interval=1000, blit=True,repeat=False)
+# plt.show()
+ani.save('4_agents-2range_narrow.mp4',writer = writer)
 # ani.save('decen.gif',dpi=80,writer='imagemagick')
 
 

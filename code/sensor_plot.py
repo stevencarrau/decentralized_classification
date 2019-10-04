@@ -134,13 +134,13 @@ def grid_init(nrows, ncols, obs_range):
 		        [s_c[0] - 0.49, s_c[0] - 0.49, s_c[0] + 0.49, s_c[0] + 0.49], color=color, alpha=p_s)
 	
 	
-	p_t = [1,14]
+	# p_t = [1,14]
 	i = 3
 	color = my_palette(i)
-	for k in p_t:
-		s_c = coords(k, ncols)
-		ax.fill([s_c[1] + 0.4, s_c[1] - 0.4, s_c[1] - 0.4, s_c[1] + 0.4],
-		        [s_c[0] - 0.4, s_c[0] - 0.4, s_c[0] + 0.4, s_c[0] + 0.4], color=color, alpha=0.9)
+	# for k in p_t:
+	# 	s_c = coords(k, ncols)
+	# 	ax.fill([s_c[1] + 0.4, s_c[1] - 0.4, s_c[1] - 0.4, s_c[1] + 0.4],
+	# 	        [s_c[0] - 0.4, s_c[0] - 0.4, s_c[0] + 0.4, s_c[0] + 0.4], color=color, alpha=0.9)
 	init_loc = (2, 2)
 	c_i = plt.Circle(init_loc, 0.4, color=color)
 	ax.annotate(r'$q_j$', xy=(init_loc[0] - 0.05/scale_factor, init_loc[1] + 0.05/scale_factor))
@@ -153,7 +153,8 @@ def grid_init(nrows, ncols, obs_range):
 	c_i = plt.Circle(init_loc, 0.4, color=color,alpha=0.4)
 	cir_ax2 = ax.add_artist(c_i)
 	# lin_ax = ax.add_patch(patches.Rectangle(np.array(init_loc) - obs_range - 0.5, 2 * obs_range + 1, 2 * obs_range + 1, fill=False,color=color, clip_on=True, alpha=0.5, ls='--', lw=3))
-	plt_ax, = ax.plot(route_x, route_y, color=color, linewidth=3*scale_factor, linestyle='solid')
+	# plt_ax, = ax.plot(route_x, route_y, color=color, linewidth=3*scale_factor, linestyle='solid')
+	plt_ax = None
 	ag_array.append([cir_ax, plt_ax])
 	
 	return ag_array
