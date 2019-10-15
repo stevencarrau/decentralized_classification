@@ -35,12 +35,15 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
             p_i.updateVision(p_i.current, agent_loc)
         ## Sharing update
         for a_i, p_i in enumerate(agent_array):
-            belief_packet = [agent_array[p_i.id_idx[v_a]].actual_belief for v_a in p_i.viewable_agents]
-            p_i.shareBelief(belief_packet)
+            if p_i.async_flag:
+                belief_packet = dict([[v_a,agent_array[p_i.id_idx[v_a]].actual_belief] for v_a in p_i.viewable_agents])
+                p_i.ADHT(belief_packet)
+            else:
+                belief_packet = [agent_array[p_i.id_idx[v_a]].actual_belief for v_a in p_i.viewable_agents]
+                p_i.shareBelief(belief_packet)
             time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
         plotting_dictionary.update({str(time_t): time_p})
-    write_JSON(str(len(agent_loc))+'agents_'+str(grid.obs_range)+'range_narrow_backup.json', stringify_keys(plotting_dictionary))
-    pygame.quit()
+    write_JSON(str(len(agent_loc))+'agents_'+str(grid.obs_range)+'range_async.json', stringify_keys(plotting_dictionary))
     return print("Goal!")
 
 def write_JSON(filename,data):
@@ -72,15 +75,15 @@ def stringify_keys(d):
     return d
 
 nrows = 10
-ncols = 6
+ncols = 10
 moveobstacles = []
 obstacles = []
 # # # 5 agents small range
-# initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
-# targets = [[0,9],[60,69],[20,39],[69,95],[99,11]]
-# public_targets = [[0,9],[60,69],[20,39],[55,91],[99,11]]
-# bad_models = [[2,19],[70,59],[40,29],[69,95],[81,18]]
-# obs_range = 3
+initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
+targets = [[0,9],[60,69],[20,39],[69,95],[99,11]]
+public_targets = [[0,9],[60,69],[20,39],[55,91],[99,11]]
+bad_models = [[2,19],[70,59],[40,29],[69,95],[81,18]]
+obs_range = 3
 # np.random.seed(1)
 
 # # # 6 agents small range
@@ -124,11 +127,11 @@ obstacles = []
 # obs_range = 3
 
 ## 4 Spokes on a wheel - Tighter centers
-initial = [(1,0),(4,0),(55,0),(35,0)]
-public_targets = [[26,1],[27,4],[32,55],[33,58]]
-bad_models = [[25,0],[28,5],[31,54],[35,59]]
-targets = [[26,1],[27,4],[32,55],[35,59]]
-obs_range = 1
+# initial = [(1,0),(4,0),(55,0),(35,0)]
+# public_targets = [[26,1],[27,4],[32,55],[33,58]]
+# bad_models = [[25,0],[28,5],[31,54],[35,59]]
+# targets = [[26,1],[27,4],[32,55],[35,59]]
+# obs_range = 2
 
 
 # #4 agents larger range

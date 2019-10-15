@@ -25,6 +25,7 @@ class Agent():
 		self.belief_tracks = belief_tracks
 		self.bad_model = bad_models
 		self.evil = False
+		self.async_flag = True
 		if target_list != public_list:
 			self.evil = True
 		t_num = list(range(len(target_list)))
@@ -208,11 +209,22 @@ class Agent():
 			# 	self.local_belief.update({t_p:belief_value})
 			# ## Unknown number of bad
 			self.local_belief.update({t_p: belief_value})
-		self.actual_belief = self.local_belief.copy()
+		self.actual_belief = deepcopy(self.local_belief)
 		if abs(sum(self.local_belief.values())-1.0)>1e-6:
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))#,"Sum is "+str(sum(self.local_belief.values())))
-	
+		if self.async_flag:
+			self.neighbor_set = dict()
+			self.neighbor_belief =dict()
+			self.resetFlags = dict()
+			for t_p in self.local_belief:
+				self.neighbor_set[t_p] = set()
+				self.neighbor_belief[t_p] = dict()
+				self.resetFlags[t_p] = True
+				for n_i in agent_id:
+					self.neighbor_belief[t_p][n_i] = -1 ## b^a_j(theta)
+
 	def updateBelief(self, viewable_agents, viewable_states):
+		## Synchronous update rule
 		tot_b = 0.0
 		self.alpha *= self.burn_rate
 		self.belief_bad = []
@@ -229,7 +241,20 @@ class Agent():
 			for b_i,r_b in zip(self.local_belief, random_belief):
 				self.local_belief[b_i] = r_b
 				self.actual_belief[b_i] = r_b
-	
+
+	# def updateAsyncBelief(self,viewable_agents,viewable_states):
+	# 	## Local rule
+	# 	view_prob = self.ViewProbability(viewable_agents,viewable_states)
+	# 	tot_b = 0.0
+	# 	for b_i in self.local_belief:
+	# 		tot_b += self.likelihood(b_i, viewable_agents, view_prob) * self.local_belief[b_i]
+	# 	for b_i in self.local_belief:
+	# 		self.local_belief[b_i] = (1 - self.alpha) * self.local_belief[b_i] + self.alpha * self.likelihood(b_i,viewable_agents,view_prob)*self.local_belief[b_i] / tot_b
+	# 	if abs(sum(self.local_belief.values()) - 1.0) > 1e-6:
+	# 		raise ProbablilityNotOne("Sum is " + str(sum(self.local_belief.values())))
+	#
+
+
 	def shareBelief(self,belief_arrays):
 		actual_belief = {}
 		if len(belief_arrays) >= 2*self.no_bad + 1: ## Case 1
@@ -256,26 +281,57 @@ class Agent():
 		for i,s_i in enumerate(sys_t):
 			if s_i == 0:
 				self.belief_bad.append(i)
-	
-	def asyncBeliefUpdate(self,belief,belief_arrays,t):
-		if t is 0 or self.resetFlag:
+
+	def ADHT(self,belief_arrays):
+		actual_belief = {}
+		neighbor_set = {}
+		for theta in self.actual_belief:
+			if self.asyncBeliefUpdate(theta,belief_arrays):
+				space = set.union(*[self.neighbor_set[x] for x in self.neighbor_set if x is not theta])
+				belief_list = []
+				agent_order = []
+				for j in space:
+					belief_list.append(self.neighbor_belief[theta][j])
+					agent_order.append(j)
+				belief_list,agent_order = zip(*sorted(zip(belief_list,agent_order)))
+				neighbor_set[theta] = set(agent_order[self.no_bad:])
+				actual_belief[theta] = min([self.local_belief[theta]]+list(belief_list))
+			else:
+				actual_belief.update({theta: min(self.actual_belief[theta], self.local_belief[theta])})
+			if actual_belief[theta] < 0:
+				print('Negative')
+		self.actual_belief = dict([[theta, actual_belief[theta] / sum(actual_belief.values())] for theta in actual_belief])
+		for n_s in neighbor_set:
+			self.neighbor_set[n_s] = neighbor_set[n_s]
+		if self.evil:
+			random_belief = np.random.rand(len(self.local_belief))
+			random_belief /= np.sum(random_belief)
+			for b_i, r_b in zip(self.local_belief, random_belief):
+				self.local_belief[b_i] = r_b
+				self.actual_belief[b_i] = r_b
+
+	def asyncBeliefUpdate(self,belief,belief_arrays):
+		if self.resetFlags[belief]:
 			self.resetBelief(belief,belief_arrays)
 		for j in belief_arrays:
-			for theta in [kj for kj in j if kj is not belief]:
-				if belief_arrays[j][theta] == -1: ##j is in
-					belief_arrays += j
-					
-		for theta in [ta for ta in self.actual_belief.keys() if ta is not belief]:
-			if len(belief_arrays) < 2*self.no_bad + 1:
+			for t_p in [kj for kj in belief_arrays[j] if kj is not belief]: ## t_p is theta_prime
+				if self.neighbor_belief[belief][j] == -1: ##j is in
+					self.neighbor_set[t_p].add(j)
+			self.neighbor_belief[belief][j] = belief_arrays[j][belief] ## Not sure what line 7 does??
+		for t_p in [kj for kj in self.local_belief if kj is not belief]:
+			if len(self.neighbor_set[t_p]) < 2*self.no_bad + 1:
 				return False
-		self.resetFlag = True
+		self.resetFlags[belief] = True
 		return True
 	
 	def resetBelief(self,belief,belief_arrays):
-		for j in belief_arrays:
-			if j is not self:
-				j.actual_belief[belief] = -1
-		self.resetFlag = False
+		for j in self.neighbor_belief[belief]:
+			if j is not self.id_no:
+				self.neighbor_belief[belief][j] = -1
+		for k in self.local_belief:
+			if k is not belief:
+				self.neighbor_set[k] = set([self.id_no])
+		self.resetFlags[belief] = False
 		
 	def likelihood(self,sys_status,viewable_agents,view_prob):
 		epsilon = 0 # 1e-9

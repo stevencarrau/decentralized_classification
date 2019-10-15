@@ -19,7 +19,7 @@ from gridworld import *
 
 # ---------- PART 1: Globals
 
-with open('4agents_3range_tight.json') as json_file:
+with open('4agents_2range_async.json') as json_file:
 	data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 96
@@ -43,7 +43,7 @@ belief_x_bad = []
 belief_y_bad = []
 belief_y_good = []
 # plt.show()
-frames = 50
+frames = 100
 
 for row in range(0, len(df.index)):
 	ax = plt.subplot(4, N+1, row+1+int(1+(N+1)/2)*int(row/((N)/2)), polar=True)
@@ -118,14 +118,16 @@ def grid_init(nrows, ncols, obs_range):
 		color = my_palette(i)
 		init_loc = tuple(reversed(coords(df[str(0)][id_no]['AgentLoc'][0], ncols)))
 		c_i = plt.Circle(init_loc, 0.45, color=color)
-		route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
+		# route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
 		cir_ax = ax.add_artist(c_i)
 		lin_ax = ax.add_patch(patches.Rectangle(np.array(init_loc)-obs_range-0.5, 2*obs_range+1, 2*obs_range+1,fill=False, color=color, clip_on=True, alpha=0.5, ls='--', lw=4))
-		plt_ax, = ax.plot(route_x, route_y, color=color, linewidth=5, linestyle='solid')
-		route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['BadTrace'][s][0], ncols))) for s in
-		                         df[str(t)][str(id_no)]['BadTrace']])
-		plt_ax2, = ax.plot(route_x, route_y, color=color, linewidth=5, linestyle='--',dashes=[3, 8, 2, 5, 1, 6],alpha=0.8)
-		ag_array.append([cir_ax, lin_ax, plt_ax,plt_ax2])
+		# plt_ax, = ax.plot(route_x, route_y, color=color, linewidth=5, linestyle='solid')
+		plt_ax = None
+		# route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['BadTrace'][s][0], ncols))) for s in df[str(t)][str(id_no)]['BadTrace']])
+		# plt_ax2, = ax.plot(route_x, route_y, color=color, linewidth=5, linestyle='--',dashes=[3, 8, 2, 5, 1, 6],alpha=0.8)
+		plt_ax2 = None
+		# ag_array.append([cir_ax, lin_ax, plt_ax,plt_ax2])
+		ag_array.append([cir_ax, lin_ax])
 		for k in p_t:
 			s_c = coords(k, ncols)
 			ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
@@ -183,7 +185,8 @@ def grid_update(i):
 	global ax_ar, df, ncols, obs_range
 	write_objects = []
 	for a_x, id_no in zip(ax_ar, categories):
-		c_i, l_i, p_i,p_2 = a_x
+		# c_i, l_i, p_i,p_2 = a_x
+		c_i, l_i = a_x
 		loc = tuple(reversed(coords(df[str(i)][id_no]['AgentLoc'][0], ncols)))
 		c_i.set_center(loc)
 		l_i.set_xy(np.array(loc)-obs_range-0.5)
@@ -194,7 +197,7 @@ def grid_update(i):
 		#                          df[str(i)][str(id_no)]['BadTrace']])
 		# p_2.set_xdata(route_x2)
 		# p_2.set_ydata(route_y2)
-		write_objects += [c_i] + [l_i] + [p_i] + [p_2]
+		write_objects += [c_i] + [l_i] # + [p_i] + [p_2]
 	return write_objects
 
 def belief_update(i):
@@ -238,7 +241,7 @@ def coords(s,ncols):
 # ---------- PART 2:
 
 nrows = 10
-ncols = 6
+ncols = 10
 moveobstacles = []
 obstacles = []
 # # # 5 agents small range
@@ -276,8 +279,8 @@ ax_ar = grid_init(nrows, ncols, obs_range)
 # update()
 # plt.show()
 ani = FuncAnimation(fig, update_all, frames=frames, interval=1000, blit=True,repeat=False)
-# plt.show()
-ani.save('4_agents-2range_narrow.mp4',writer = writer)
+plt.show()
+# ani.save('4_agents-2range_narrow.mp4',writer = writer)
 # ani.save('decen.gif',dpi=80,writer='imagemagick')
 
 
