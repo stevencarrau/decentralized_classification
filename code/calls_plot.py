@@ -20,25 +20,27 @@ import texfig
 
 # ---------- PART 1: Globals
 
-with open('5agents_4-8_range_async_average.json') as json_file:
+with open('5agents_3-3_range_sync_min.json') as json_file:
 	data = json.load(json_file)
-# with open('5agents_4range_async.json') as json_file:
 df = pd.DataFrame(data)
+with open('5agents_4-3_range_async_min.json') as json_file2:
+	data2 = json.load(json_file2)
+df2 = pd.DataFrame(data2)
 my_dpi = 100
-scale_factor = 0.95
+scale_factor = 1.0
 # Writer = matplotlib.animation.writers['ffmpeg']
 # writer = Writer(fps=2.5, metadata=dict(artist='Me'), bitrate=1800)
-fig = texfig.figure(width=3.3*scale_factor,ratio=0.5,dpi=my_dpi)
+fig = texfig.figure(width=3.3*scale_factor,ratio=0.65, dpi=my_dpi)
 my_palette = plt.cm.get_cmap("tab10",len(df.index))
-# categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
-cat = [str(d_i) for d_i in df['0'][0]['Id_no']]
-# categories = [cat[0],cat[3],cat[1],cat[4],cat[2]] # sync
-categories = [cat[0],cat[3],cat[1],cat[2],cat[4]] # async
-seed_iter = iter(range(0,5))
-categories = []
-for k in seed_iter:
-	np.random.seed(k)
-	categories.append(str(np.random.randint(1000)))
+categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
+cat2 = [str(d_i) for d_i in df2['0'][0]['Id_no']]
+# cat_hold = []
+# cat_hold.append(categories.pop())
+# cat_hold.append(categories.pop())
+# cat_hold.append(categories.pop())
+# categories.append(cat_hold.pop(0))
+# categories.append(cat_hold.pop(0))
+# categories.append(cat_hold.pop(0))
 belief_good = df['0'][0]['GoodBelief']
 belief_bad = df['0'][0]['BadBelief']
 N = len(categories)
@@ -52,7 +54,7 @@ belief_x_bad = []
 belief_y_bad = []
 belief_y_good = []
 # plt.show()
-frames = 75
+frames = 50
 
 line_types = itertools.cycle(["--","-.",":","-"])
 
@@ -107,72 +109,33 @@ def update(i):
 	# plot_data = [l_d,f_d]
 	return l_d + f_d
 
-
-def grid_init(nrows, ncols, obs_range):
-	# fig_new = plt.figure(figsize=(1000/my_dpi,1000/my_dpi),dpi=my_dpi)
-	ax = plt.subplot(111)
-	t = 0
-	row_labels = range(nrows)
-	col_labels = range(ncols)
-	plt.xticks(range(ncols), col_labels)
-	plt.yticks(range(nrows), row_labels)
-	ax.set_xticks([x - 0.5 for x in range(1, ncols)], minor=True)
-	ax.set_yticks([y - 0.5 for y in range(1, nrows)], minor=True)
-	ax.set_xlim(-0.5,nrows-0.5)
-	ax.set_ylim(-0.5,ncols-0.5)
-	ax.invert_yaxis()
-	ag_array = []
-	plt.grid(which="minor", ls="-", lw=1)
-	i = 0
-	for id_no in categories:
-		p_t = df[str(0)][id_no]['PublicTargets']
-		color = my_palette(i)
-		init_loc = tuple(reversed(coords(df[str(0)][id_no]['AgentLoc'][0], ncols)))
-		c_i = plt.Circle(init_loc, 0.45, color=color)
-		route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
-		cir_ax = ax.add_artist(c_i)
-		lin_ax = ax.add_patch(patches.Rectangle(np.array(init_loc)-obs_range-0.5, 2*obs_range+1, 2*obs_range+1,fill=False, color=color, clip_on=True, alpha=0.5, ls='--', lw=4))
-		plt_ax, = ax.plot(route_x, route_y, color=color, linewidth=5, linestyle='solid')
-		ag_array.append([cir_ax, lin_ax, plt_ax])
-		for k in p_t:
-			s_c = coords(k, ncols)
-			ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
-		i += 1
-	return ag_array
-
 def belief_chart_init():
 	ax = plt.subplot(111)
 	ax.set_xlim([0,frames])
-	ax.set_ylim([-0.1,1.2])
-	ax.yaxis.set_ticks(np.arange(0,1.1,0.25))
+	ax.set_ylim([0,4000])
+	ax.yaxis.set_ticks(np.arange(0,4001,1000))
 	ax.xaxis.set_ticks(np.arange(0,frames+1,10))
 	plt.rc('text',usetex=True)
 	plt.xlabel(r't')
-	plt.ylabel(r'Actual Belief $\left(b^a_j(\theta^\star)\right)$')
+	plt.ylabel(r'Cumulative Case One Calls')
 	plt_array = []
 	j = 1
+	belief_calls_A = 0
+	belief_calls_B = 0
+	belief_x_bad.append([[0],[0]])
+	belief_y_bad.append([[0],[0]])
 	for i,id_no in enumerate(categories):
-		belief_x_bad.append([])
-		belief_x_bad[i].append(0)
-		belief_y_bad.append([])
-		belief_y_bad[i].append(df['0'][id_no]['ActBelief'][belief_bad])
-		belief_x_good.append([])
-		belief_x_good[i].append(0)
-		belief_y_good.append([])
-		belief_y_good[i].append(df['0'][id_no]['ActBelief'][belief_good])
-		px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=3*scale_factor, linestyle=next(line_types), label=str(i))
-		# px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=3*scale_factor, linestyle=next(line_types), label=r'Actual belief: $b^a_'+str(i)+r'(\theta^\star)$')
-		# px2, = ax.plot([0,0.0], [0.0,0.0], visible =False, color=my_palette(i), linewidth=3*scale_factor, linestyle='dashed', label=r'Incorrect belief $b^a_'+str(i)+r'(\theta_0)$',dashes=[j,3,1,2])
-		px2 = None
-		plt_array.append((px1,px2))
-		j+=1
-	leg = ax.legend(loc='right',facecolor='white',framealpha=1,frameon=False)
-	bb = leg.get_bbox_to_anchor().inverse_transformed(ax.transAxes)
-	# Change to location of the legend.
-	xOffset = 0.310
-	bb.x0 += xOffset
-	bb.x1 += xOffset
-	leg.set_bbox_to_anchor(bb, transform=ax.transAxes)
+		belief_calls_A += df['0'][id_no]['BeliefCalls']
+	for i, id_no in enumerate(cat2):
+		belief_calls_B += df2['0'][id_no]['BeliefCalls']
+		# belief_x_bad[0].append(i)
+		# belief_x_bad[1].append(i)
+		# belief_y_bad[0].append(belief_calls_A)
+		# belief_y_bad[1].append(belief_calls_B)
+	px1, = ax.plot([0,0.0], [0,0.0], color='b', linewidth=3*scale_factor, linestyle=next(line_types), label=r'SDHT')
+	px2, = ax.plot([0,0.0], [0,0.0], color='r', linewidth=3*scale_factor, linestyle=next(line_types), label=r'ADHT')
+	plt_array.append((px1,px2))
+	leg = ax.legend(loc='upper left')
 	return plt_array
 
 def con_init():
@@ -215,16 +178,23 @@ def grid_update(i):
 def belief_update(i):
 	global bel_lines, df, belief_x_good, belief_y_good, belief_x_bad, belief_y_bad
 	change_array = []
-	for j, id_no in enumerate(categories):
-		belief_x_bad[j].append(i)
-		belief_x_good[j].append(i)
-		belief_y_good[j].append(df[str(i)][id_no]['ActBelief'][belief_good])
-		belief_y_bad[j].append(df[str(i)][id_no]['ActBelief'][belief_bad])
-		bel_lines[j][0].set_xdata(belief_x_good[j])
-		bel_lines[j][0].set_ydata(belief_y_good[j])
+	belief_calls_A = 0
+	belief_calls_B = 0
+	for j,id_no in enumerate(categories):
+		belief_calls_A += df[str(i)][id_no]['BeliefCalls']
+	for j, id_no in enumerate(cat2):
+		belief_calls_B += df2[str(i)][id_no]['BeliefCalls']
+	belief_x_bad[0][0].append(i)
+	belief_x_bad[0][1].append(i)
+	belief_y_bad[0][0].append(belief_calls_A)
+	belief_y_bad[0][1].append(belief_calls_B)
+	bel_lines[0][0].set_xdata(belief_x_bad[0][0])
+	bel_lines[0][0].set_ydata(belief_y_bad[0][0])
+	bel_lines[0][1].set_xdata(belief_x_bad[0][1])
+	bel_lines[0][1].set_ydata(belief_y_bad[0][1])
 		# bel_lines[j][1].set_xdata(belief_x_bad[j])
 		# bel_lines[j][1].set_ydata(belief_y_bad[j])
-		change_array += bel_lines[j]
+	change_array += bel_lines
 	return change_array
 
 def connect_update(i):
@@ -282,14 +252,14 @@ obs_range = 3
 # public_targets = [[0,9],[60,69],[20,39],[55,95]]
 # obs_range = 4
 
-# con_dict = con_ar = con_init()
-time_i = 75
+# con_dict = con_ar = con_init()'874' (140647750019760) = {dict} <class 'dict'>: {'BeliefCalls': 736, 'BadTrace': {'37': [85, 1], '43': [78, 0], '27': [76, 0], '11': [85, 0], '49': [76, 1], '20': [66, 1], '9': [85, 1], '26': [86, 0], '5': [67, 1], '31': [69, 0], '1': [78, 0], '25': [85, 0], '41': [76, 0], '33': [67, 1], '23': [85, 1], '2': [79, 0], '6': [66, 1], '4': [68, 1], '3': [69, 0], '24': [95, 1], '7': [76, 1], '21': [76, 1], '14': [77, 0], '13': [76, 0], '38': [95, 1], '29': [78, 0], '46': [68, 1], '34': [66, 1], '22': [75, 1], '19': [67, 1], '45': [69, 0], '15': [78, 0], '40': [86, 0], '16': [79, 0], '39': [85, 0], '47': [67, 1], '12': [86, 0], '10': [95, 1], '30': [79, 0], '8': [75, 1], '18': [68, 1], '17': [69, 0], '48': [66, 1], '35': [76, 1], '28': [77, 0], '0': [77, 0], '44': [79, 0], '32': [68, 1], '50': [75, 1], '42': [77, 0], '36': [75, 1]}, 'LastSeen': {'37': [[67, 0], 0], '874': [[77, 0], 0], '122': [[34, 0], 0], '684': [[33, 0], 50], '168': [[27, 0], 8]}, 'ActBelief': {'(0, 0, 1, 0, 0)': 0.0042983371692197755, '(1, 1, 1, 0, 1)': ...… View
+time_i = 50
 bel_lines = belief_chart_init()
 for j in range(time_i+1):
 	belief_update(j)
 # ax_ar = grid_init(nrows, ncols, obs_range)
 # update_all(50)
-texfig.savefig("Avg_thin_results_lv_"+str(time_i))
+texfig.savefig("Call_results_"+str(time_i))
 # update()
 # plt.show()
 # ani = FuncAnimation(fig, update_all, frames=frames, interval=500, blit=True,repeat=False)

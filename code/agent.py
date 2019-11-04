@@ -8,17 +8,18 @@ from copy import deepcopy
 import random
 import operator
 from collections import OrderedDict
+import pickle
+
 
 class ProbablilityNotOne(Exception):
 	pass
 
 class Agent():
-	
-	def __init__(self,init=None,target_list=[],public_list=[],mdp=None,gw_env=None,belief_tracks=None,bad_models=[]):
-		self.id_no = id(self)-1000*math.floor(id(self)/1000)
+	def __init__(self,init=None,target_list=[],public_list=[],mdp=None,gw_env=None,belief_tracks=None,bad_models=[],id_no=None,policy_load=False):
+		self.id_no = id_no
 		self.init = init
 		self.current = init
-		self.alpha = 1.0
+		self.alpha = 1.00
 		self.burn_rate = 1.00
 		self.targets = target_list
 		self.public_targets = public_list
@@ -26,6 +27,9 @@ class Agent():
 		self.bad_model = bad_models
 		self.evil = False
 		self.async_flag = True
+		self.av_flag = True
+		self.belief_calls = 0
+		# self.async_flag = False
 		if target_list != public_list:
 			self.evil = True
 		t_num = list(range(len(target_list)))
@@ -94,8 +98,12 @@ class Agent():
 				else:
 					bad_dra.add_transition(i, q, q)
 		self.bad_pmdp = self.productMDP(self.bad_mdp,bad_dra)
-		self.policy = Policy(self.pmdp, self.public_pmdp, self.pmdp.init, t_list, 50, p_list,self.bad_pmdp,b_list)
-	
+		if policy_load:
+			self.loadPolicy()
+		else:
+			self.policy = Policy(self.pmdp, self.public_pmdp, self.pmdp.init, t_list, 50, p_list,self.bad_pmdp,b_list)
+			self.savePolicy()
+
 	def writeOutputTimeStamp(self,init=[]):
 		out_dict = dict()
 		out_dict.update({'AgentLoc': self.current})
@@ -104,6 +112,7 @@ class Agent():
 		out_dict.update({'Visible': self.viewable_agents})
 		out_dict.update({'NominalTrace': self.policy.nom_trace})
 		out_dict.update({'BadTrace': self.policy.bad_trace})
+		out_dict.update({'BeliefCalls':self.belief_calls})
 		if init:
 			out_dict.update({'PublicTargets': self.public_targets})
 			out_dict.update({'Id_no': list(init)})
@@ -138,7 +147,17 @@ class Agent():
 	
 	def definePolicyDict(self,id_list,policy_array):
 		self.policy_list = dict([[i,p_i] for i,p_i in zip(id_list,policy_array)])
-	
+
+	def savePolicy(self):
+		print(self.id_no)
+		with open('policies/'+str(self.id_no)+'.pkl','wb') as f:
+			pickle.dump(self.policy,f,pickle.HIGHEST_PROTOCOL)
+
+	def loadPolicy(self):
+		print(self.id_no)
+		with open('policies/'+str(self.id_no)+'.pkl','rb') as f:
+			self.policy = pickle.load(f)
+
 	def agent_in_view(self, state, agent_states, agent_id):
 		view_agents = []
 		view_states = []
@@ -236,11 +255,16 @@ class Agent():
 		if abs(sum(self.local_belief.values())-1.0)>1e-6:
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))
 		if self.evil:
-			random_belief = np.random.rand(len(self.local_belief))
-			random_belief /= np.sum(random_belief)
-			for b_i,r_b in zip(self.local_belief, random_belief):
-				self.local_belief[b_i] = r_b
-				self.actual_belief[b_i] = r_b
+			for b_i in self.local_belief:
+				self.local_belief[b_i] = 0
+				self.actual_belief[b_i] = 0
+			self.local_belief[(1,0,1,1,1)] = 1.0
+			self.actual_belief[(1,0,1,1,1)] = 1.0
+			# random_belief = np.random.rand(len(self.local_belief))
+			# random_belief /= np.sum(random_belief)
+			# for b_i,r_b in zip(self.local_belief, random_belief):
+			# 	self.local_belief[b_i] = r_b
+			# 	self.actual_belief[b_i] = r_b
 
 	# def updateAsyncBelief(self,viewable_agents,viewable_states):
 	# 	## Local rule
@@ -260,15 +284,24 @@ class Agent():
 		if len(belief_arrays) >= 2*self.no_bad + 1: ## Case 1
 			actual_belief = dict()
 			for theta in self.actual_belief:
+				self.belief_calls += 1
 				sorted_belief = sorted([b_a[theta] for b_a in belief_arrays],reverse=True)
 				for f in range(self.no_bad):
 					sorted_belief.pop()
-				sorted_belief.append(self.local_belief[theta])
-				actual_belief.update({theta:min(sorted_belief)}) # Minimum
+					if self.av_flag:
+						sorted_belief.pop(-1)
+				if self.av_flag:
+					actual_belief.update({theta: min(self.local_belief[theta],np.mean(sorted_belief))})
+				else:
+					sorted_belief.append(self.local_belief[theta])
+					actual_belief.update({theta:min(sorted_belief)}) # Minimum
 				# actual_belief.update({theta:np.average(sorted_belief)}) #Averaging
 		else: # Case 2
 			for theta in self.actual_belief:
 				actual_belief.update({theta:min(self.actual_belief[theta],self.local_belief[theta])})
+				# if self.av_flag:
+				# 	actual_belief.update({theta:np.mean([self.actual_belief[theta]]+[self.local_belief[theta]])})
+				# else:
 		# Normalize
 		self.actual_belief = dict([[theta, actual_belief[theta] / sum(actual_belief.values())] for theta in actual_belief])
 		if self.evil:
@@ -283,10 +316,12 @@ class Agent():
 				self.belief_bad.append(i)
 
 	def ADHT(self,belief_arrays):
+		global belief_calls
 		actual_belief = {}
 		neighbor_set = {}
 		for theta in self.actual_belief:
 			if self.asyncBeliefUpdate(theta,belief_arrays):
+				self.belief_calls += 1
 				space = set.union(*[self.neighbor_set[x] for x in self.neighbor_set if x is not theta])
 				belief_list = []
 				agent_order = []
@@ -295,7 +330,12 @@ class Agent():
 					agent_order.append(j)
 				belief_list,agent_order = zip(*sorted(zip(belief_list,agent_order)))
 				neighbor_set[theta] = set(agent_order[self.no_bad:])
-				actual_belief[theta] = min([self.local_belief[theta]]+list(belief_list))
+				if self.av_flag:
+					if theta == (1,1,1,1,1,1,1,0) and self.id_no==560:
+						print(" ")
+					actual_belief[theta] = min(self.local_belief[theta],np.mean(list(belief_list)[self.no_bad:-1*self.no_bad]))
+				else:
+					actual_belief[theta] = min([self.local_belief[theta]]+list(belief_list)[self.no_bad:])
 			else:
 				actual_belief.update({theta: min(self.actual_belief[theta], self.local_belief[theta])})
 			if actual_belief[theta] < 0:

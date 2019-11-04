@@ -3,6 +3,7 @@ from mdp import *
 from policy import Policy
 from agent import Agent
 import json
+import pickle
 
 def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
     plotting_dictionary = dict()
@@ -43,7 +44,9 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
                 p_i.shareBelief(belief_packet)
             time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
         plotting_dictionary.update({str(time_t): time_p})
-    write_JSON(str(len(agent_loc))+'agents_'+str(grid.obs_range)+'range_async.json', stringify_keys(plotting_dictionary))
+    fname = str(len(agent_loc))+'agents_'+str(grid.obs_range)+'-'+str(8)+'_range_async_average.json'
+    print("Writing to "+fname)
+    write_JSON(fname, stringify_keys(plotting_dictionary))
     return print("Goal!")
 
 def write_JSON(filename,data):
@@ -80,11 +83,11 @@ moveobstacles = []
 obstacles = []
 # # # 5 agents small range
 initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
-targets = [[0,9],[60,69],[20,39],[69,95],[99,11]]
-public_targets = [[0,9],[60,69],[20,39],[55,91],[99,11]]
-bad_models = [[2,19],[70,59],[40,29],[69,95],[81,18]]
-obs_range = 3
-# np.random.seed(1)
+targets = [[18,81],[60,69],[20,39],[69,95],[99,11]]
+public_targets = [[18,81],[60,69],[20,39],[68,93],[99,11]]
+bad_models = [[1,19],[60,58],[30,29],[69,95],[81,18]]
+obs_range = 4
+np.random.seed(1)
 
 # # # 6 agents small range
 # initial = [(33,0),(41,0),(7,0),(80,0),(69,1),(92,0)]
@@ -108,9 +111,10 @@ obs_range = 3
 # ## 8 Spokes on a wheel
 # initial = [(0,0),(9,0),(90,0),(99,0),(5,0),(40,0),(94,0),(59,0)]
 # public_targets = [[33,0],[36,9],[63,90],[66,99],[54,5],[55,4],[45,94],[44,59]]
-# bad_models = [[18,88],[11,91],[36,9],[2,82],[69,99],[27,77],[4,30],[72,22]]
-# targets = [[33,0],[36,9],[63,90],[66,99],[54,5],[27,77],[45,94],[72,22]]
+# bad_models = [[18,88],[11,91],[36,9],[2,82],[69,99],[27,77],[4,30],[64,59]]
+# targets = [[33,0],[36,9],[63,90],[66,99],[54,5],[55,4],[45,94],[64,59]]
 # obs_range = 3
+# np.random.seed(1)
 
 # ## 6 Spokes on a wheel
 # initial = [(0,0),(9,0),(90,0),(99,0),(5,0),(40,0)]
@@ -129,9 +133,10 @@ obs_range = 3
 ## 4 Spokes on a wheel - Tighter centers
 # initial = [(1,0),(4,0),(55,0),(35,0)]
 # public_targets = [[26,1],[27,4],[32,55],[33,58]]
-# bad_models = [[25,0],[28,5],[31,54],[35,59]]
-# targets = [[26,1],[27,4],[32,55],[35,59]]
-# obs_range = 2
+# bad_models = [[25,0],[28,5],[31,54],[34,58]]
+# targets = [[26,1],[27,4],[32,55],[34,58]]
+# obs_range = 3
+# # obs_range = 8
 
 
 # #4 agents larger range
@@ -180,11 +185,12 @@ bad_b = ()
 for i in range(len(initial)):
     bad_b += (0,)
 belief_tracks = [str(bad_b), str(tuple([int(i==j) for i, j in zip(targets, public_targets)]))]
+seed_iter = iter(range(0,5+len(initial)))
 for i, j, k, l in zip(initial, targets, public_targets, bad_models):
-    if evil_switch:
-        agent_array.append(Agent(i, j, k, mdp, gwg, belief_tracks, l))
-    else:
-        agent_array.append(Agent(i, j, k, mdp, gwg, belief_tracks, l))
+    np.random.seed(next(seed_iter))
+    agent_array.append(Agent(i, j, k, mdp, gwg, belief_tracks, l,np.random.randint(1000),True))
+    # else:
+    #     agent_array.append(Agent(i, j, k, mdp, gwg, belief_tracks, l,np.random.randint(1000),True))
     print("Policy ", c_i, " -- complete")
     c_i += 1
 id_list = [a_l.id_no for a_l in agent_array]
@@ -193,6 +199,6 @@ for a_i in agent_array:
     a_i.initBelief([a_l.id_no for a_l in agent_array],1)
     a_i.definePolicyDict(id_list,pol_list)
 
-play_sim(True,agent_array,gwg,200)
+play_sim(True,agent_array,gwg,100)
 
 

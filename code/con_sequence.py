@@ -20,7 +20,7 @@ import texfig
 
 # ---------- PART 1: Globals
 
-with open('4agents_3range_tight.json') as json_file:
+with open('5agents_4range_sync.json') as json_file:
 	data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 100
@@ -29,7 +29,14 @@ scale_factor = 0.33
 # writer = Writer(fps=2.5, metadata=dict(artist='Me'), bitrate=1800)
 fig = texfig.figure(width=3.3*scale_factor,ratio=1, dpi=my_dpi)
 my_palette = plt.cm.get_cmap("tab10",len(df.index))
-categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
+cat = [str(d_i) for d_i in df['0'][0]['Id_no']]
+categories = [cat[0],cat[2],cat[4],cat[1],cat[3]] # sync
+# categories = [cat[0],cat[2],cat[3],cat[1],cat[4]] # async
+# seed_iter = iter(range(0,5))
+# categories = []
+# for k in seed_iter:
+# 	np.random.seed(k)
+# 	categories.append(str(np.random.randint(1000)))
 belief_good = df['0'][0]['GoodBelief']
 belief_bad = df['0'][0]['BadBelief']
 N = len(categories)
@@ -133,4 +140,4 @@ con_dict = con_ar = con_init()
 t_i = 40
 for s_i in range(0,t_i):
 	update_all(s_i)
-	texfig.savefig("images/Connections"+str(s_i))
+	texfig.savefig("images/Connections_a"+str(s_i))

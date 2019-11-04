@@ -28,13 +28,10 @@ scale_factor = 0.33
 # writer = Writer(fps=2.5, metadata=dict(artist='Me'), bitrate=1800)
 fig = texfig.figure(width=3.3*scale_factor,ratio=2, dpi=my_dpi)
 my_palette = plt.cm.get_cmap("tab10",len(df.index))
-cat = [str(d_i) for d_i in df['0'][0]['Id_no']]
-# categories = [cat[0],cat[3],cat[1],cat[4],cat[2]] # sync
-categories = [cat[0],cat[3],cat[1],cat[2],cat[4]] # async
+categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
 belief_good = df['0'][0]['GoodBelief']
 belief_bad = df['0'][0]['BadBelief']
 N = len(categories)
-categories = [categories[0],categories[2],categories[3]]
 angles = [n / float(N) * 2 * pi for n in range(N)]
 angles += angles[:1]
 axis_array = []
@@ -45,11 +42,10 @@ belief_x_bad = []
 belief_y_bad = []
 belief_y_good = []
 # plt.show()
-frames = 50
-col_row = [0,2,3]
+frames = 100
 
-for row in range(len(categories)):
-	ax = plt.subplot(3, 1, row+1, polar=True)
+for row in range(0, 1):
+	ax = plt.subplot(1, 1, row+1, polar=True)
 	ax.set_theta_offset(pi/2)
 	ax.set_theta_direction(-1)
 	ax.set_ylim(0,100)
@@ -58,16 +54,16 @@ for row in range(len(categories)):
 		xtick.set(color=my_palette(col),fontweight='bold')
 	ax.tick_params(pad=-7.0)
 	ax.set_rlabel_position(45)
-	plt.yticks([50,100], ["0.5", "1"], color="grey")
-	# plt.yticks([50,100], [], color="grey")
+	# plt.yticks([50,100], ["0.5", "1"], color="grey")
+	plt.yticks([50,100], [], color="grey")
 	# for j_z, a_i in enumerate(angles[:-1]):
 	# 	da = DrawingArea(20,20,10,10)
 	# 	p_c = patches.Circle((0,0), radius=12, color=my_palette(j_z), clip_on=False)
 	# 	da.add_artist(p_c)
 	# 	ab = AnnotationBbox(da,(0,101))
 	# 	ax.add_artist(ab)
-	l, = ax.plot([],[],color=my_palette(col_row[row]),linewidth=2*scale_factor,linestyle='solid')
-	l_f, = ax.fill([],[],color=my_palette(col_row[row]),alpha=0.4)
+	l, = ax.plot([],[],color=(0.99, 0.99, 0.59),linewidth=2*scale_factor,linestyle='solid')
+	l_f, = ax.fill([],[],color=(0.99, 0.99, 0.59),alpha=0.4)
 	axis_array.append(ax)
 	l_data.append(l)
 	f_data.append(l_f)
@@ -115,8 +111,9 @@ def coords(s,ncols):
 nrows = 10
 ncols = 10
 obs_range = 3
-
-t_i = 40
-for s_i in range(0,1):
-	update_all(s_i)
-	texfig.savefig("images/Belief_simplex_sync_short"+str(s_i))
+update_all(1)
+texfig.savefig("images/initial_belief")
+# t_i = 40
+# for s_i in range(1,50):
+# 	update_all(s_i)
+# 	texfig.savefig("images/Belief_simplex_async"+str(s_i))
