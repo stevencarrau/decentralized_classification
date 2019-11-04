@@ -48,7 +48,7 @@ class Gridworld():
         c_dict = dict([n, np.array([self.width+self.connect_width/2,self.height/4],dtype=int) + np.array([radius*math.sin(n_v),radius*math.cos(n_v)],dtype=int)] for n,n_v in enumerate(np.linspace(0,2*math.pi,self.nagents,endpoint=False)))
         spacing = np.linspace(75, self.connect_width - 100, self.nagents,dtype=int)
         for n,n_i in zip(self.current,range(self.nagents)):
-            self.agent_list.append(self.Agent_Vis(self.indx2coord(n[0],center=True),tuple(255*np.array(self.agentcolors[n_i])),size,obs_range,tuple(reversed(c_dict[n_i])),c_dict,(spacing[n_i]+self.width,int(self.height/2)+150)))
+            self.agent_list.append(self.Agent_Vis(self.indx2coord(n,center=True),tuple(255*np.array(self.agentcolors[n_i])),size,obs_range,tuple(reversed(c_dict[n_i])),c_dict,(spacing[n_i]+self.width,int(self.height/2)+150)))
         for x in range(self.nstates):
             # note that edges are not disjoint, so we cannot use elif
             if x % self.ncols == 0:

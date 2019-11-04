@@ -6,7 +6,7 @@ import json
 import pickle
 
 def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
-	current_node = '0'
+	current_node = [0]*len(agent_array)
 	state_label = 's'
 	plotting_dictionary = dict()
 	time_t = 0
@@ -15,8 +15,8 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 	# Initialize missing status
 	for a_a in agent_array:
 		a_a.initLastSeen(agent_loc.keys(), agent_loc.values())
-		time_p.update({a_a.id_no: a_a.writeOutputTimeStamp(agent_loc.keys())})
-	plotting_dictionary.update({str(time_t): time_p})
+		# time_p.update({a_a.id_no: a_a.writeOutputTimeStamp(agent_loc.keys())})
+	# plotting_dictionary.update({str(time_t): time_p})
 	target_union = set()
 	for t in grid.targets:
 		target_union.update(set(t))
@@ -25,9 +25,9 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 		time_p = {}
 		time_t += 1
 		## Movement update
-		for a_i in agent_array:
-			current_node = str(a_i.policy[current_node]['Successors'][0])
-			s = a_i.policy[current_node]['State'][state_label]
+		for ind,a_i in enumerate(agent_array):
+			current_node[ind] = a_i.policy[current_node[ind]]['Successors'][0]
+			s = a_i.policy[current_node[ind]]['State'][state_label]
 			a_i.updateAgent(s)
 			agent_loc[a_i.id_no] = a_i.current
 			# print("Local likelihood for ", a_i.id_no, ": ",
@@ -83,7 +83,7 @@ ncols = 10
 moveobstacles = []
 obstacles = []
 # # # 5 agents small range
-initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
+initial = [33,41,7,80,69]
 targets = [[18,81],[60,69],[20,39],[69,95],[99,11]]
 public_targets = [[18,81],[60,69],[20,39],[68,93],[99,11]]
 bad_models = [[1,19],[60,58],[30,29],[69,95],[81,18]]

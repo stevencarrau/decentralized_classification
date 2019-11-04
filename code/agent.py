@@ -12,6 +12,7 @@ import operator
 from collections import OrderedDict
 import pickle
 import policy_reactive
+import simplejson as json
 
 
 class ProbablilityNotOne(Exception):
@@ -105,7 +106,7 @@ class Agent():
 			self.loadPolicy()
 		else:
 			self.policy = self.Policy(slugs_location=slugs_location)
-			self.savePolicy()
+			# self.savePolicy()
 
 	def writeOutputTimeStamp(self,init=[]):
 		out_dict = dict()
@@ -186,7 +187,7 @@ class Agent():
 		for s in self.gw.obstacles:
 			file.write('!s = {}\n'.format(s))
 		file.write('\n[SYS_LIVENESS]\n')
-		for s in self.gw.targets:
+		for s in self.targets:
 			file.write('s = {}\n'.format(s))
 
 		file.close()
@@ -197,17 +198,17 @@ class Agent():
 			sp = subprocess.Popen(slugs_location + 'src/slugs --explicitStrategy --jsonOutput ' + infile + '.slugsin > ' + infile+'.json',shell=True, stdout=subprocess.PIPE)
 			sp.wait()
 			print('Computing controller...')
-			return parseJson(infile+'.json')
+			return self.parseJson(infile+'.json')
 
-	def writeJson(infile,outfile,dict=None):
+	def writeJson(self,infile,outfile,dict=None):
 		if dict is None:
-			dict = parseJson(infile)
+			dict = self.parseJson(infile)
 		j = json.dumps(dict, indent=1)
 		f = open(outfile, 'w')
 		print >> f, j
 		f.close()
 
-	def parseJson(filename,outfilename=None):
+	def parseJson(self,filename,outfilename=None):
 		automaton = dict()
 		file = open(filename)
 		data = json.load(file)
@@ -238,7 +239,7 @@ class Agent():
 		if outfilename==None:
 			return automaton
 		else:
-			writeJson(None,outfilename,automaton)
+			self.writeJson(None,outfilename,automaton)
 
 	def definePolicyDict(self,id_list,policy_array):
 		self.policy_list = dict([[i,p_i] for i,p_i in zip(id_list,policy_array)])
