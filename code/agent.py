@@ -2,6 +2,8 @@ from policy import Policy
 from mdp import *
 import math
 import itertools
+import os
+import subprocess
 from scipy.special import comb
 import numpy as np
 from copy import deepcopy
@@ -102,7 +104,7 @@ class Agent():
 		if policy_load:
 			self.loadPolicy()
 		else:
-			self.policy = Policy(slugs_location=slugs_location)
+			self.policy = self.Policy(slugs_location=slugs_location)
 			self.savePolicy()
 
 	def writeOutputTimeStamp(self,init=[]):

@@ -190,7 +190,7 @@ belief_tracks = [str(bad_b), str(tuple([int(i==j) for i, j in zip(targets, publi
 seed_iter = iter(range(0,5+len(initial)))
 for i, j, k, l in zip(initial, targets, public_targets, bad_models):
 	np.random.seed(next(seed_iter))
-	agent_array.append(Agent(i, j, k, mdp, gwg, belief_tracks, l,np.random.randint(1000),True,slugs_location))
+	agent_array.append(Agent(i, j, k, mdp, gwg, belief_tracks, l,np.random.randint(1000),False,slugs_location=slugs_location))
 	# else:
 	#     agent_array.append(Agent(i, j, k, mdp, gwg, belief_tracks, l,np.random.randint(1000),True))
 	print("Policy ", c_i, " -- complete")
