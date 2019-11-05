@@ -46,62 +46,7 @@ class Agent():
 		self.mdp = mdp
 		self.public_mdp = deepcopy(mdp)
 		self.error_prob = 0.2
-		labels = dict([])
-		pub_labels = dict([])
-		bad_labels = dict([])
-		for q_t, s_t in enumerate(self.targets):
-			labels[s_t] = q_t
-		for q_p, s_p in enumerate(self.public_targets):
-			pub_labels[s_p] = q_p
-		for q_b, s_b in enumerate(bad_models):
-			bad_labels[s_b] = q_b
-		
-		self.mdp.add_init(init)
-		self.mdp.add_labels(labels)
-		self.public_mdp.add_init(init)
-		self.public_mdp.add_labels(pub_labels)
-		self.bad_mdp = deepcopy(mdp)
-		self.bad_mdp.add_init(init)
-		self.bad_mdp.add_labels(bad_labels)
-		
-		dra = DRA(0,range(len(self.targets)))
-		for q in range(len(self.targets)):
-			for i in range(len(self.targets)):
-				if q == i:
-					if q==len(self.targets)-1:
-						dra.add_transition(q,q,0)
-					else:
-						dra.add_transition(q,q,q+1)
-				else:
-					dra.add_transition(i, q, q)
 
-		# self.public_nfa.add_init(init)
-		self.pmdp = self.productMDP(self.mdp,dra)
-		
-		public_dra = DRA(0,range(len(self.public_targets)))
-		for q in range(len(self.public_targets)):
-			for i in range(len(self.public_targets)):
-				if q == i:
-					if q==len(self.public_targets)-1:
-						public_dra.add_transition(q,q,0)
-					else:
-						public_dra.add_transition(q,q,q+1)
-				else:
-					public_dra.add_transition(i, q, q)
-		
-		self.public_pmdp = self.productMDP(self.public_mdp,public_dra)
-		
-		bad_dra = DRA(0, range(len(self.bad_model)))
-		for q in range(len(self.bad_model)):
-			for i in range(len(self.bad_model)):
-				if q == i:
-					if q==len(self.bad_model)-1:
-						bad_dra.add_transition(q, q, 0)
-					else:
-						bad_dra.add_transition(q, q,q +1)
-				else:
-					bad_dra.add_transition(i, q, q)
-		self.bad_pmdp = self.productMDP(self.bad_mdp,bad_dra)
 		if policy_load:
 			self.loadPolicy()
 		else:
@@ -170,7 +115,7 @@ class Agent():
 		file.write('\n') # Add moving obstacles
 
 		file.write('\n[SYS_INIT]\n')
-		file.write('s={}\n'.format(self.gw.current[0]))
+		file.write('s={}\n'.format(self.current))
 
 		file.write('\n[SYS_TRANS]\n')
 

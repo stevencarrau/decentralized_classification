@@ -196,10 +196,10 @@ for i, j, k, l in zip(initial, targets, public_targets, bad_models):
 	print("Policy ", c_i, " -- complete")
 	c_i += 1
 id_list = [a_l.id_no for a_l in agent_array]
-pol_list = [a_l.policy for a_l in agent_array]
-for a_i in agent_array:
-	a_i.initBelief([a_l.id_no for a_l in agent_array],1)
-	a_i.definePolicyDict(id_list,pol_list)
+# pol_list = [a_l.policy for a_l in agent_array]
+# for a_i in agent_array:
+	# a_i.initBelief([a_l.id_no for a_l in agent_array],1)
+	# a_i.definePolicyDict(id_list,pol_list)
 
 play_sim(True,agent_array,gwg,100)
 
