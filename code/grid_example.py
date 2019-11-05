@@ -14,9 +14,9 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 	time_p = {}
 	# Initialize missing status
 	for a_a in agent_array:
-		a_a.initLastSeen(agent_loc.keys(), agent_loc.values())
-		# time_p.update({a_a.id_no: a_a.writeOutputTimeStamp(agent_loc.keys())})
-	# plotting_dictionary.update({str(time_t): time_p})
+		# a_a.initLastSeen(agent_loc.keys(), agent_loc.values())
+		time_p.update({a_a.id_no: a_a.writeOutputTimeStamp(agent_loc.keys())})
+	plotting_dictionary.update({str(time_t): time_p})
 	target_union = set()
 	for t in grid.targets:
 		target_union.update(set(t))
@@ -43,11 +43,11 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 		# 	else:
 		# 		belief_packet = [agent_array[p_i.id_idx[v_a]].actual_belief for v_a in p_i.viewable_agents]
 		# 		p_i.shareBelief(belief_packet)
-		# 	time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
-		# plotting_dictionary.update({str(time_t): time_p})
-	# fname = str(len(agent_loc))+'agents_'+str(grid.obs_range)+'-'+str(8)+'_range_async_average.json'
-	# print("Writing to "+fname)
-	# write_JSON(fname, stringify_keys(plotting_dictionary))
+			time_p.update({a_i.id_no: a_i.writeOutputTimeStamp()})
+		plotting_dictionary.update({str(time_t): time_p})
+	fname = str('Fixed_Env_{}_Agents.json').format(len(agent_array))
+	print("Writing to "+fname)
+	write_JSON(fname, stringify_keys(plotting_dictionary))
 	return print("Goal!")
 
 def write_JSON(filename,data):
@@ -84,7 +84,7 @@ moveobstacles = []
 obstacles = []
 # # # 5 agents small range
 initial = [33,41,7,80,69]
-targets = [[18,81],[60,69],[20,39],[69,95],[99,11]]
+targets = [[15,82,88],[15,82,88],[15,82,88],[15,82,88],[15,82,88]]
 public_targets = [[18,81],[60,69],[20,39],[68,93],[99,11]]
 bad_models = [[1,19],[60,58],[30,29],[69,95],[81,18]]
 obs_range = 4
@@ -161,7 +161,7 @@ regions = dict.fromkeys(regionkeys,{-1})
 regions['deterministic']= range(nrows*ncols)
 # regions_det = dict.fromkeys(regionkeys,{-1})
 # regions_det['deterministic'] = range(nrows*ncols)
-slugs_location = '/Users/suda/Documents/slugs/'
+slugs_location = '~/slugs/'
 gwg = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions,public_targets=public_targets,obs_range=obs_range)
 #
 states = range(gwg.nstates)

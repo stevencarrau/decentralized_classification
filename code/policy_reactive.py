@@ -49,7 +49,7 @@ def Policy(gwg,infile=None,slugs_location=None):
 	if slugs_location!=None:
 		os.system(
 		'python ' + slugs_location + 'tools/StructuredSlugsParser/compiler.py ' + infile + '.structuredslugs > ' + infile + '.slugsin')
-		sp = subprocess.Popen(slugs_location + 'src/slugs --explicitStrategy --jsonOutput ' + infile + '.slugsin > ' + infile+'.json',shell=True, stdout=subprocess.PIPE)
+		sp = subprocess.Popen(slugs_location + 'src --explicitStrategy --jsonOutput ' + infile + '.slugsin > ' + infile+'.json',shell=True, stdout=subprocess.PIPE)
 		sp.wait()
 		print('Computing controller...')
 		return parseJson(infile+'.json')

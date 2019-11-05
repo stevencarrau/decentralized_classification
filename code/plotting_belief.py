@@ -19,15 +19,15 @@ from gridworld import *
 
 # ---------- PART 1: Globals
 
-with open('5agents_4-8_range_async_min.json') as json_file:
+with open('Fixed_Env_5_Agents.json') as json_file:
 	data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 150
 Writer = matplotlib.animation.writers['ffmpeg']
 writer = Writer(fps=2.0, metadata=dict(artist='Me'), bitrate=1800)
 # fig = texfig.figure(width=2000/my_dpi,dpi=my_dpi)
-fig = plt.figure(figsize=(3600/my_dpi, 2000/my_dpi), dpi=my_dpi)
-# fig = plt.figure(figsize=(2000/my_dpi, 1600/my_dpi), dpi=my_dpi)
+# fig = plt.figure(figsize=(3600/my_dpi, 2000/my_dpi), dpi=my_dpi)
+fig = plt.figure(figsize=(2000/my_dpi, 1600/my_dpi), dpi=my_dpi)
 my_palette = plt.cm.get_cmap("tab10",len(df.index))
 seed_iter = iter(range(0,5))
 categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
@@ -42,8 +42,8 @@ for k in seed_iter:
 # categories.append(cat_hold.pop(0))
 # categories.append(cat_hold.pop(0))
 # categories.append(cat_hold.pop(0))
-belief_good = df['0'][0]['GoodBelief']
-belief_bad = df['0'][0]['BadBelief']
+# belief_good = df['0'][0]['GoodBelief']
+# belief_bad = df['0'][0]['BadBelief']
 N = len(categories)
 angles = [n / float(N) * 2 * pi for n in range(N)]
 angles += angles[:1]
@@ -94,19 +94,19 @@ def update(i):
 	global plot_data, df
 	l_d = plot_data[0]
 	f_d = plot_data[1]
-	for l,l_f,id_no in zip(l_d,f_d,categories):
-		values = df[str(i)][id_no]['ActBelief']
-		cat_range = range(N)
-		value_dict = dict([[c_r, 0.0] for c_r in cat_range])
-		for v_d in value_dict.keys():
-			for k_i in values.keys():
-				if literal_eval(k_i)[v_d] == 1:
-					value_dict[v_d] += 100 * values[k_i]
-
-		val = list(value_dict.values())
-		val += val[:1]
-		l.set_data(angles,val)
-		l_f.set_xy(np.array([angles,val]).T)
+	# for l,l_f,id_no in zip(l_d,f_d,categories):
+	# 	values = df[str(i)][id_no]['ActBelief']
+	# 	cat_range = range(N)
+	# 	value_dict = dict([[c_r, 0.0] for c_r in cat_range])
+	# 	for v_d in value_dict.keys():
+	# 		for k_i in values.keys():
+	# 			if literal_eval(k_i)[v_d] == 1:
+	# 				value_dict[v_d] += 100 * values[k_i]
+	#
+	# 	val = list(value_dict.values())
+	# 	val += val[:1]
+	# 	l.set_data(angles,val)
+	# 	l_f.set_xy(np.array([angles,val]).T)
 	# plot_data = [l_d,f_d]
 	return l_d + f_d
 
@@ -128,9 +128,9 @@ def grid_init(nrows, ncols, obs_range):
 	plt.grid(which="minor", ls="-", lw=1)
 	i = 0
 	for id_no in categories:
-		p_t = df[str(0)][id_no]['PublicTargets']
+		# p_t = df[str(0)][id_no]['PublicTargets']
 		color = my_palette(i)
-		init_loc = tuple(reversed(coords(df[str(0)][id_no]['AgentLoc'][0], ncols)))
+		init_loc = tuple(reversed(coords(df[str(0)][id_no]['AgentLoc'], ncols)))
 		c_i = plt.Circle(init_loc, 0.45, color=color)
 		# route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
 		cir_ax = ax.add_artist(c_i)
@@ -142,9 +142,9 @@ def grid_init(nrows, ncols, obs_range):
 		plt_ax2 = None
 		# ag_array.append([cir_ax, lin_ax, plt_ax,plt_ax2])
 		ag_array.append([cir_ax, lin_ax])
-		for k in p_t:
-			s_c = coords(k, ncols)
-			ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
+		# for k in p_t:
+		# 	s_c = coords(k, ncols)
+		# 	ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
 		i += 1
 	return ag_array
 
@@ -158,20 +158,20 @@ def belief_chart_init():
 	plt.xlabel(r't')
 	plt.ylabel(r'Belief $\left(b^a_j(\theta)\right)$')
 	plt_array = []
-	for i,id_no in enumerate(categories):
-		# belief_x_bad.append([])
-		# belief_x_bad[i].append(0)
-		# belief_y_bad.append([])
-		# belief_y_bad[i].append(df['0'][id_no]['ActBelief'][belief_bad])
-		belief_x_good.append([])
-		belief_x_good[i].append(0)
-		belief_y_good.append([])
-		belief_y_good[i].append(df['0'][id_no]['ActBelief'][belief_good])
-		px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=3, linestyle='solid', label=r'Actual belief: $b^a_'+str(i)+r'(\theta^\star)$')
-		# px2, = ax.plot([0,0.0], [0.0,0.0], color=my_palette(i), linewidth=3, linestyle='dashed', label=r'Incorrect belief $b^a_'+str(i)+r'(\theta_0)$')
-		px2 = None
-		plt_array.append((px1,px2))
-	leg = ax.legend(loc='right')
+	# for i,id_no in enumerate(categories):
+	# 	# belief_x_bad.append([])
+	# 	# belief_x_bad[i].append(0)
+	# 	# belief_y_bad.append([])
+	# 	# belief_y_bad[i].append(df['0'][id_no]['ActBelief'][belief_bad])
+	# 	belief_x_good.append([])
+	# 	belief_x_good[i].append(0)
+	# 	belief_y_good.append([])
+	# 	belief_y_good[i].append(df['0'][id_no]['ActBelief'][belief_good])
+	# 	px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=3, linestyle='solid', label=r'Actual belief: $b^a_'+str(i)+r'(\theta^\star)$')
+	# 	# px2, = ax.plot([0,0.0], [0.0,0.0], color=my_palette(i), linewidth=3, linestyle='dashed', label=r'Incorrect belief $b^a_'+str(i)+r'(\theta_0)$')
+	# 	px2 = None
+	# 	plt_array.append((px1,px2))
+	# leg = ax.legend(loc='right')
 	return plt_array
 
 def con_init():
@@ -203,7 +203,7 @@ def grid_update(i):
 	for a_x, id_no in zip(ax_ar, categories):
 		# c_i, l_i, p_i,p_2 = a_x
 		c_i, l_i = a_x
-		loc = tuple(reversed(coords(df[str(i)][id_no]['AgentLoc'][0], ncols)))
+		loc = tuple(reversed(coords(df[str(i)][id_no]['AgentLoc'], ncols)))
 		c_i.set_center(loc)
 		l_i.set_xy(np.array(loc)-obs_range-0.5)
 		# route_x, route_y = zip(*[tuple(reversed(coords(df[str(i)][str(id_no)]['NominalTrace'][s][0], ncols))) for s in df[str(i)][str(id_no)]['NominalTrace']])
@@ -219,32 +219,32 @@ def grid_update(i):
 def belief_update(i):
 	global bel_lines, df, belief_x_good, belief_y_good, belief_x_bad, belief_y_bad
 	change_array = []
-	for j, id_no in enumerate(categories):
-		# belief_x_bad[j].append(i)
-		belief_x_good[j].append(i)
-		belief_y_good[j].append(df[str(i)][id_no]['ActBelief'][belief_good])
-		# belief_y_bad[j].append(df[str(i)][id_no]['ActBelief'][belief_bad])
-		bel_lines[j][0].set_xdata(belief_x_good[j])
-		bel_lines[j][0].set_ydata(belief_y_good[j])
-		# bel_lines[j][1].set_xdata(belief_x_bad[j])
-		# bel_lines[j][1].set_ydata(belief_y_bad[j])
-		change_array += [bel_lines[j][0]]
-		# change_array += [bel_lines[j][1]]
+	# for j, id_no in enumerate(categories):
+	# 	# belief_x_bad[j].append(i)
+	# 	belief_x_good[j].append(i)
+	# 	belief_y_good[j].append(df[str(i)][id_no]['ActBelief'][belief_good])
+	# 	# belief_y_bad[j].append(df[str(i)][id_no]['ActBelief'][belief_bad])
+	# 	bel_lines[j][0].set_xdata(belief_x_good[j])
+	# 	bel_lines[j][0].set_ydata(belief_y_good[j])
+	# 	# bel_lines[j][1].set_xdata(belief_x_bad[j])
+	# 	# bel_lines[j][1].set_ydata(belief_y_bad[j])
+	# 	change_array += [bel_lines[j][0]]
+	# 	# change_array += [bel_lines[j][1]]
 	return change_array
 
 def connect_update(i):
 	global con_dict, df
 	change_array = []
-	for id_no in categories:
-		for id_other in categories:
-			if int(id_other) in df[str(i)][id_no]['Visible']:
-				# if con_dict[(id_no,id_other)]._visible != True:
-				con_dict[(id_no, id_other)].set(visible=True, zorder=0)
-				change_array.append(con_dict[(id_no, id_other)])
-			else:
-				# if con_dict[(id_no,id_other)]._visible == True:
-				con_dict[(id_no, id_other)].set(visible=False, zorder=0)
-				change_array.append(con_dict[(id_no, id_other)])
+	# for id_no in categories:
+	# 	for id_other in categories:
+	# 		if int(id_other) in df[str(i)][id_no]['Visible']:
+	# 			# if con_dict[(id_no,id_other)]._visible != True:
+	# 			con_dict[(id_no, id_other)].set(visible=True, zorder=0)
+	# 			change_array.append(con_dict[(id_no, id_other)])
+	# 		else:
+	# 			# if con_dict[(id_no,id_other)]._visible == True:
+	# 			con_dict[(id_no, id_other)].set(visible=False, zorder=0)
+	# 			change_array.append(con_dict[(id_no, id_other)])
 	return change_array
 	
 
@@ -295,26 +295,10 @@ ax_ar = grid_init(nrows, ncols, obs_range)
 # texfig.savefig("test")
 # update()
 # plt.show()
-ani = FuncAnimation(fig, update_all, frames=frames, interval=20, blit=True,repeat=False)
-# plt.show()
-ani.save('Min-5agents-final-LV.mp4',writer = writer)
+ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=True,repeat=False)
+plt.show()
+# ani.save('Min-5agents-final-LV.mp4',writer = writer)
 # ani.save('decen.gif',dpi=80,writer='imagemagick')
-
-
-# fig = plt.figure(figsize=(4,4))
-# ax = fig.add_subplot(111, projection='polar')
-# ax.set_ylim(0,100)
-#
-# data = np.random.rand(50)*6+2
-# theta = np.linspace(0,2.*np.pi, num=50)
-# l,  = ax.plot([],[])
-#
-# def update(i):
-#     global data
-#     data += (np.random.rand(50)+np.cos(i*2.*np.pi/50.))*2
-#     data[-1] = data[0]
-#     l.set_data(theta, data )
-#     return l,
 #
 # ani = FuncAnimation(fig, update, frames=50, interval=200, blit=True)
 # plt.show()

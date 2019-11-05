@@ -111,17 +111,17 @@ class Agent():
 	def writeOutputTimeStamp(self,init=[]):
 		out_dict = dict()
 		out_dict.update({'AgentLoc': self.current})
-		out_dict.update({'ActBelief': self.actual_belief})
-		out_dict.update({'LastSeen': deepcopy(self.last_seen)})
-		out_dict.update({'Visible': self.viewable_agents})
-		out_dict.update({'NominalTrace': self.policy.nom_trace})
-		out_dict.update({'BadTrace': self.policy.bad_trace})
-		out_dict.update({'BeliefCalls':self.belief_calls})
+		# out_dict.update({'ActBelief': self.actual_belief})
+		# out_dict.update({'LastSeen': deepcopy(self.last_seen)})
+		# out_dict.update({'Visible': self.viewable_agents})
+		# out_dict.update({'NominalTrace': self.policy.nom_trace})
+		# out_dict.update({'BadTrace': self.policy.bad_trace})
+		# out_dict.update({'BeliefCalls':self.belief_calls})
 		if init:
-			out_dict.update({'PublicTargets': self.public_targets})
+			# out_dict.update({'PublicTargets': self.public_targets})
 			out_dict.update({'Id_no': list(init)})
-			out_dict.update({'BadBelief':self.belief_tracks[0]})
-			out_dict.update({'GoodBelief':self.belief_tracks[1]})
+			# out_dict.update({'BadBelief':self.belief_tracks[0]})
+			# out_dict.update({'GoodBelief':self.belief_tracks[1]})
 		return out_dict
 	
 	def productMDP(self,mdp,dra):
@@ -254,54 +254,9 @@ class Agent():
 		with open('policies/'+str(self.id_no)+'.pkl','rb') as f:
 			self.policy = pickle.load(f)
 
-	def agent_in_view(self, state, agent_states, agent_id):
-		view_agents = []
-		view_states = []
-		for a_s,a_i in zip(agent_states,agent_id):
-			if len(a_s)>1:
-				if a_s[0] in self.gw.observable_states[state[0]]:
-					view_agents.append(a_i)
-					obs_states = list(self.gw.observable_states[state[0]])
-					view_states.append((int(np.random.choice(tuple(self.gw.observable_states[state[0]]), p=self.observation(obs_states, a_s[0], self.error_prob))),a_s[1]))
-			else:
-				if a_s in self.gw.observable_states[state]:
-					view_agents.append(a_i)
-					obs_states = list(self.gw.observable_states[state])
-					view_states.append(int(np.random.choice(tuple(self.gw.observable_states[state]), self.observation(obs_states, a_s, self.error_prob))))
-		return view_agents, view_states
-	
-	def observation(self, obs_states, ref_agent, error_prob):
-		prob_view = np.array([])
-		for o_s in obs_states:
-			prob_view = np.append(prob_view, 1.0/2.0/math.pi/error_prob*np.exp(-1.0/2/error_prob**2*(np.sum(np.square(np.array(self.gw.coords(o_s))-np.array(self.gw.coords(ref_agent)))))))
-		prob_view /= prob_view.sum()
-		return prob_view
-		
-	
 	def updateAgent(self,state):
 		self.current = state
 		
-	##### Vision rules
-	def updateVision(self,state,agent_states):
-		self.viewable_agents,viewable_states = self.agent_in_view(state,agent_states.values(),agent_states.keys())
-		# viewable_states = [self.observation(agent_states[v_s]) for v_s in self.viewable_agents]
-		self.updateTime()
-		self.updateBelief(self.viewable_agents,viewable_states)
-		self.updateLastSeen(self.viewable_agents,viewable_states)
-		
-	def initLastSeen(self,agent_id,agent_states):
-		for a_s,a_i in zip(agent_states,agent_id):
-			self.last_seen.update({a_i:[a_s,0]})  # dictionary of lists: [state,time since observed in that state]
-			
-	def updateLastSeen(self,agent_id,agent_states):
-		assert len(agent_id)==len(agent_states)
-		for a_i,a_s in zip(agent_id,agent_states):
-			self.last_seen[a_i] = [a_s,0]
-		
-	def updateTime(self):
-		for l_i in self.last_seen:
-			self.last_seen[l_i][1] += 1
-
 	### Belief Rules
 	def initBelief(self,agent_id,no_bad):
 		self.no_bad = no_bad
@@ -362,17 +317,26 @@ class Agent():
 			# 	self.local_belief[b_i] = r_b
 			# 	self.actual_belief[b_i] = r_b
 
-	# def updateAsyncBelief(self,viewable_agents,viewable_states):
-	# 	## Local rule
-	# 	view_prob = self.ViewProbability(viewable_agents,viewable_states)
-	# 	tot_b = 0.0
-	# 	for b_i in self.local_belief:
-	# 		tot_b += self.likelihood(b_i, viewable_agents, view_prob) * self.local_belief[b_i]
-	# 	for b_i in self.local_belief:
-	# 		self.local_belief[b_i] = (1 - self.alpha) * self.local_belief[b_i] + self.alpha * self.likelihood(b_i,viewable_agents,view_prob)*self.local_belief[b_i] / tot_b
-	# 	if abs(sum(self.local_belief.values()) - 1.0) > 1e-6:
-	# 		raise ProbablilityNotOne("Sum is " + str(sum(self.local_belief.values())))
-	#
+	def ViewProbability(self, viewable_agents, viewable_states):
+		view_prob = []
+		for a_i,a_s in zip(viewable_agents,viewable_states):
+			obs_states = list(self.gw.observable_states[self.current[0]])
+			# Find the mission's planned location for the agent
+			policy_prob = []
+			bad_prob = []
+			for obs_s in obs_states:
+				policy_prob.append(self.policy_list[a_i].observation((obs_s,a_s[1]), [self.last_seen[a_i][0]], self.last_seen[a_i][1]))
+				bad_prob.append(self.policy_list[a_i].bad_observation((obs_s,a_s[1]), [self.last_seen[a_i][0]], self.last_seen[a_i][1]))
+			# Find the most likely location of agent in the mission and then the probability of the observed location based on that position.
+			obs_probs = self.observation(obs_states, obs_states[np.argmax(np.asarray(policy_prob))], self.error_prob)
+			bad_probs = self.observation(obs_states, obs_states[np.argmax(np.asarray(bad_prob))], self.error_prob)
+			# Add it to probability tuple
+			if self.bad_model:
+				view_prob.append([obs_probs[obs_states.index(a_s[0])],bad_probs[obs_states.index(a_s[0])]])
+			else:
+				view_prob.append(obs_probs[obs_states.index(a_s[0])]/obs_probs.max())
+		return view_prob
+
 
 
 	def shareBelief(self,belief_arrays):
@@ -487,23 +451,51 @@ class Agent():
 				else:
 					prob_i *= v_p+epsilon
 		return prob_i
-	
-	def ViewProbability(self, viewable_agents, viewable_states):
-		view_prob = []
-		for a_i,a_s in zip(viewable_agents,viewable_states):
-			obs_states = list(self.gw.observable_states[self.current[0]])
-			# Find the mission's planned location for the agent
-			policy_prob = []
-			bad_prob = []
-			for obs_s in obs_states:
-				policy_prob.append(self.policy_list[a_i].observation((obs_s,a_s[1]), [self.last_seen[a_i][0]], self.last_seen[a_i][1]))
-				bad_prob.append(self.policy_list[a_i].bad_observation((obs_s,a_s[1]), [self.last_seen[a_i][0]], self.last_seen[a_i][1]))
-			# Find the most likely location of agent in the mission and then the probability of the observed location based on that position.
-			obs_probs = self.observation(obs_states, obs_states[np.argmax(np.asarray(policy_prob))], self.error_prob)
-			bad_probs = self.observation(obs_states, obs_states[np.argmax(np.asarray(bad_prob))], self.error_prob)
-			# Add it to probability tuple
-			if self.bad_model:
-				view_prob.append([obs_probs[obs_states.index(a_s[0])],bad_probs[obs_states.index(a_s[0])]])
-			else:
-				view_prob.append(obs_probs[obs_states.index(a_s[0])]/obs_probs.max())
-		return view_prob
+
+	# ##### Vision rules
+	# def updateVision(self, state, agent_states):
+	# 	self.viewable_agents, viewable_states = self.agent_in_view(state, agent_states.values(), agent_states.keys())
+	# 	# viewable_states = [self.observation(agent_states[v_s]) for v_s in self.viewable_agents]
+	# 	self.updateTime()
+	# 	self.updateBelief(self.viewable_agents, viewable_states)
+	# 	self.updateLastSeen(self.viewable_agents, viewable_states)
+	#
+	# def observation(self, obs_states, ref_agent, error_prob):
+	# 	prob_view = np.array([])
+	# 	for o_s in obs_states:
+	# 		prob_view = np.append(prob_view, 1.0 / 2.0 / math.pi / error_prob * np.exp(-1.0 / 2 / error_prob ** 2 * (
+	# 			np.sum(np.square(np.array(self.gw.coords(o_s)) - np.array(self.gw.coords(ref_agent)))))))
+	# 	prob_view /= prob_view.sum()
+	# 	return prob_view
+	#
+	# def agent_in_view(self, state, agent_states, agent_id):
+	# 	view_agents = []
+	# 	view_states = []
+	# 	for a_s, a_i in zip(agent_states, agent_id):
+	# 		if len(a_s) > 1:
+	# 			if a_s[0] in self.gw.observable_states[state[0]]:
+	# 				view_agents.append(a_i)
+	# 				obs_states = list(self.gw.observable_states[state[0]])
+	# 				view_states.append((int(np.random.choice(tuple(self.gw.observable_states[state[0]]),
+	# 														 p=self.observation(obs_states, a_s[0], self.error_prob))),
+	# 									a_s[1]))
+	# 		else:
+	# 			if a_s in self.gw.observable_states[state]:
+	# 				view_agents.append(a_i)
+	# 				obs_states = list(self.gw.observable_states[state])
+	# 				view_states.append(int(np.random.choice(tuple(self.gw.observable_states[state]),
+	# 														self.observation(obs_states, a_s, self.error_prob))))
+	# 	return view_agents, view_states
+	#
+	# def initLastSeen(self, agent_id, agent_states):
+	# 	for a_s, a_i in zip(agent_states, agent_id):
+	# 		self.last_seen.update({a_i: [a_s, 0]})  # dictionary of lists: [state,time since observed in that state]
+	#
+	# def updateLastSeen(self, agent_id, agent_states):
+	# 	assert len(agent_id) == len(agent_states)
+	# 	for a_i, a_s in zip(agent_id, agent_states):
+	# 		self.last_seen[a_i] = [a_s, 0]
+	#
+	# def updateTime(self):
+	# 	for l_i in self.last_seen:
+	# 		self.last_seen[l_i][1] += 1
