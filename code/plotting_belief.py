@@ -28,7 +28,7 @@ writer = Writer(fps=2.0, metadata=dict(artist='Me'), bitrate=1800)
 # fig = texfig.figure(width=2000/my_dpi,dpi=my_dpi)
 # fig = plt.figure(figsize=(3600/my_dpi, 2000/my_dpi), dpi=my_dpi)
 fig = plt.figure(figsize=(2000/my_dpi, 1600/my_dpi), dpi=my_dpi)
-my_palette = plt.cm.get_cmap("tab10",len(df.index))
+my_palette = plt.cm.get_cmap("tab10",len(df.index)+5)
 seed_iter = iter(range(0,5))
 categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
 categories = []
@@ -44,7 +44,8 @@ for k in seed_iter:
 # categories.append(cat_hold.pop(0))
 # belief_good = df['0'][0]['GoodBelief']
 # belief_bad = df['0'][0]['BadBelief']
-N = len(categories)
+N = len(df[str(0)][-1]['Targets'])
+N_a = len(categories)
 angles = [n / float(N) * 2 * pi for n in range(N)]
 angles += angles[:1]
 axis_array = []
@@ -55,20 +56,20 @@ belief_x_bad = []
 belief_y_bad = []
 belief_y_good = []
 # plt.show()
-frames = 75
+frames = 250
 
-for row in range(0, len(df.index)):
-	ax = plt.subplot(4, N+1, row+1+int(1+(N+1)/2)*int(row/((N)/2)), polar=True)
+for row in range(0, N_a):
+	ax = plt.subplot(4, N_a+1, row+1+int(1+(N_a+1)/2)*int(row/((N_a)/2)), polar=True)
 	ax.set_theta_offset(pi/2)
 	ax.set_theta_direction(-1)
 	ax.set_ylim(0,100)
 	plt.xticks(angles[:-1], range(N), color='grey', size=8)
 	for col,xtick in enumerate(ax.get_xticklabels()):
-		xtick.set(color=my_palette(col),fontweight='bold',fontsize=16)
+		xtick.set(color=my_palette(len(categories)+col),fontweight='bold',fontsize=16)
 	ax.set_rlabel_position(0)
-	ax.tick_params(pad=-7.0)
+	ax.tick_params(pad=-5.0)
 	ax.set_rlabel_position(45)
-	plt.yticks([25, 50, 75, 100], ["0.25", "0.50", "0.75", "1.00"], color="grey", size=7)
+	plt.yticks([ 50,  100], ["0.50", "1.00"], color="grey", size=7)
 	# for j_z, a_i in enumerate(angles[:-1]):
 	# 	da = DrawingArea(20,20,10,10)
 	# 	p_c = patches.Circle((0,0), radius=12, color=my_palette(j_z), clip_on=False)
@@ -87,27 +88,27 @@ def update_all(i):
 	rad_obj = update(i)
 	grid_obj = grid_update(i)
 	conn_obj = connect_update(i)
-	belf_obj = belief_update(i)
-	return rad_obj + grid_obj+conn_obj + belf_obj
+	# belf_obj = belief_update(i)
+	return rad_obj + grid_obj+conn_obj #+ belf_obj
 
 def update(i):
 	global plot_data, df
 	l_d = plot_data[0]
 	f_d = plot_data[1]
-	# for l,l_f,id_no in zip(l_d,f_d,categories):
-	# 	values = df[str(i)][id_no]['ActBelief']
-	# 	cat_range = range(N)
-	# 	value_dict = dict([[c_r, 0.0] for c_r in cat_range])
-	# 	for v_d in value_dict.keys():
-	# 		for k_i in values.keys():
-	# 			if literal_eval(k_i)[v_d] == 1:
-	# 				value_dict[v_d] += 100 * values[k_i]
-	#
-	# 	val = list(value_dict.values())
-	# 	val += val[:1]
-	# 	l.set_data(angles,val)
-	# 	l_f.set_xy(np.array([angles,val]).T)
-	# plot_data = [l_d,f_d]
+	for l,l_f,id_no in zip(l_d,f_d,categories):
+		values = df[str(i)][id_no]['ActBelief']
+		cat_range = range(N)
+		value_dict = dict([[c_r, 0.0] for c_r in cat_range])
+		for v_d in value_dict.keys():
+			for k_i in values.keys():
+				if literal_eval(k_i)[v_d] == 1:
+					value_dict[v_d] += 100 * values[k_i]
+
+		val = list(value_dict.values())
+		val += val[:1]
+		l.set_data(angles,val)
+		l_f.set_xy(np.array([angles,val]).T)
+	plot_data = [l_d,f_d]
 	return l_d + f_d
 
 
@@ -142,10 +143,14 @@ def grid_init(nrows, ncols, obs_range):
 		plt_ax2 = None
 		# ag_array.append([cir_ax, lin_ax, plt_ax,plt_ax2])
 		ag_array.append([cir_ax, lin_ax])
-		# for k in p_t:
-		# 	s_c = coords(k, ncols)
-		# 	ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
 		i += 1
+
+	for k in df[str(0)][-1]['Targets']:
+		color = my_palette(i)
+		s_c = coords(k, ncols)
+		ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
+		i += 1
+
 	return ag_array
 
 def belief_chart_init():
@@ -261,6 +266,16 @@ nrows = 10
 ncols = 10
 moveobstacles = []
 obstacles = []
+
+# #4 agents larger range
+obs_range = 4
+
+# #4 agents big range
+# initial = [(33,0),(41,0),(7,0),(80,0)]
+# targets = [[0,9],[60,69],[20,39],[69,95]]
+# public_targets = [[0,9],[60,69],[20,39],[55,95]]
+# obs_range = 4
+
 # # # 5 agents small range
 # initial = [(33,0),(80,0),(69,1),(7,0),(41,0)]
 # targets = [[0,9],[69,95],[99,11],[20,39],[60,69]]
@@ -279,17 +294,9 @@ obstacles = []
 # public_targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[31,39],[51,59],[79,71]]
 # obs_range = 2
 
-# #4 agents larger range
-obs_range = 4
-
-# #4 agents big range
-# initial = [(33,0),(41,0),(7,0),(80,0)]
-# targets = [[0,9],[60,69],[20,39],[69,95]]
-# public_targets = [[0,9],[60,69],[20,39],[55,95]]
-# obs_range = 4
 
 con_dict = con_ar = con_init()
-bel_lines = belief_chart_init()
+# bel_lines = belief_chart_init()
 ax_ar = grid_init(nrows, ncols, obs_range)
 # update_all(50)
 # texfig.savefig("test")

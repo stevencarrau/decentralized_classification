@@ -19,32 +19,27 @@ class ProbablilityNotOne(Exception):
 	pass
 
 class Agent():
-	def __init__(self,init=None,target_list=[],public_list=[],mdp=None,gw_env=None,belief_tracks=None,bad_models=[],id_no=None,policy_load=False,slugs_location=None):
+	def __init__(self,init=None,target_list=[],gw_env=None,belief_tracks=None,id_no=None,policy_load=False,slugs_location=None,evil=False):
 		self.id_no = id_no
 		self.init = init
 		self.current = init
 		self.alpha = 1.00
 		self.burn_rate = 1.00
-		self.targets = target_list
-		self.public_targets = public_list
+		self.targets = list(target_list.keys())
+		self.target_dict = target_list
 		self.belief_tracks = belief_tracks
-		self.bad_model = bad_models
-		self.evil = False
+		self.evil = evil
 		self.async_flag = True
 		self.av_flag = True
 		self.belief_calls = 0
 		# self.async_flag = False
-		if target_list != public_list:
-			self.evil = True
-		t_num = list(range(len(target_list)))
-		t_list = list(zip(self.targets,t_num))#[t_num[-1]]+t_num[:-1]))
-		p_list = list(zip(self.public_targets,t_num))#[t_num[-1]]+t_num[:-1]))
-		b_list = list(zip(self.bad_model,t_num))
+		# t_num = list(range(len(target_list)))
+		# t_list = list(zip(self.targets,t_num))#[t_num[-1]]+t_num[:-1]))
+		# p_list = list(zip(self.public_targets,t_num))#[t_num[-1]]+t_num[:-1]))
+		# b_list = list(zip(self.bad_model,t_num))
 		self.gw = gw_env
 		self.viewable_agents = []
 		self.last_seen = {}
-		self.mdp = mdp
-		self.public_mdp = deepcopy(mdp)
 		self.error_prob = 0.2
 
 		if policy_load:
@@ -56,43 +51,19 @@ class Agent():
 	def writeOutputTimeStamp(self,init=[]):
 		out_dict = dict()
 		out_dict.update({'AgentLoc': self.current})
-		# out_dict.update({'ActBelief': self.actual_belief})
+		out_dict.update({'ActBelief': deepcopy(self.actual_belief)})
 		# out_dict.update({'LastSeen': deepcopy(self.last_seen)})
 		# out_dict.update({'Visible': self.viewable_agents})
 		# out_dict.update({'NominalTrace': self.policy.nom_trace})
 		# out_dict.update({'BadTrace': self.policy.bad_trace})
 		# out_dict.update({'BeliefCalls':self.belief_calls})
 		if init:
-			# out_dict.update({'PublicTargets': self.public_targets})
+			out_dict.update({'Targets': self.targets})
 			out_dict.update({'Id_no': list(init)})
 			# out_dict.update({'BadBelief':self.belief_tracks[0]})
 			# out_dict.update({'GoodBelief':self.belief_tracks[1]})
 		return out_dict
-	
-	def productMDP(self,mdp,dra):
-		init = self.init
-		states = []
 
-		for s in mdp.states:
-			for q,t_i in enumerate(self.targets):
-				states.append((s, q))
-		N = len(states)
-		labels = dict([])
-		trans = []
-		for a in mdp.alphabet:
-			for i in range(N):
-				(s, q) = states[i]
-				if type(mdp.L.get(s)) is int:
-					labels.update({(s,q):mdp.L[s]})
-				for j in range(N):
-					(next_s, next_q) = states[j]
-					p = mdp.get_prob((s,a,next_s))
-					if type(mdp.L.get(s)) is int:
-						if next_q == dra.get_transition(mdp.L.get(s),q) and p:
-							trans.append(((s,q),a,(next_s,next_q),p))
-					elif p and q==next_q:
-						trans.append(((s,q),a,(next_s,q),p))
-		return MDP(states=list(states),alphabet=mdp.alphabet,transitions=trans,init=init,L=labels)
 
 	def Policy(self,infile=None,slugs_location=None):
 
@@ -203,7 +174,7 @@ class Agent():
 		self.current = state
 		
 	### Belief Rules
-	def initBelief(self,agent_id,no_bad):
+	def initBelief(self,agent_id,no_bad,no_targets):
 		self.no_bad = no_bad
 		no_agents = len(agent_id)
 		## Combinarotic approach
@@ -211,10 +182,10 @@ class Agent():
 		# for b_d in range(no_bad+1):
 		# 	no_system_states += comb(no_agents,b_d)
 		# ## Unknown number of bad agents
-		no_system_states = 2**no_agents
+		no_system_states = 2**no_targets
 		belief_value = 1.0/no_system_states
 		base_list =[0,1] # 0 is bad, 1 is good
-		total_list = [base_list for n in range(len(agent_id))]
+		total_list = [base_list for n in range(no_targets)]
 		self.id_idx = dict([[k,j] for j,k in enumerate(agent_id)])
 		self.local_belief = {}
 		self.belief_bad = []
@@ -229,7 +200,7 @@ class Agent():
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))#,"Sum is "+str(sum(self.local_belief.values())))
 		if self.async_flag:
 			self.neighbor_set = dict()
-			self.neighbor_belief =dict()
+			self.neighbor_belief = dict()
 			self.resetFlags = dict()
 			for t_p in self.local_belief:
 				self.neighbor_set[t_p] = set()
@@ -238,29 +209,41 @@ class Agent():
 				for n_i in agent_id:
 					self.neighbor_belief[t_p][n_i] = -1 ## b^a_j(theta)
 
-	def updateBelief(self, viewable_agents, viewable_states):
+	def updateBelief(self, viewable_agents,target):
+		if not target:
+			return
 		## Synchronous update rule
 		tot_b = 0.0
 		self.alpha *= self.burn_rate
 		self.belief_bad = []
-		view_prob = self.ViewProbability(viewable_agents,viewable_states)
 		for b_i in self.local_belief:
-			tot_b += self.likelihood(b_i, viewable_agents, view_prob)*self.local_belief[b_i]
+			tot_b += self.likelihood(b_i, viewable_agents,target)*self.local_belief[b_i]
 		for b_i in self.local_belief:
-			self.local_belief[b_i] = (1-self.alpha)*self.local_belief[b_i] + self.alpha*self.likelihood(b_i, viewable_agents, view_prob)*self.local_belief[b_i]/tot_b
+			self.local_belief[b_i] = (1-self.alpha)*self.local_belief[b_i] + self.alpha*self.likelihood(b_i, viewable_agents, target)*self.local_belief[b_i]/tot_b
 		if abs(sum(self.local_belief.values())-1.0)>1e-6:
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))
 		if self.evil:
 			for b_i in self.local_belief:
 				self.local_belief[b_i] = 0
 				self.actual_belief[b_i] = 0
-			self.local_belief[(1,0,1,1,1)] = 1.0
-			self.actual_belief[(1,0,1,1,1)] = 1.0
-			# random_belief = np.random.rand(len(self.local_belief))
-			# random_belief /= np.sum(random_belief)
-			# for b_i,r_b in zip(self.local_belief, random_belief):
-			# 	self.local_belief[b_i] = r_b
-			# 	self.actual_belief[b_i] = r_b
+			# self.local_belief[(1,0,1,1,1)] = 1.0
+			# self.actual_belief[(1,0,1,1,1)] = 1.0
+			random_belief = np.random.rand(len(self.local_belief))
+			random_belief /= np.sum(random_belief)
+			for b_i,r_b in zip(self.local_belief, random_belief):
+				self.local_belief[b_i] = r_b
+				self.actual_belief[b_i] = r_b
+
+
+		## TODO -remove
+		for b_i in self.local_belief:
+			self.actual_belief[b_i] = self.local_belief[b_i]
+
+
+	def updateVision(self, state, agent_states):
+		self.viewable_agents, viewable_states = self.agent_in_view(state, agent_states.values(), agent_states.keys())
+		# viewable_states = [self.observation(agent_states[v_s]) for v_s in self.viewable_agents]
+		self.updateBelief(self.viewable_agents, viewable_states)
 
 	def ViewProbability(self, viewable_agents, viewable_states):
 		view_prob = []
@@ -378,69 +361,56 @@ class Agent():
 				self.neighbor_set[k] = set([self.id_no])
 		self.resetFlags[belief] = False
 		
-	def likelihood(self,sys_status,viewable_agents,view_prob):
-		epsilon = 0 # 1e-9
-
+	def likelihood(self,sys_status,viewable_agents,target):
 		# Work through each element of the tuple, if is likely then good if its unlikely then bad.
-		view_index = [self.id_idx[v_a] for v_a in viewable_agents]
-		prob_i = 1.0
-		for v_i, v_p in zip(view_index, view_prob):
-			if len(v_p)>1:
-				if sys_status[v_i] == 0:
-					prob_i *= v_p[1] # Probability for bad model
-				else:
-					prob_i *= v_p[0] # Probability for good model
-			else:
-				if sys_status[v_i] == 0: # if bad
-					prob_i *= 1.0-v_p+epsilon
-				else:
-					prob_i *= v_p+epsilon
-		return prob_i
+		target_ind = self.targets.index(self.current)
+		if sys_status[target_ind] == target:
+			return self.target_dict[self.current]
+		else:
+			return 1-self.target_dict[self.current]
+
+
+	def observation(self):
+		if self.current in self.targets:
+			return np.random.choice([0,1],1,p=[1-self.target_dict[self.current],self.target_dict[self.current]])
+		return None
 
 	# ##### Vision rules
-	# def updateVision(self, state, agent_states):
-	# 	self.viewable_agents, viewable_states = self.agent_in_view(state, agent_states.values(), agent_states.keys())
-	# 	# viewable_states = [self.observation(agent_states[v_s]) for v_s in self.viewable_agents]
-	# 	self.updateTime()
-	# 	self.updateBelief(self.viewable_agents, viewable_states)
-	# 	self.updateLastSeen(self.viewable_agents, viewable_states)
+	def updateVision(self, state, agent_states):
+		self.viewable_agents, viewable_states = self.agent_in_view(state, agent_states.values(), agent_states.keys())
+		target_value = self.observation()
+		self.updateTime()
+		self.updateBelief(self.viewable_agents, target_value)
+		self.updateLastSeen(self.viewable_agents, viewable_states)
+
 	#
-	# def observation(self, obs_states, ref_agent, error_prob):
-	# 	prob_view = np.array([])
-	# 	for o_s in obs_states:
-	# 		prob_view = np.append(prob_view, 1.0 / 2.0 / math.pi / error_prob * np.exp(-1.0 / 2 / error_prob ** 2 * (
-	# 			np.sum(np.square(np.array(self.gw.coords(o_s)) - np.array(self.gw.coords(ref_agent)))))))
-	# 	prob_view /= prob_view.sum()
-	# 	return prob_view
+	def agent_in_view(self, state, agent_states, agent_id):
+		view_agents = []
+		view_states = []
+		for a_s, a_i in zip(agent_states, agent_id):
+			if isinstance(a_s,list):
+				if a_s[0] in self.gw.observable_states[state[0]]:
+					view_agents.append(a_i)
+					obs_states = list(self.gw.observable_states[state[0]])
+					view_states.append((int(np.random.choice(tuple(self.gw.observable_states[state[0]]),
+															 p=self.observation(obs_states, a_s[0], self.error_prob))),
+										a_s[1]))
+			else:
+				if a_s in self.gw.observable_states[state]:
+					view_agents.append(a_i)
+					obs_states = list(self.gw.observable_states[state])
+					view_states.append(a_s)
+		return view_agents, view_states
 	#
-	# def agent_in_view(self, state, agent_states, agent_id):
-	# 	view_agents = []
-	# 	view_states = []
-	# 	for a_s, a_i in zip(agent_states, agent_id):
-	# 		if len(a_s) > 1:
-	# 			if a_s[0] in self.gw.observable_states[state[0]]:
-	# 				view_agents.append(a_i)
-	# 				obs_states = list(self.gw.observable_states[state[0]])
-	# 				view_states.append((int(np.random.choice(tuple(self.gw.observable_states[state[0]]),
-	# 														 p=self.observation(obs_states, a_s[0], self.error_prob))),
-	# 									a_s[1]))
-	# 		else:
-	# 			if a_s in self.gw.observable_states[state]:
-	# 				view_agents.append(a_i)
-	# 				obs_states = list(self.gw.observable_states[state])
-	# 				view_states.append(int(np.random.choice(tuple(self.gw.observable_states[state]),
-	# 														self.observation(obs_states, a_s, self.error_prob))))
-	# 	return view_agents, view_states
+	def initLastSeen(self, agent_id, agent_states):
+		for a_s, a_i in zip(agent_states, agent_id):
+			self.last_seen.update({a_i: [a_s, 0]})  # dictionary of lists: [state,time since observed in that state]
 	#
-	# def initLastSeen(self, agent_id, agent_states):
-	# 	for a_s, a_i in zip(agent_states, agent_id):
-	# 		self.last_seen.update({a_i: [a_s, 0]})  # dictionary of lists: [state,time since observed in that state]
+	def updateLastSeen(self, agent_id, agent_states):
+		assert len(agent_id) == len(agent_states)
+		for a_i, a_s in zip(agent_id, agent_states):
+			self.last_seen[a_i] = [a_s, 0]
 	#
-	# def updateLastSeen(self, agent_id, agent_states):
-	# 	assert len(agent_id) == len(agent_states)
-	# 	for a_i, a_s in zip(agent_id, agent_states):
-	# 		self.last_seen[a_i] = [a_s, 0]
-	#
-	# def updateTime(self):
-	# 	for l_i in self.last_seen:
-	# 		self.last_seen[l_i][1] += 1
+	def updateTime(self):
+		for l_i in self.last_seen:
+			self.last_seen[l_i][1] += 1
