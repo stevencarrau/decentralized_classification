@@ -30,7 +30,7 @@ class Agent():
 		self.belief_tracks = belief_tracks
 		self.evil = evil
 		self.async_flag = True
-		self.av_flag = True
+		self.av_flag = False
 		self.belief_calls = 0
 		# self.async_flag = False
 		# t_num = list(range(len(target_list)))
@@ -52,16 +52,16 @@ class Agent():
 		out_dict = dict()
 		out_dict.update({'AgentLoc': self.current})
 		out_dict.update({'ActBelief': deepcopy(self.actual_belief)})
-		# out_dict.update({'LastSeen': deepcopy(self.last_seen)})
-		# out_dict.update({'Visible': self.viewable_agents})
+		out_dict.update({'LastSeen': deepcopy(self.last_seen)})
+		out_dict.update({'Visible': self.viewable_agents})
 		# out_dict.update({'NominalTrace': self.policy.nom_trace})
 		# out_dict.update({'BadTrace': self.policy.bad_trace})
-		# out_dict.update({'BeliefCalls':self.belief_calls})
+		out_dict.update({'BeliefCalls':self.belief_calls})
 		if init:
 			out_dict.update({'Targets': self.targets})
 			out_dict.update({'Id_no': list(init)})
-			# out_dict.update({'BadBelief':self.belief_tracks[0]})
-			# out_dict.update({'GoodBelief':self.belief_tracks[1]})
+			out_dict.update({'BadBelief':self.belief_tracks[0]})
+			out_dict.update({'GoodBelief':self.belief_tracks[1]})
 		return out_dict
 
 
@@ -189,6 +189,7 @@ class Agent():
 		self.id_idx = dict([[k,j] for j,k in enumerate(agent_id)])
 		self.local_belief = {}
 		self.belief_bad = []
+		self.belief_bad = []
 		for t_p in itertools.product(*total_list):
 			# ## Combinartoic approach
 			# if sum(t_p) >= no_agents-no_bad:
@@ -234,10 +235,10 @@ class Agent():
 				self.local_belief[b_i] = r_b
 				self.actual_belief[b_i] = r_b
 
-
-		## TODO -remove
-		for b_i in self.local_belief:
-			self.actual_belief[b_i] = self.local_belief[b_i]
+		#
+		# ## TODO -remove
+		# for b_i in self.local_belief:
+		# 	self.actual_belief[b_i] = self.local_belief[b_i]
 
 
 	def updateVision(self, state, agent_states):

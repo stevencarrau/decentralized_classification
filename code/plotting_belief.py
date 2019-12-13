@@ -42,8 +42,8 @@ for k in seed_iter:
 # categories.append(cat_hold.pop(0))
 # categories.append(cat_hold.pop(0))
 # categories.append(cat_hold.pop(0))
-# belief_good = df['0'][0]['GoodBelief']
-# belief_bad = df['0'][0]['BadBelief']
+belief_good = df['0'][0]['GoodBelief']
+belief_bad = df['0'][0]['BadBelief']
 N = len(df[str(0)][-1]['Targets'])
 N_a = len(categories)
 angles = [n / float(N) * 2 * pi for n in range(N)]
@@ -88,8 +88,8 @@ def update_all(i):
 	rad_obj = update(i)
 	grid_obj = grid_update(i)
 	conn_obj = connect_update(i)
-	# belf_obj = belief_update(i)
-	return rad_obj + grid_obj+conn_obj #+ belf_obj
+	belf_obj = belief_update(i)
+	return rad_obj + grid_obj+conn_obj + belf_obj
 
 def update(i):
 	global plot_data, df
@@ -163,20 +163,20 @@ def belief_chart_init():
 	plt.xlabel(r't')
 	plt.ylabel(r'Belief $\left(b^a_j(\theta)\right)$')
 	plt_array = []
-	# for i,id_no in enumerate(categories):
-	# 	# belief_x_bad.append([])
-	# 	# belief_x_bad[i].append(0)
-	# 	# belief_y_bad.append([])
-	# 	# belief_y_bad[i].append(df['0'][id_no]['ActBelief'][belief_bad])
-	# 	belief_x_good.append([])
-	# 	belief_x_good[i].append(0)
-	# 	belief_y_good.append([])
-	# 	belief_y_good[i].append(df['0'][id_no]['ActBelief'][belief_good])
-	# 	px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=3, linestyle='solid', label=r'Actual belief: $b^a_'+str(i)+r'(\theta^\star)$')
-	# 	# px2, = ax.plot([0,0.0], [0.0,0.0], color=my_palette(i), linewidth=3, linestyle='dashed', label=r'Incorrect belief $b^a_'+str(i)+r'(\theta_0)$')
-	# 	px2 = None
-	# 	plt_array.append((px1,px2))
-	# leg = ax.legend(loc='right')
+	for i,id_no in enumerate(categories):
+		belief_x_bad.append([])
+		belief_x_bad[i].append(0)
+		belief_y_bad.append([])
+		belief_y_bad[i].append(df['0'][id_no]['ActBelief'][belief_bad])
+		belief_x_good.append([])
+		belief_x_good[i].append(0)
+		belief_y_good.append([])
+		belief_y_good[i].append(df['0'][id_no]['ActBelief'][belief_good])
+		px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=3, linestyle='solid', label=r'Actual belief: $b^a_'+str(i)+r'(\theta^\star)$')
+		# px2, = ax.plot([0,0.0], [0.0,0.0], color=my_palette(i), linewidth=3, linestyle='dashed', label=r'Incorrect belief $b^a_'+str(i)+r'(\theta_0)$')
+		px2 = None
+		plt_array.append((px1,px2))
+	leg = ax.legend(loc='right')
 	return plt_array
 
 def con_init():
@@ -187,7 +187,9 @@ def con_init():
 	radius = ax.get_window_extent().height/2 - 50
 	cir_array = []
 	loc_dict = {}
-	for col, a_i in enumerate(angles[:-1]):
+	con_angles = [n / float(N_a) * 2 * pi for n in range(N_a)]
+	con_angles += con_angles[:1]
+	for col, a_i in enumerate(con_angles[:-1]):
 		loc = tuple(np.array([radius*math.sin(a_i),radius*math.cos(a_i)]))
 		loc_dict.update({categories[col]:loc})
 		p_c = patches.Circle(loc,36,color=my_palette(col),zorder=4)
@@ -224,32 +226,32 @@ def grid_update(i):
 def belief_update(i):
 	global bel_lines, df, belief_x_good, belief_y_good, belief_x_bad, belief_y_bad
 	change_array = []
-	# for j, id_no in enumerate(categories):
-	# 	# belief_x_bad[j].append(i)
-	# 	belief_x_good[j].append(i)
-	# 	belief_y_good[j].append(df[str(i)][id_no]['ActBelief'][belief_good])
-	# 	# belief_y_bad[j].append(df[str(i)][id_no]['ActBelief'][belief_bad])
-	# 	bel_lines[j][0].set_xdata(belief_x_good[j])
-	# 	bel_lines[j][0].set_ydata(belief_y_good[j])
-	# 	# bel_lines[j][1].set_xdata(belief_x_bad[j])
-	# 	# bel_lines[j][1].set_ydata(belief_y_bad[j])
-	# 	change_array += [bel_lines[j][0]]
-	# 	# change_array += [bel_lines[j][1]]
+	for j, id_no in enumerate(categories):
+		# belief_x_bad[j].append(i)
+		belief_x_good[j].append(i)
+		belief_y_good[j].append(df[str(i)][id_no]['ActBelief'][belief_good])
+		# belief_y_bad[j].append(df[str(i)][id_no]['ActBelief'][belief_bad])
+		bel_lines[j][0].set_xdata(belief_x_good[j])
+		bel_lines[j][0].set_ydata(belief_y_good[j])
+		# bel_lines[j][1].set_xdata(belief_x_bad[j])
+		# bel_lines[j][1].set_ydata(belief_y_bad[j])
+		change_array += [bel_lines[j][0]]
+		# change_array += [bel_lines[j][1]]
 	return change_array
 
 def connect_update(i):
 	global con_dict, df
 	change_array = []
-	# for id_no in categories:
-	# 	for id_other in categories:
-	# 		if int(id_other) in df[str(i)][id_no]['Visible']:
-	# 			# if con_dict[(id_no,id_other)]._visible != True:
-	# 			con_dict[(id_no, id_other)].set(visible=True, zorder=0)
-	# 			change_array.append(con_dict[(id_no, id_other)])
-	# 		else:
-	# 			# if con_dict[(id_no,id_other)]._visible == True:
-	# 			con_dict[(id_no, id_other)].set(visible=False, zorder=0)
-	# 			change_array.append(con_dict[(id_no, id_other)])
+	for id_no in categories:
+		for id_other in categories:
+			if int(id_other) in df[str(i)][id_no]['Visible']:
+				# if con_dict[(id_no,id_other)]._visible != True:
+				con_dict[(id_no, id_other)].set(visible=True, zorder=0)
+				change_array.append(con_dict[(id_no, id_other)])
+			else:
+				# if con_dict[(id_no,id_other)]._visible == True:
+				con_dict[(id_no, id_other)].set(visible=False, zorder=0)
+				change_array.append(con_dict[(id_no, id_other)])
 	return change_array
 	
 
@@ -268,7 +270,7 @@ moveobstacles = []
 obstacles = []
 
 # #4 agents larger range
-obs_range = 4
+obs_range = 2
 
 # #4 agents big range
 # initial = [(33,0),(41,0),(7,0),(80,0)]
@@ -296,7 +298,7 @@ obs_range = 4
 
 
 con_dict = con_ar = con_init()
-# bel_lines = belief_chart_init()
+bel_lines = belief_chart_init()
 ax_ar = grid_init(nrows, ncols, obs_range)
 # update_all(50)
 # texfig.savefig("test")

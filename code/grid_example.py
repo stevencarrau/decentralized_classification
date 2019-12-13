@@ -36,13 +36,13 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 		for a_i,  p_i in enumerate(agent_array):
 			p_i.updateVision(p_i.current, agent_loc)
 		# ## Sharing update
-		# for a_i, p_i in enumerate(agent_array):
-		# 	if p_i.async_flag:
-		# 		belief_packet = dict([[v_a,agent_array[p_i.id_idx[v_a]].actual_belief] for v_a in p_i.viewable_agents])
-		# 		p_i.ADHT(belief_packet)
-		# 	else:
-		# 		belief_packet = [agent_array[p_i.id_idx[v_a]].actual_belief for v_a in p_i.viewable_agents]
-		# 		p_i.shareBelief(belief_packet)
+		for a_i, p_i in enumerate(agent_array):
+			if p_i.async_flag:
+				belief_packet = dict([[v_a,agent_array[p_i.id_idx[v_a]].actual_belief] for v_a in p_i.viewable_agents])
+				p_i.ADHT(belief_packet)
+			else:
+				belief_packet = [agent_array[p_i.id_idx[v_a]].actual_belief for v_a in p_i.viewable_agents]
+				p_i.shareBelief(belief_packet)
 			time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
 		plotting_dictionary.update({str(time_t): time_p})
 	fname = str('Fixed_Env_{}_Agents.json').format(len(agent_array))
@@ -87,7 +87,7 @@ target_prob = 0.8
 initial = [33,41,7,80,69]
 targets = [dict([[15,1-target_prob],[82,target_prob],[88,target_prob]])]*5
 no_targets = len(targets[0])
-obs_range = 4
+obs_range = 2
 np.random.seed(1)
 
 
@@ -186,15 +186,15 @@ print("Computing policies")
 bad_b = ()
 for i in range(len(initial)):
 	bad_b += (0,)
-# belief_tracks = [str(bad_b), str(tuple([int(i==j) for i, j in zip(targets, public_targets)]))]
+belief_tracks = [str((0,0,0)), str((1,1,0))]
 seed_iter = iter(range(0,5+len(initial)))
 for i, j in zip(initial, targets):
 	np.random.seed(next(seed_iter))
 	if c_i ==3:
-		agent_array.append(Agent(init=i, target_list=j, gw_env=gwg, belief_tracks=None, id_no=np.random.randint(1000),
+		agent_array.append(Agent(init=i, target_list=j, gw_env=gwg, belief_tracks=belief_tracks, id_no=np.random.randint(1000),
 								 policy_load=False, slugs_location=slugs_location, evil=True))
 	else:
-		agent_array.append(Agent(init=i, target_list=j, gw_env = gwg, belief_tracks=None,id_no=np.random.randint(1000),policy_load = False,slugs_location=slugs_location,evil=False))
+		agent_array.append(Agent(init=i, target_list=j, gw_env = gwg, belief_tracks=belief_tracks,id_no=np.random.randint(1000),policy_load = False,slugs_location=slugs_location,evil=False))
 	# else:
 	#     agent_array.append(Agent(i, j, k, mdp, gwg, belief_tracks, l,np.random.randint(1000),True))
 	print("Policy ", c_i, " -- complete")
