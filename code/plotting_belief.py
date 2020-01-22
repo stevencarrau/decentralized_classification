@@ -19,7 +19,8 @@ from gridworld import *
 
 # ---------- PART 1: Globals
 
-with open('Fixed_Env_5_Agents.json') as json_file:
+with open('Fixed_Env_5_Agents_Range.json') as json_file:
+# with open('Fixed_Env_5_Agents.json') as json_file:
 	data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 150
@@ -172,11 +173,12 @@ def belief_chart_init():
 		belief_x_good[i].append(0)
 		belief_y_good.append([])
 		belief_y_good[i].append(df['0'][id_no]['ActBelief'][belief_good])
-		px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=3, linestyle='solid', label=r'Actual belief: $b^a_'+str(i)+r'(\theta^\star)$')
+		px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=3, linestyle='solid', label=r'$b^a_'+str(i)+r'(\theta^\star)$')
 		# px2, = ax.plot([0,0.0], [0.0,0.0], color=my_palette(i), linewidth=3, linestyle='dashed', label=r'Incorrect belief $b^a_'+str(i)+r'(\theta_0)$')
 		px2 = None
 		plt_array.append((px1,px2))
-	leg = ax.legend(loc='right')
+	# leg = ax.legend(loc='right')
+	leg = ax.legend(bbox_to_anchor=(1.25,0.85))
 	return plt_array
 
 def con_init():
@@ -271,6 +273,7 @@ obstacles = []
 
 # #4 agents larger range
 obs_range = 2
+# obs_range = 0
 
 # #4 agents big range
 # initial = [(33,0),(41,0),(7,0),(80,0)]
@@ -306,7 +309,7 @@ ax_ar = grid_init(nrows, ncols, obs_range)
 # plt.show()
 ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=True,repeat=False)
 plt.show()
-# ani.save('Min-5agents-final-LV.mp4',writer = writer)
+# ani.save('3Target-5Agent-Min-Async.mp4',writer = writer)
 # ani.save('decen.gif',dpi=80,writer='imagemagick')
 #
 # ani = FuncAnimation(fig, update, frames=50, interval=200, blit=True)

@@ -45,7 +45,7 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 				p_i.shareBelief(belief_packet)
 			time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
 		plotting_dictionary.update({str(time_t): time_p})
-	fname = str('Fixed_Env_{}_Agents.json').format(len(agent_array))
+	fname = str('Fixed_Env_{}_Agents_Range.json').format(len(agent_array))
 	print("Writing to "+fname)
 	write_JSON(fname, stringify_keys(plotting_dictionary))
 	return print("Goal!")
