@@ -188,13 +188,14 @@ for i in range(len(initial)):
 	bad_b += (0,)
 belief_tracks = [str((0,0,0)), str((1,1,0))]
 seed_iter = iter(range(0,5+len(initial)))
+meeting_state = [20]
 for i, j in zip(initial, targets):
 	np.random.seed(next(seed_iter))
 	if c_i ==3:
-		agent_array.append(Agent(init=i, target_list=j, gw_env=gwg, belief_tracks=belief_tracks, id_no=np.random.randint(1000),
+		agent_array.append(Agent(init=i, target_list=j,meeting_state=meeting_state, gw_env=gwg, belief_tracks=belief_tracks, id_no=np.random.randint(1000),
 								 policy_load=False, slugs_location=slugs_location, evil=True))
 	else:
-		agent_array.append(Agent(init=i, target_list=j, gw_env = gwg, belief_tracks=belief_tracks,id_no=np.random.randint(1000),policy_load = False,slugs_location=slugs_location,evil=False))
+		agent_array.append(Agent(init=i, target_list=j,meeting_state=meeting_state, gw_env = gwg, belief_tracks=belief_tracks,id_no=np.random.randint(1000),policy_load = False,slugs_location=slugs_location,evil=False))
 	# else:
 	#     agent_array.append(Agent(i, j, k, mdp, gwg, belief_tracks, l,np.random.randint(1000),True))
 	print("Policy ", c_i, " -- complete")

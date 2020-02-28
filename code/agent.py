@@ -19,7 +19,7 @@ class ProbablilityNotOne(Exception):
 	pass
 
 class Agent():
-	def __init__(self,init=None,target_list=[],gw_env=None,belief_tracks=None,id_no=None,policy_load=False,slugs_location=None,evil=False):
+	def __init__(self,init=None,target_list=[],meeting_state = [],gw_env=None,belief_tracks=None,id_no=None,policy_load=False,slugs_location=None,evil=False):
 		self.id_no = id_no
 		self.init = init
 		self.current = init
@@ -27,6 +27,7 @@ class Agent():
 		self.burn_rate = 1.00
 		self.targets = list(target_list.keys())
 		self.target_dict = target_list
+		self.meeting_state = meeting_state
 		self.belief_tracks = belief_tracks
 		self.evil = evil
 		self.async_flag = True
@@ -77,17 +78,29 @@ class Agent():
 
 
 		file.write('[INPUT]\n')
+		for t in self.targets:
+			file.write('c{}:0...1\n'.format(t))
 		file.write('\n') # Add moving obstacles
 
 		file.write('\n[OUTPUT]\n')
 		file.write('s:0...{}'.format(self.gw.nstates-1))
 
 		file.write('\n[ENV_INIT]\n')
+		for t in self.targets:
+			file.write('c{} = 0\n'.format(t))
 		file.write('\n') # Add moving obstacles
 
 		file.write('\n[SYS_INIT]\n')
 		file.write('s={}\n'.format(self.current))
 
+		file.write('\n[ENV_LIVENESS]\n')
+		for s in self.targets:
+			str = ''
+			for t in self.meeting_state:
+				str += 's={} \\/'.format(t)
+			str = str[:-3]
+			str += '-> c{} = 1\n'.format(s)
+			file.write(str)
 		file.write('\n[SYS_TRANS]\n')
 
 		for s in self.gw.states:
@@ -104,7 +117,7 @@ class Agent():
 			file.write('!s = {}\n'.format(s))
 		file.write('\n[SYS_LIVENESS]\n')
 		for s in self.targets:
-			file.write('s = {}\n'.format(s))
+			file.write('s = {} \\/ c{} = {} \n'.format(s,t,1))
 
 		file.close()
 
