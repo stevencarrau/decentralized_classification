@@ -123,7 +123,7 @@ class Agent():
 
 		if slugs_location!=None:
 			os.system(
-			'python ' + slugs_location + 'tools/StructuredSlugsParser/compiler.py ' + infile + '.structuredslugs > ' + infile + '.slugsin')
+			'python2 ' + slugs_location + 'tools/StructuredSlugsParser/compiler.py ' + infile + '.structuredslugs > ' + infile + '.slugsin')
 			sp = subprocess.Popen(slugs_location + 'src/slugs --explicitStrategy --jsonOutput ' + infile + '.slugsin > ' + infile+'.json',shell=True, stdout=subprocess.PIPE)
 			sp.wait()
 			print('Computing controller...')
@@ -201,6 +201,7 @@ class Agent():
 		total_list = [base_list for n in range(no_targets)]
 		self.id_idx = dict([[k,j] for j,k in enumerate(agent_id)])
 		self.local_belief = {}
+		self.diff_belief = {}
 		self.belief_bad = []
 		self.belief_bad = []
 		for t_p in itertools.product(*total_list):
@@ -209,6 +210,7 @@ class Agent():
 			# 	self.local_belief.update({t_p:belief_value})
 			# ## Unknown number of bad
 			self.local_belief.update({t_p: belief_value})
+			self.diff_belief.update({t_p: set()})
 		self.actual_belief = deepcopy(self.local_belief)
 		if abs(sum(self.local_belief.values())-1.0)>1e-6:
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))#,"Sum is "+str(sum(self.local_belief.values())))
@@ -234,6 +236,9 @@ class Agent():
 			tot_b += self.likelihood(b_i, viewable_agents,target)*self.local_belief[b_i]
 		for b_i in self.local_belief:
 			self.local_belief[b_i] = (1-self.alpha)*self.local_belief[b_i] + self.alpha*self.likelihood(b_i, viewable_agents, target)*self.local_belief[b_i]/tot_b
+			for b_z in self.local_belief:
+				if b_i[target[0] - 1] != b_z[target[0] - 1]:
+					self.diff_belief[b_i].add(b_z)
 		if abs(sum(self.local_belief.values())-1.0)>1e-6:
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))
 		if self.evil:
@@ -247,6 +252,8 @@ class Agent():
 			for b_i,r_b in zip(self.local_belief, random_belief):
 				self.local_belief[b_i] = r_b
 				self.actual_belief[b_i] = r_b
+				for b_z in self.local_belief:
+					self.diff_belief[b_i].add(b_z)
 
 		#
 		# ## TODO -remove
@@ -386,7 +393,7 @@ class Agent():
 
 	def observation(self):
 		if self.current in self.targets:
-			return np.random.choice([0,1],1,p=[1-self.target_dict[self.current],self.target_dict[self.current]])
+			return np.random.choice([0,1],1,p=[1-self.target_dict[self.current],self.target_dict[self.current]])*(self.targets.index(self.current)+1)
 		return None
 
 	# ##### Vision rules
