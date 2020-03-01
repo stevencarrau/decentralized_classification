@@ -38,8 +38,8 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 		# ## Sharing update
 		for a_i, p_i in enumerate(agent_array):
 			if p_i.async_flag:
-				belief_packet = dict([[v_a,agent_array[p_i.id_idx[v_a]].actual_belief] for v_a in p_i.viewable_agents])
-				belief_packet = beliefPacketFn(p_i,agent_array)
+				# belief_packet = dict([[v_a,agent_array[p_i.id_idx[v_a]].actual_belief] for v_a in p_i.viewable_agents])
+				belief_packet = beliefPacketFn(p_i,agent_array) ## ADHT belief packet
 				p_i.ADHT(belief_packet)
 			else:
 				belief_packet = [agent_array[p_i.id_idx[v_a]].actual_belief for v_a in p_i.viewable_agents]
