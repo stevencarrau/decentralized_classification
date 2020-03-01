@@ -33,13 +33,10 @@ class Agent():
 		self.async_flag = True
 		self.av_flag = False
 		self.belief_calls = 0
-		# self.async_flag = False
-		# t_num = list(range(len(target_list)))
-		# t_list = list(zip(self.targets,t_num))#[t_num[-1]]+t_num[:-1]))
-		# p_list = list(zip(self.public_targets,t_num))#[t_num[-1]]+t_num[:-1]))
-		# b_list = list(zip(self.bad_model,t_num))
 		self.gw = gw_env
 		self.viewable_agents = []
+		self.information = dict([[m,set()] for m in range(len(target_list))])
+		self.comms_env = [0,]*len(target_list)
 		self.last_seen = {}
 		self.error_prob = 0.2
 
@@ -233,14 +230,16 @@ class Agent():
 		## Synchronous update rule
 		tot_b = 0.0
 		self.alpha *= self.burn_rate
+		self.information[target[1]].add(self.id_no)
 		self.belief_bad = []
 		for b_i in self.local_belief:
 			tot_b += self.likelihood(b_i, viewable_agents,target)*self.local_belief[b_i]
 		for b_i in self.local_belief:
 			self.local_belief[b_i] = (1-self.alpha)*self.local_belief[b_i] + self.alpha*self.likelihood(b_i, viewable_agents, target)*self.local_belief[b_i]/tot_b
 			for b_z in self.local_belief:
-				if b_i[target[0] - 1] != b_z[target[0] - 1]:
+				if b_i[target[1]] != b_z[target[1]]:
 					self.diff_belief[b_i].add(b_z)
+
 		if abs(sum(self.local_belief.values())-1.0)>1e-6:
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))
 		if self.evil:
@@ -326,12 +325,15 @@ class Agent():
 			if s_i == 0:
 				self.belief_bad.append(i)
 
-	def ADHT(self,belief_arrays):
+	def ADHT(self,belief_arrays,info_packet):
 		global belief_calls
 		actual_belief = {}
 		neighbor_set = {}
 		for theta in self.actual_belief:
 			if self.asyncBeliefUpdate(theta,belief_arrays):
+				for t_i in self.information:
+					for v_i in [j_i for j_i in self.neighbor_belief[theta] if self.neighbor_belief[theta][j_i] != -1]:
+						self.information[t_i] = self.information[t_i].union(info_packet[v_i][t_i])
 				self.belief_calls += 1
 				space = set.union(*[self.neighbor_set[x] for x in self.neighbor_set if x is not theta])
 				belief_list = []
@@ -358,6 +360,10 @@ class Agent():
 			for b_i, r_b in zip(self.local_belief, random_belief):
 				self.local_belief[b_i] = r_b
 				self.actual_belief[b_i] = r_b
+		for t_i in self.information:
+			if len(self.information[t_i]) >= 2*self.no_bad + 1:
+				self.comms_env[t_i] = 1
+				# self.information[t_i] = set()
 
 	def asyncBeliefUpdate(self,belief,belief_arrays):
 		if self.resetFlags[belief]:
@@ -391,15 +397,19 @@ class Agent():
 			return 1-self.target_dict[self.current]
 
 
-	def observation(self):
+	def observation(self,rtn_target=False):
 		if self.current in self.targets:
-			return np.random.choice([0,1],1,p=[1-self.target_dict[self.current],self.target_dict[self.current]])*(self.targets.index(self.current)+1)
+			if rtn_target:
+				return (np.random.choice([0,1],1,p=[1-self.target_dict[self.current],self.target_dict[self.current]])[0],self.targets.index(self.current))
+			else:
+				return np.random.choice([0,1],1,p=[1-self.target_dict[self.current],self.target_dict[self.current]])
+
 		return None
 
 	# ##### Vision rules
 	def updateVision(self, state, agent_states):
 		self.viewable_agents, viewable_states = self.agent_in_view(state, agent_states.values(), agent_states.keys())
-		target_value = self.observation()
+		target_value = self.observation(True)
 		self.updateTime()
 		self.updateBelief(self.viewable_agents, target_value)
 		self.updateLastSeen(self.viewable_agents, viewable_states)

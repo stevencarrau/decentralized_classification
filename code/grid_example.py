@@ -3,10 +3,14 @@ from mdp import *
 from policy import Policy
 from agent import Agent
 import json
+import itertools
 import pickle
 
 def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 	current_node = [0]*len(agent_array)
+	no_targets = len(agent_array[0].target_dict)
+	current_env = [(0,)*no_targets]*len(agent_array)
+	env_list = list(itertools.product(*[(0,1)]*no_targets))
 	state_label = 's'
 	plotting_dictionary = dict()
 	time_t = 0
@@ -26,7 +30,7 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 		time_t += 1
 		## Movement update
 		for ind,a_i in enumerate(agent_array):
-			current_node[ind] = a_i.policy[current_node[ind]]['Successors'][0]
+			current_node[ind] = a_i.policy[current_node[ind]]['Successors'][env_list.index(current_env[ind])]
 			s = a_i.policy[current_node[ind]]['State'][state_label]
 			a_i.updateAgent(s)
 			agent_loc[a_i.id_no] = a_i.current
@@ -39,12 +43,13 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 		for a_i, p_i in enumerate(agent_array):
 			if p_i.async_flag:
 				# belief_packet = dict([[v_a,agent_array[p_i.id_idx[v_a]].actual_belief] for v_a in p_i.viewable_agents])
-				belief_packet = beliefPacketFn(p_i,agent_array) ## ADHT belief packet
-				p_i.ADHT(belief_packet)
+				belief_packet,info_packet = beliefPacketFn(p_i,agent_array) ## ADHT belief packet
+				p_i.ADHT(belief_packet,info_packet)
 			else:
 				belief_packet = [agent_array[p_i.id_idx[v_a]].actual_belief for v_a in p_i.viewable_agents]
 				p_i.shareBelief(belief_packet)
 			time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
+			current_env[a_i] = tuple(p_i.comms_env)
 		plotting_dictionary.update({str(time_t): time_p})
 	fname = str('Fixed_Env_{}_Agents_Range.json').format(len(agent_array))
 	print("Writing to "+fname)
@@ -63,7 +68,10 @@ def beliefPacketFn(agent_p,agent_array):
 				view_dict.update({b_z:agent_b.actual_belief[b_z]})
 			belief_dict.update({v_a:view_dict})
 		belief_packet.update({b_a:belief_dict})
-	return belief_packet
+	info_packet = {}
+	for v_i in agent_array:
+		info_packet.update({v_i.id_no:v_i.information})
+	return belief_packet,info_packet
 
 
 def write_JSON(filename,data):
