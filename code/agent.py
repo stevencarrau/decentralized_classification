@@ -63,6 +63,8 @@ class Agent():
 			out_dict.update({'Id_no': list(init)})
 			out_dict.update({'BadBelief':self.belief_tracks[0]})
 			out_dict.update({'GoodBelief':self.belief_tracks[1]})
+			out_dict.update({'Rows':self.gw.nrows})
+			out_dict.update({'Cols':self.gw.ncols})
 		return out_dict
 
 

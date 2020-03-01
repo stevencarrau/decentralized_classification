@@ -266,8 +266,8 @@ def coords(s,ncols):
 
 # ---------- PART 2:
 
-nrows = 10
-ncols = 10
+nrows = df['0'][df.first_valid_index()]['Rows']
+ncols = df['0'][df.first_valid_index()]['Cols']
 moveobstacles = []
 obstacles = []
 
