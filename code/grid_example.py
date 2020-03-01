@@ -39,7 +39,7 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 		for a_i, p_i in enumerate(agent_array):
 			if p_i.async_flag:
 				belief_packet = dict([[v_a,agent_array[p_i.id_idx[v_a]].actual_belief] for v_a in p_i.viewable_agents])
-				# belief_packet = beliefPacketFn(p_i,agent_array)
+				belief_packet = beliefPacketFn(p_i,agent_array)
 				p_i.ADHT(belief_packet)
 			else:
 				belief_packet = [agent_array[p_i.id_idx[v_a]].actual_belief for v_a in p_i.viewable_agents]
@@ -54,13 +54,15 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 
 def beliefPacketFn(agent_p,agent_array):
 	belief_packet = {}
-	for v_a in agent_p.viewable_agents:
-		view_dict = {}
-		agent_b = agent_array[agent_p.id_idx[v_a]]
-		for b_a in agent_b.actual_belief:
-			# view_dict.update({b_a:})dict([[b_i,agent_b.actual_belief[b_i]] for b_i in agent_b.diff_belief[b_a]])
-
-			view_dict.update({b_a:" "})
+	for b_a in agent_p.actual_belief:
+		belief_dict = {}
+		for v_a in agent_p.viewable_agents:
+			agent_b = agent_array[agent_p.id_idx[v_a]]
+			view_dict = {}
+			for b_z in agent_b.diff_belief[b_a]:
+				view_dict.update({b_z:agent_b.actual_belief[b_z]})
+			belief_dict.update({v_a:view_dict})
+		belief_packet.update({b_a:belief_dict})
 	return belief_packet
 
 

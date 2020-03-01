@@ -117,7 +117,7 @@ class Agent():
 			file.write('!s = {}\n'.format(s))
 		file.write('\n[SYS_LIVENESS]\n')
 		for s in self.targets:
-			file.write('s = {} \\/ c{} = {} \n'.format(s,t,1))
+			file.write('s = {} \\/ c{} = {} \n'.format(s,s,1))
 
 		file.close()
 
@@ -210,7 +210,7 @@ class Agent():
 			# 	self.local_belief.update({t_p:belief_value})
 			# ## Unknown number of bad
 			self.local_belief.update({t_p: belief_value})
-			self.diff_belief.update({t_p: set()})
+			self.diff_belief.update({t_p: set([t_p])})
 		self.actual_belief = deepcopy(self.local_belief)
 		if abs(sum(self.local_belief.values())-1.0)>1e-6:
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))#,"Sum is "+str(sum(self.local_belief.values())))
@@ -340,8 +340,6 @@ class Agent():
 				belief_list,agent_order = zip(*sorted(zip(belief_list,agent_order)))
 				neighbor_set[theta] = set(agent_order[self.no_bad:])
 				if self.av_flag:
-					if theta == (1,1,1,1,1,1,1,0) and self.id_no==560:
-						print(" ")
 					actual_belief[theta] = min(self.local_belief[theta],np.mean(list(belief_list)[self.no_bad:-1*self.no_bad]))
 				else:
 					actual_belief[theta] = min([self.local_belief[theta]]+list(belief_list)[self.no_bad:])
@@ -362,11 +360,11 @@ class Agent():
 	def asyncBeliefUpdate(self,belief,belief_arrays):
 		if self.resetFlags[belief]:
 			self.resetBelief(belief,belief_arrays)
-		for j in belief_arrays:
-			for t_p in [kj for kj in belief_arrays[j] if kj is not belief]: ## t_p is theta_prime
+		for j in belief_arrays[belief]:
+			for t_p in [kj for kj in belief_arrays[belief][j] if kj is not belief]: ## t_p is theta_prime
 				if self.neighbor_belief[belief][j] == -1: ##j is in
 					self.neighbor_set[t_p].add(j)
-			self.neighbor_belief[belief][j] = belief_arrays[j][belief] ## Not sure what line 7 does??
+			self.neighbor_belief[belief][j] = belief_arrays[belief][j][belief] ## Not sure what line 7 does??
 		for t_p in [kj for kj in self.local_belief if kj is not belief]:
 			if len(self.neighbor_set[t_p]) < 2*self.no_bad + 1:
 				return False
