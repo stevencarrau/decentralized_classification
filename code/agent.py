@@ -114,8 +114,8 @@ class Agent():
 			file.write('!s = {}\n'.format(s))
 		file.write('\n[SYS_LIVENESS]\n')
 		t_s = self.id_idx[self.id_no] % len(self.targets)
-		for i,s in enumerate(self.targets):
-			if i == t_s:
+		for i,s in enumerate(self.targets[t_s:]+self.targets[0:t_s]):
+			if i == 0:
 				file.write('s = {}\n'.format(s, s, 1))
 			else:
 				file.write('s = {} \\/ c{} = {} \n'.format(s,s,1))
