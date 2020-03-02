@@ -272,7 +272,7 @@ moveobstacles = []
 obstacles = []
 
 # #4 agents larger range
-obs_range = 2
+obs_range = 8
 # obs_range = 0
 
 # #4 agents big range
@@ -307,10 +307,12 @@ ax_ar = grid_init(nrows, ncols, obs_range)
 # texfig.savefig("test")
 # update()
 # plt.show()
+# for i in range(10):
+# 	update_all(i)
 ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=True,repeat=False)
 plt.show()
 # ani.save('3Target-5Agent-Min-Async.mp4',writer = writer)
-# ani.save('decen.gif',dpi=80,writer='imagemagick')
+# ani.save('QuickCycle.mp4',dpi=80,writer=writer)
 #
 # ani = FuncAnimation(fig, update, frames=50, interval=200, blit=True)
 # plt.show()

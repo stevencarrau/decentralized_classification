@@ -38,12 +38,10 @@ class Agent():
 		self.information = dict([[m,set()] for m in range(len(target_list))])
 		self.comms_env = [0,]*len(target_list)
 		self.last_seen = {}
-		self.error_prob = 0.2
+		self.error_prob = 0.0
+		self.policy_load = policy_load
+		self.slugs_loc = slugs_location
 
-		if policy_load:
-			self.loadPolicy()
-		else:
-			self.policy = self.Policy(slugs_location=slugs_location)
 			# self.savePolicy()
 
 	def writeOutputTimeStamp(self,init=[]):
@@ -115,8 +113,12 @@ class Agent():
 		for s in self.gw.obstacles:
 			file.write('!s = {}\n'.format(s))
 		file.write('\n[SYS_LIVENESS]\n')
-		for s in self.targets:
-			file.write('s = {} \\/ c{} = {} \n'.format(s,s,1))
+		t_s = self.id_idx[self.id_no] % len(self.targets)
+		for i,s in enumerate(self.targets):
+			if i == t_s:
+				file.write('s = {}\n'.format(s, s, 1))
+			else:
+				file.write('s = {} \\/ c{} = {} \n'.format(s,s,1))
 
 		file.close()
 
@@ -224,6 +226,11 @@ class Agent():
 				for n_i in agent_id:
 					self.neighbor_belief[t_p][n_i] = -1 ## b^a_j(theta)
 
+		if self.policy_load:
+			self.loadPolicy()
+		else:
+			self.policy = self.Policy(slugs_location=self.slugs_loc)
+
 	def updateBelief(self, viewable_agents,target):
 		if not target:
 			return
@@ -232,13 +239,16 @@ class Agent():
 		self.alpha *= self.burn_rate
 		self.information[target[1]].add(self.id_no)
 		self.belief_bad = []
+		# for b_i in self.local_belief:
+		# 	tot_b += self.likelihood(b_i, viewable_agents,target)*self.local_belief[b_i]
 		for b_i in self.local_belief:
-			tot_b += self.likelihood(b_i, viewable_agents,target)*self.local_belief[b_i]
-		for b_i in self.local_belief:
-			self.local_belief[b_i] = (1-self.alpha)*self.local_belief[b_i] + self.alpha*self.likelihood(b_i, viewable_agents, target)*self.local_belief[b_i]/tot_b
+			self.local_belief[b_i] = (1-self.alpha)*self.local_belief[b_i] + self.alpha*self.likelihood(b_i, viewable_agents, target[0])*self.local_belief[b_i]
 			for b_z in self.local_belief:
 				if b_i[target[1]] != b_z[target[1]]:
 					self.diff_belief[b_i].add(b_z)
+		tot_b = sum(self.local_belief.values())
+		for b_i in self.local_belief:
+			self.local_belief[b_i] /= tot_b
 
 		if abs(sum(self.local_belief.values())-1.0)>1e-6:
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))
@@ -372,6 +382,8 @@ class Agent():
 			for t_p in [kj for kj in belief_arrays[belief][j] if kj is not belief]: ## t_p is theta_prime
 				if self.neighbor_belief[belief][j] == -1: ##j is in
 					self.neighbor_set[t_p].add(j)
+					# self.neighbor_belief[belief][j] = belief_arrays[belief][j][belief]
+		for j in belief_arrays[belief]:
 			self.neighbor_belief[belief][j] = belief_arrays[belief][j][belief] ## Not sure what line 7 does??
 		for t_p in [kj for kj in self.local_belief if kj is not belief]:
 			if len(self.neighbor_set[t_p]) < 2*self.no_bad + 1:
@@ -392,9 +404,9 @@ class Agent():
 		# Work through each element of the tuple, if is likely then good if its unlikely then bad.
 		target_ind = self.targets.index(self.current)
 		if sys_status[target_ind] == target:
-			return self.target_dict[self.current]
+			return self.target_dict[self.current] if target == 1 else 1-self.target_dict[self.current]
 		else:
-			return 1-self.target_dict[self.current]
+			return 1-self.target_dict[self.current] if target == 1 else self.target_dict[self.current]
 
 
 	def observation(self,rtn_target=False):

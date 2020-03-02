@@ -64,7 +64,8 @@ def beliefPacketFn(agent_p,agent_array):
 		for v_a in agent_p.viewable_agents:
 			agent_b = agent_array[agent_p.id_idx[v_a]]
 			view_dict = {}
-			for b_z in agent_b.diff_belief[b_a]:
+			# for b_z in agent_b.diff_belief[b_a]:
+			for b_z in agent_b.actual_belief:
 				view_dict.update({b_z:agent_b.actual_belief[b_z]})
 			belief_dict.update({v_a:view_dict})
 		belief_packet.update({b_a:belief_dict})
@@ -106,12 +107,12 @@ nrows = 25
 ncols = 25
 moveobstacles = []
 obstacles = []
-target_prob = 0.8
+target_prob = 1.0
 # # # 5 agents small range
 initial = [33,41,7,80,69]
 targets = [dict([[15,1-target_prob],[82,target_prob],[88,target_prob]])]*5
 no_targets = len(targets[0])
-obs_range = 2
+obs_range = 8
 np.random.seed(1)
 
 #
@@ -148,7 +149,7 @@ print("Computing policies")
 bad_b = ()
 for i in range(len(initial)):
 	bad_b += (0,)
-belief_tracks = [str((0,0,0)), str((1,1,0))]
+belief_tracks = [str((1,1,1)), str((0,1,1))]
 seed_iter = iter(range(0,5+len(initial)))
 meeting_state = [20]
 for i, j in zip(initial, targets):
