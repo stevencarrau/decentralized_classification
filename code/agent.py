@@ -66,10 +66,10 @@ class Agent():
 	def Policy(self,infile=None,slugs_location=None):
 
 		if infile == None:
-			infile = 'grid_example'
-			filename = infile+'.structuredslugs'
+			infile = 'grid_example_{}'.format(self.id_no)
+			filename = infile +'.structuredslugs'
 		else:
-			filename = infile+'.structuredslugs'
+			filename = infile +'_{}'.format(self.id_no)+'.structuredslugs'
 
 		file = open(filename, 'w')
 
