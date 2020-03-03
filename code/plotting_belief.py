@@ -272,7 +272,7 @@ moveobstacles = []
 obstacles = []
 
 # #4 agents larger range
-obs_range = 8
+obs_range = 2
 # obs_range = 0
 
 # #4 agents big range

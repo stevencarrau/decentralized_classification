@@ -31,7 +31,7 @@ class Agent():
 		self.belief_tracks = belief_tracks
 		self.evil = evil
 		self.async_flag = True
-		self.av_flag = False
+		self.av_flag = True
 		self.belief_calls = 0
 		self.gw = gw_env
 		self.viewable_agents = []
@@ -90,14 +90,14 @@ class Agent():
 		file.write('\n[SYS_INIT]\n')
 		file.write('s={}\n'.format(self.current))
 
-		file.write('\n[ENV_LIVENESS]\n')
-		for s in self.targets:
-			str = ''
-			for t in self.meeting_state:
-				str += 's={} \\/'.format(t)
-			str = str[:-3]
-			str += '-> c{} = 1\n'.format(s)
-			file.write(str)
+		# file.write('\n[ENV_LIVENESS]\n')
+		# for s in self.targets:
+		# 	str = ''
+		# 	for t in self.meeting_state:
+		# 		str += 's={} \\/'.format(t)
+		# 	str = str[:-3]
+		# 	str += '-> c{} = 1\n'.format(s)
+		# 	file.write(str)
 		file.write('\n[SYS_TRANS]\n')
 
 		for s in self.gw.states:
@@ -119,7 +119,7 @@ class Agent():
 				file.write('s = {}\n'.format(s, s, 1))
 			else:
 				file.write('s = {} \\/ c{} = {} \n'.format(s,s,1))
-
+		file.write('s = {}\n'.format(self.meeting_state[0]))
 		file.close()
 
 		if slugs_location!=None:

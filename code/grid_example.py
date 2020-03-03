@@ -110,9 +110,9 @@ obstacles = []
 target_prob = 1.0
 # # # 5 agents small range
 initial = [33,41,7,80,69]
-targets = [dict([[15,1-target_prob],[82,target_prob],[88,target_prob]])]*5
+targets = [dict([[105,1-target_prob],[22,target_prob],[418,target_prob]])]*5
 no_targets = len(targets[0])
-obs_range = 8
+obs_range = 2
 np.random.seed(1)
 
 #
@@ -151,7 +151,7 @@ for i in range(len(initial)):
 	bad_b += (0,)
 belief_tracks = [str((1,1,1)), str((0,1,1))]
 seed_iter = iter(range(0,5+len(initial)))
-meeting_state = [20]
+meeting_state = [10]
 for i, j in zip(initial, targets):
 	np.random.seed(next(seed_iter))
 	if c_i ==3:
