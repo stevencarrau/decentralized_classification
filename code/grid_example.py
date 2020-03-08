@@ -51,9 +51,12 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 			time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
 			current_env[a_i] = tuple(p_i.comms_env)
 		plotting_dictionary.update({str(time_t): time_p})
-	fname = str('Fixed_Env_{}_Agents_Range.json').format(len(agent_array))
+	fname = str('Fixed_Env_{}_Agents_Range').format(len(agent_array))
 	print("Writing to "+fname)
-	write_JSON(fname, stringify_keys(plotting_dictionary))
+	write_JSON(fname+'.json', stringify_keys(plotting_dictionary))
+	env_file = open(fname+'.pickle','wb')
+	pickle.dump(gwg,env_file)
+	env_file.close()
 	return print("Goal!")
 
 
@@ -103,14 +106,22 @@ def stringify_keys(d):
 			del d[key]
 	return d
 
+def coords(s,ncols):
+	return (int(s /ncols), int(s % ncols))
+
+random.seed(0)
 nrows = 25
 ncols = 25
+border_size = 10
+no_agents = 5
+allowed_region =  list(range(border_size)) + list(range(ncols-border_size,ncols))
 moveobstacles = []
-obstacles = []
-target_prob = 1.0
+valid_states = [o_i for o_i in range(nrows*ncols) if coords(o_i,ncols)[0] not in allowed_region or coords(o_i,ncols)[1] not in allowed_region ]
+obstacles = list(set(range(nrows*ncols))-set(valid_states))
+target_prob = 0.99
 # # # 5 agents small range
-initial = [33,41,7,80,69]
-targets = [dict([[105,1-target_prob],[22,target_prob],[418,target_prob]])]*5
+initial = random.sample(valid_states,no_agents)
+targets = [dict([[border_size+2,1-target_prob],[(border_size+2)*ncols,target_prob],[(border_size+3)*ncols-1,target_prob]])]*no_agents
 no_targets = len(targets[0])
 obs_range = 2
 np.random.seed(1)
@@ -151,7 +162,7 @@ for i in range(len(initial)):
 	bad_b += (0,)
 belief_tracks = [str((1,1,1)), str((0,1,1))]
 seed_iter = iter(range(0,5+len(initial)))
-meeting_state = [10]
+meeting_state = [312]
 for i, j in zip(initial, targets):
 	np.random.seed(next(seed_iter))
 	if c_i ==3:

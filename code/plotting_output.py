@@ -1,7 +1,7 @@
 import json
 import matplotlib
-# matplotlib.use('pgf')
-matplotlib.use('Qt5Agg')
+matplotlib.use('pgf')
+# matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pandas as pd
@@ -14,15 +14,14 @@ from matplotlib.offsetbox import (DrawingArea,OffsetImage,AnnotationBbox)
 import numpy as np
 from gridworld import *
 # import texfig
-import pickle
+
 
 
 # ---------- PART 1: Globals
-fname = 'Fixed_Env_5_Agents_Range'
-with open(fname+'.json') as json_file:
+
+with open('Fixed_Env_5_Agents_Range.json') as json_file:
+# with open('Fixed_Env_5_Agents.json') as json_file:
 	data = json.load(json_file)
-with open(fname+'.pickle','rb') as env_file:
-	gwg = pickle.load(env_file)
 df = pd.DataFrame(data)
 my_dpi = 150
 Writer = matplotlib.animation.writers['ffmpeg']
@@ -48,6 +47,7 @@ belief_good = df['0'][0]['GoodBelief']
 belief_bad = df['0'][0]['BadBelief']
 N = len(df[str(0)][-1]['Targets'])
 N_a = len(categories)
+output_dict = dict([[c_i,{}] for c_i in categories])
 angles = [n / float(N) * 2 * pi for n in range(N)]
 angles += angles[:1]
 axis_array = []
@@ -114,17 +114,14 @@ def update(i):
 	return l_d + f_d
 
 
-def grid_init(gwg):
+def grid_init(nrows, ncols, obs_range):
 	# fig_new = plt.figure(figsize=(1000/my_dpi,1000/my_dpi),dpi=my_dpi)
-	nrows, ncols, obs_range = gwg.nrows,gwg.ncols,gwg.obs_range
 	ax = plt.subplot(223)
 	t = 0
 	row_labels = range(nrows)
 	col_labels = range(ncols)
-	# plt.xticks(range(ncols), col_labels)
-	# plt.yticks(range(nrows), row_labels)
-	plt.xticks(range(ncols),"")
-	plt.yticks(range(nrows),"")
+	plt.xticks(range(ncols), col_labels)
+	plt.yticks(range(nrows), row_labels)
 	ax.set_xticks([x - 0.5 for x in range(1, ncols)], minor=True)
 	ax.set_yticks([y - 0.5 for y in range(1, nrows)], minor=True)
 	ax.set_xlim(-0.5,ncols-0.5)
@@ -133,12 +130,6 @@ def grid_init(gwg):
 	ag_array = []
 	plt.grid(which="minor", ls="-", lw=1)
 	i = 0
-	# Obstacles
-	for o_i in gwg.obstacles:
-		o_loc = tuple(reversed(coords(o_i, ncols)))
-		obs_ax = ax.add_patch(patches.Rectangle(np.array(o_loc) - 0.5, 1, 1, fill=True,
-							  color=(1,0,0), clip_on=True, alpha=0.2, ls='--', lw=0))
-
 	for id_no in categories:
 		# p_t = df[str(0)][id_no]['PublicTargets']
 		color = my_palette(i)
@@ -233,6 +224,7 @@ def grid_update(i):
 		# p_2.set_xdata(route_x2)
 		# p_2.set_ydata(route_y2)
 		write_objects += [c_i] + [l_i] # + [p_i] + [p_2]
+		output_dict[id_no].update({i:loc})
 	return write_objects
 
 def belief_update(i):
@@ -272,34 +264,63 @@ def coords(s,ncols):
 	return (int(s /ncols), int(s % ncols))
 
 
+def write_JSON(filename,data):
+	with open(filename,'w') as outfile:
+		json.dump(stringify_keys(data), outfile)
+
+def stringify_keys(d):
+	"""Convert a dict's keys to strings if they are not."""
+	for key in d.keys():
+
+		# check inner dict
+		if isinstance(d[key], dict):
+			value = stringify_keys(d[key])
+		else:
+			value = d[key]
+
+		# convert nonstring to string if needed
+		if not isinstance(key, str):
+			try:
+				d[str(key)] = value
+			except Exception:
+				try:
+					d[repr(key)] = value
+				except Exception:
+					raise
+
+			# delete old key
+			del d[key]
+	return d
 
 
 # ---------- PART 2:
 
-nrows = gwg.nrows
-ncols = gwg.ncols
-
+nrows = df['0'][df.first_valid_index()]['Rows']
+ncols = df['0'][df.first_valid_index()]['Cols']
+moveobstacles = []
+obstacles = []
 
 # #4 agents larger range
-obs_range = gwg.obs_range
-# obs_range = 0
+obs_range = 2
+
 
 
 
 con_dict = con_ar = con_init()
 bel_lines = belief_chart_init()
-ax_ar = grid_init(gwg)
-
+ax_ar = grid_init(nrows, ncols, obs_range)
 # update_all(50)
 # texfig.savefig("test")
 # update()
 # plt.show()
-# for i in range(10):
-# 	update_all(i)
-ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=True,repeat=False)
-plt.show()
-# ani = FuncAnimation(fig, update_all, frames=frames, interval=50, blit=False,repeat=False)
-# ani.save('Plus-Simulation.mp4', writer = writer)
+for i in range(frames):
+	update_all(i)
+
+write_JSON('Agents_Gridworld.json',output_dict)
+# ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=True,repeat=False)
+# plt.show()
+# ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=False,repeat=False)
+# ani.save('Gridworld-Simulation.mp4', writer = writer)
 # ani.save('QuickCycle.mp4',dpi=80,writer=writer)
 #
 # ani = FuncAnimation(fig, update, frames=50, interval=200, blit=True)

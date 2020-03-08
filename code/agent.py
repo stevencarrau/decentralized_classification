@@ -356,7 +356,7 @@ class Agent():
 				if self.av_flag:
 					actual_belief[theta] = min(self.local_belief[theta],np.mean(list(belief_list)[self.no_bad:-1*self.no_bad]))
 				else:
-					actual_belief[theta] = min([self.local_belief[theta]]+list(belief_list)[self.no_bad:])
+					actual_belief[theta] = min([self.local_belief[theta]]+list(belief_list)[self.no_bad:-1*self.no_bad])
 			else:
 				actual_belief.update({theta: min(self.actual_belief[theta], self.local_belief[theta])})
 			if actual_belief[theta] < 0:
