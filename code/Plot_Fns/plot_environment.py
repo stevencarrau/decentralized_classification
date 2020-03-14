@@ -60,8 +60,8 @@ def grid_init(gwg):
 	t = 0
 	row_labels = range(nrows)
 	col_labels = range(ncols)
-	plt.xticks(range(ncols), col_labels)
-	plt.yticks(range(nrows), row_labels)
+	plt.xticks(range(ncols), "")
+	plt.yticks(range(nrows), "")
 	ax.set_xticks([x - 0.5 for x in range(1, ncols)], minor=True)
 	ax.set_yticks([y - 0.5 for y in range(1, nrows)], minor=True)
 	ax.set_xlim(-0.5, ncols - 0.5)

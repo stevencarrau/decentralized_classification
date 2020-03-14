@@ -31,7 +31,7 @@ class Agent():
 		self.belief_tracks = belief_tracks
 		self.evil = evil
 		self.async_flag = True
-		self.av_flag = True
+		self.av_flag = False
 		self.belief_calls = 0
 		self.gw = gw_env
 		self.viewable_agents = []
@@ -41,6 +41,7 @@ class Agent():
 		self.error_prob = 0.0
 		self.policy_load = policy_load
 		self.slugs_loc = slugs_location
+		self.steps = 0
 
 			# self.savePolicy()
 
@@ -190,6 +191,7 @@ class Agent():
 			self.policy = pickle.load(f)
 
 	def updateAgent(self,state):
+		self.steps += 1 if state != self.current else 0
 		self.current = state
 		
 	### Belief Rules
@@ -259,22 +261,23 @@ class Agent():
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))
 		if self.evil:
 			for b_i in self.local_belief:
-				self.local_belief[b_i] = 0
-				self.actual_belief[b_i] = 0
-			# self.local_belief[(1,0,1,1,1)] = 1.0
-			# self.actual_belief[(1,0,1,1,1)] = 1.0
-			random_belief = np.random.rand(len(self.local_belief))
-			random_belief /= np.sum(random_belief)
-			for b_i,r_b in zip(self.local_belief, random_belief):
-				self.local_belief[b_i] = r_b
-				self.actual_belief[b_i] = r_b
-				for b_z in self.local_belief:
-					self.diff_belief[b_i].add(b_z)
-
-		#
-		# ## TODO -remove
-		# for b_i in self.local_belief:
-		# 	self.actual_belief[b_i] = self.local_belief[b_i]
+				self.local_belief[b_i] = 0.0
+				self.actual_belief[b_i] = 0.0
+			if isinstance(self.evil,tuple):
+				for b_i in self.local_belief:
+					if b_i == self.evil:
+						self.local_belief[b_i] = 1.0
+						self.actual_belief[b_i] = 1.0
+					for b_z in self.local_belief:
+						self.diff_belief[b_i].add(b_z)
+			else:
+				random_belief = np.random.rand(len(self.local_belief))
+				random_belief /= np.sum(random_belief)
+				for b_i,r_b in zip(self.local_belief, random_belief):
+					self.local_belief[b_i] = r_b
+					self.actual_belief[b_i] = r_b
+					for b_z in self.local_belief:
+						self.diff_belief[b_i].add(b_z)
 
 
 	def updateVision(self, state, agent_states):
@@ -330,11 +333,24 @@ class Agent():
 		# Normalize
 		self.actual_belief = dict([[theta, actual_belief[theta] / sum(actual_belief.values())] for theta in actual_belief])
 		if self.evil:
-			random_belief = np.random.rand(len(self.local_belief))
-			random_belief /= np.sum(random_belief)
-			for b_i,r_b in zip(self.local_belief,random_belief):
-				self.local_belief[b_i] = r_b
-				self.actual_belief[b_i] = r_b
+			for b_i in self.local_belief:
+				self.local_belief[b_i] = 0.0
+				self.actual_belief[b_i] = 0.0
+			if isinstance(self.evil,tuple):
+				for b_i in self.local_belief:
+					if b_i == self.evil:
+						self.local_belief[b_i] = 1.0
+						self.actual_belief[b_i] = 1.0
+					for b_z in self.local_belief:
+						self.diff_belief[b_i].add(b_z)
+			else:
+				random_belief = np.random.rand(len(self.local_belief))
+				random_belief /= np.sum(random_belief)
+				for b_i,r_b in zip(self.local_belief, random_belief):
+					self.local_belief[b_i] = r_b
+					self.actual_belief[b_i] = r_b
+					for b_z in self.local_belief:
+						self.diff_belief[b_i].add(b_z)
 		sys_t = list(self.actual_belief.keys())[np.argmax(list(self.actual_belief.values()))]
 		for i,s_i in enumerate(sys_t):
 			if s_i == 0:
@@ -363,18 +379,34 @@ class Agent():
 				else:
 					actual_belief[theta] = min([self.local_belief[theta]]+list(belief_list)[self.no_bad:-1*self.no_bad])
 			else:
-				actual_belief.update({theta: min(self.actual_belief[theta], self.local_belief[theta])})
+				if self.observation():
+					actual_belief.update({theta: min(self.actual_belief[theta], self.local_belief[theta])})
+				else:
+					actual_belief.update({theta:self.actual_belief[theta]})
 			if actual_belief[theta] < 0:
 				print('Negative')
 		self.actual_belief = dict([[theta, actual_belief[theta] / sum(actual_belief.values())] for theta in actual_belief])
 		for n_s in neighbor_set:
 			self.neighbor_set[n_s] = neighbor_set[n_s]
 		if self.evil:
-			random_belief = np.random.rand(len(self.local_belief))
-			random_belief /= np.sum(random_belief)
-			for b_i, r_b in zip(self.local_belief, random_belief):
-				self.local_belief[b_i] = r_b
-				self.actual_belief[b_i] = r_b
+			for b_i in self.local_belief:
+				self.local_belief[b_i] = 0.0
+				self.actual_belief[b_i] = 0.0
+			if isinstance(self.evil,tuple):
+				for b_i in self.local_belief:
+					if b_i == self.evil:
+						self.local_belief[b_i] = 1.0
+						self.actual_belief[b_i] = 1.0
+					for b_z in self.local_belief:
+						self.diff_belief[b_i].add(b_z)
+			else:
+				random_belief = np.random.rand(len(self.local_belief))
+				random_belief /= np.sum(random_belief)
+				for b_i,r_b in zip(self.local_belief, random_belief):
+					self.local_belief[b_i] = r_b
+					self.actual_belief[b_i] = r_b
+					for b_z in self.local_belief:
+						self.diff_belief[b_i].add(b_z)
 		for t_i in self.information:
 			if len(self.information[t_i]) >= 2*self.no_bad + 1:
 				self.comms_env[t_i] = 1

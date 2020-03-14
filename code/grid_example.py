@@ -10,7 +10,9 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 	current_node = [0]*len(agent_array)
 	no_targets = len(agent_array[0].target_dict)
 	current_env = [(0,)*no_targets]*len(agent_array)
-	env_list = list(itertools.product(*[(0,1)]*no_targets))
+	env_list = list(itertools.product(*[(0,1)]*(no_targets+1)))
+	env_list_conv = list(itertools.product(*[(0,1)]*(no_targets)))
+	conv_list = [0]*len(agent_array)
 	state_label = 's'
 	plotting_dictionary = dict()
 	time_t = 0
@@ -30,7 +32,10 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 		time_t += 1
 		## Movement update
 		for ind,a_i in enumerate(agent_array):
-			current_node[ind] = a_i.policy[current_node[ind]]['Successors'][env_list.index(current_env[ind])]
+			if conv_list[ind] == 1:
+				a_i.policy[current_node[ind]]['Successors'][env_list_conv.index(current_env[ind])]
+			else:
+				current_node[ind] = a_i.policy[current_node[ind]]['Successors'][env_list.index(current_env[ind]+(conv_list[ind],))]
 			s = a_i.policy[current_node[ind]]['State'][state_label]
 			a_i.updateAgent(s)
 			agent_loc[a_i.id_no] = a_i.current
@@ -40,16 +45,22 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 		for a_i,  p_i in enumerate(agent_array):
 			p_i.updateVision(p_i.current, agent_loc)
 		# ## Sharing update
+		packet_dict = {}
 		for a_i, p_i in enumerate(agent_array):
 			if p_i.async_flag:
 				# belief_packet = dict([[v_a,agent_array[p_i.id_idx[v_a]].actual_belief] for v_a in p_i.viewable_agents])
 				belief_packet,info_packet = beliefPacketFn(p_i,agent_array) ## ADHT belief packet
-				p_i.ADHT(belief_packet,info_packet)
+				packet_dict.update({p_i:(belief_packet,info_packet)})
 			else:
 				belief_packet = [agent_array[p_i.id_idx[v_a]].actual_belief for v_a in p_i.viewable_agents]
 				p_i.shareBelief(belief_packet)
+		for a_i,p_i in enumerate(agent_array):
+			belief_packet,info_packet = packet_dict[p_i]
+			p_i.ADHT(belief_packet, info_packet)
 			time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
 			current_env[a_i] = tuple(p_i.comms_env)
+			if max(p_i.actual_belief.values())>0.99:
+				conv_list[a_i] = 1
 		plotting_dictionary.update({str(time_t): time_p})
 	fname = str('Fixed_Env_{}_Agents_Range').format(len(agent_array))
 	print("Writing to "+fname)
@@ -57,6 +68,7 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 	env_file = open(fname+'.pickle','wb')
 	pickle.dump(gwg,env_file)
 	env_file.close()
+	x = [print('Agent_{}: Steps {}'.format(a_i.id_no,a_i.steps)) for a_i in agent_array]
 	return print("Goal!")
 
 
@@ -118,7 +130,7 @@ allowed_region =  list(range(border_size)) + list(range(ncols-border_size,ncols)
 moveobstacles = []
 valid_states = [o_i for o_i in range(nrows*ncols) if coords(o_i,ncols)[0] not in allowed_region or coords(o_i,ncols)[1] not in allowed_region ]
 obstacles = list(set(range(nrows*ncols))-set(valid_states))
-target_prob = 0.99
+target_prob = 0.80
 # # # 5 agents small range
 initial = random.sample(valid_states,no_agents)
 targets = [dict([[border_size+2,1-target_prob],[(border_size+2)*ncols,target_prob],[(border_size+3)*ncols-1,target_prob]])]*no_agents
@@ -167,7 +179,7 @@ for i, j in zip(initial, targets):
 	np.random.seed(next(seed_iter))
 	if c_i ==3:
 		agent_array.append(Agent(init=i, target_list=j,meeting_state=meeting_state, gw_env=gwg, belief_tracks=belief_tracks, id_no=np.random.randint(1000),
-								 policy_load=False, slugs_location=slugs_location, evil=True))
+								 policy_load=False, slugs_location=slugs_location, evil=(1,0,1)))
 	else:
 		agent_array.append(Agent(init=i, target_list=j,meeting_state=meeting_state, gw_env = gwg, belief_tracks=belief_tracks,id_no=np.random.randint(1000),policy_load = False,slugs_location=slugs_location,evil=False))
 	# else:

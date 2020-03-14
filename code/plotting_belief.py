@@ -299,7 +299,7 @@ ax_ar = grid_init(gwg)
 ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=True,repeat=False)
 plt.show()
 # ani = FuncAnimation(fig, update_all, frames=frames, interval=50, blit=False,repeat=False)
-# ani.save('Plus-Simulation.mp4', writer = writer)
+# ani.save('Plus-Simulation-Update.mp4', writer = writer)
 # ani.save('QuickCycle.mp4',dpi=80,writer=writer)
 #
 # ani = FuncAnimation(fig, update, frames=50, interval=200, blit=True)
