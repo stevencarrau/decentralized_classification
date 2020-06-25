@@ -7,13 +7,27 @@ import numpy as np
 from matplotlib import colors as mcolors
 import math
 import matplotlib.pyplot as plt
+from skimage import io
+import cv2
 # import pygame.locals as pgl
 
 class Gridworld():
     # a gridworld with uneven terrain
-    def __init__(self, initial, nrows=8, ncols=8, nagents=1, targets=[], obstacles=[], moveobstacles = [], regions=dict(),size=100,obs_range=3,public_targets=[]):
+    def __init__(self, initial, nrows=8, ncols=8, nagents=1, targets=[], obstacles=[], moveobstacles = [], regions=None,size=100,obs_range=3,public_targets=[],filename=None,meeting_states=[]):
         # walls are the obstacles. The edges of the gridworld will be included into the walls.
         # region is a string and can be one of: ['pavement','gravel', 'grass', 'sand']
+        if filename[0] != None:
+            data = io.imread(filename[0])
+            data = cv2.resize(data, filename[1], interpolation=filename[2])
+            regionkeys = {'pavement', 'gravel', 'grass', 'sand', 'deterministic'}
+            (nrows, ncols) = data.shape[:2]
+            data = data.flatten()
+            obstacles = list(np.where(data < 255)[0])
+            meeting_states = meeting_states
+        if regions == None:
+            regions = dict.fromkeys(regionkeys, {-1})
+            regions['deterministic'] = range(nrows * ncols)
+
         self.size = size
         self.initial = initial
         self.current = initial
@@ -39,6 +53,7 @@ class Gridworld():
         self.bottom_edge = []
         self.obstacles = obstacles
         self.moveobstacles = moveobstacles
+        self.meeting_states = meeting_states
         self.states = range(nrows*ncols)
         self.colorstates = set()
         cmap = plt.cm.get_cmap("tab10",self.nagents)
@@ -73,9 +88,9 @@ class Gridworld():
     def obs_zone(self,s):
         zone = set()
         i,j = self.coords(s)
-        max_i = min(i+self.obs_range,self.ncols)
+        max_i = min(i+self.obs_range,self.nrows)
         min_i = max(i-self.obs_range,0)
-        max_j = min(j+self.obs_range,self.nrows)
+        max_j = min(j+self.obs_range,self.ncols)
         min_j = max(j-self.obs_range,0)
         for s_i in range(min_i,max_i):
             for s_j in range(min_j,max_j):

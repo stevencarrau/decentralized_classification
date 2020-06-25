@@ -38,12 +38,62 @@ class Agent():
 		self.information = dict([[m,set()] for m in range(len(target_list))])
 		self.comms_env = [0,]*len(target_list)
 		self.last_seen = {}
-		self.error_prob = 0.0
+		self.error_prob = 0.001
 		self.policy_load = policy_load
 		self.slugs_loc = slugs_location
 		self.steps = 0
+		self.stop_val = 0.95
+
+		## Triggers for policy
+		self.current_node = 0
+		no_targets = len(self.targets)
+		self.current_env = (0,)*no_targets
+		self.env_list = list(itertools.product(*[(0, 1)] * (no_targets + 1)))
+		self.env_list_conv = list(itertools.product(*[(0, 1)] * (no_targets)))
+		self.conv = 0
+		self.state_label = 's'
 
 			# self.savePolicy()
+	def initInfo(self,agent_loc):
+		self.informationDict = dict([[k_i,deepcopy(self.information)]for k_i in agent_loc])
+
+	def update(self,agent_loc):
+		if self.conv == 1:
+			self.policy[self.current_node]['Successors'][self.env_list_conv.index(self.current_env)]
+		else:
+			self.current_node = self.policy[self.current_node]['Successors'][self.env_list.index(self.current_env + (self.conv,))]
+		s = self.policy[self.current_node]['State'][self.state_label]
+		self.updateAgent(s)
+		## Vision
+		self.updateVision(self.current, agent_loc)
+		self.updateConvFlags(agent_loc)
+
+		# Convergence Flag
+		if max(self.actual_belief.values()) > self.stop_val and not self.evil:
+			self.conv_list = 1
+		else:
+			self.conv_list = 0
+
+	def updateConvFlags(self,agent_loc):
+		# Inserting information if passes over a target
+		for a_i,a_l in agent_loc.items():
+			if a_l in self.targets:
+				self.informationDict[a_i][self.targets.index(a_l)].add(a_i)
+				if a_i == self.id_no:
+					self.information[self.targets.index(a_l)].add(a_i)
+		for a_i,a_l in agent_loc.items():
+			view_agents,*_ = self.agent_in_view(a_l, agent_loc.values(),agent_loc.keys())
+			for v_a in view_agents:
+				for k in self.informationDict[a_i]:
+					self.informationDict[a_i][k].update(self.informationDict[v_a][k])
+					if a_i==self.id_no:
+						self.information[k].update(self.informationDict[v_a][k])
+		for t_i in self.information:
+			if len(self.information[t_i]) >=  2*self.no_bad + 1:
+				hold_env = list(self.current_env)
+				hold_env[t_i] = 1
+				self.current_env = tuple(hold_env)
+
 
 	def writeOutputTimeStamp(self,init=[]):
 		out_dict = dict()
@@ -120,12 +170,19 @@ class Agent():
 			file.write('!s = {}\n'.format(s))
 		file.write('\n[SYS_LIVENESS]\n')
 		t_s = self.id_idx[self.id_no] % len(self.targets)
+
+		# No Meeting
 		for i,s in enumerate(self.targets[t_s:]+self.targets[0:t_s]):
-			if i == 0:
-				file.write('s = {} \\/ converged = 1\n'.format(s, s, 1))
-			else:
-				file.write('s = {} \\/ c{} = {} \\/ converged = 1 \n'.format(s,s,1))
-		file.write('s = {}\n'.format(self.meeting_state[0]))
+			file.write('s = {} \\/ converged = 1\n'.format(s, s, 1))
+
+		# Meeting
+		# for i,s in enumerate(self.targets[t_s:]+self.targets[0:t_s]):
+		# 	if i == 0:
+		# 		file.write('s = {} \\/ converged = 1\n'.format(s, s, 1))
+		# 	else:
+		# 		file.write('s = {} \\/ c{} = {} \\/ converged = 1 \n'.format(s,s,1))
+		# file.write('s = {}\n'.format(self.meeting_state[0]))
+
 		file.close()
 
 		if slugs_location!=None:
@@ -244,7 +301,6 @@ class Agent():
 		## Synchronous update rule
 		tot_b = 0.0
 		self.alpha *= self.burn_rate
-		self.information[target[1]].add(self.id_no)
 		self.belief_bad = []
 		# for b_i in self.local_belief:
 		# 	tot_b += self.likelihood(b_i, viewable_agents,target)*self.local_belief[b_i]
@@ -284,28 +340,6 @@ class Agent():
 		self.viewable_agents, viewable_states = self.agent_in_view(state, agent_states.values(), agent_states.keys())
 		# viewable_states = [self.observation(agent_states[v_s]) for v_s in self.viewable_agents]
 		self.updateBelief(self.viewable_agents, viewable_states)
-
-	def ViewProbability(self, viewable_agents, viewable_states):
-		view_prob = []
-		for a_i,a_s in zip(viewable_agents,viewable_states):
-			obs_states = list(self.gw.observable_states[self.current[0]])
-			# Find the mission's planned location for the agent
-			policy_prob = []
-			bad_prob = []
-			for obs_s in obs_states:
-				policy_prob.append(self.policy_list[a_i].observation((obs_s,a_s[1]), [self.last_seen[a_i][0]], self.last_seen[a_i][1]))
-				bad_prob.append(self.policy_list[a_i].bad_observation((obs_s,a_s[1]), [self.last_seen[a_i][0]], self.last_seen[a_i][1]))
-			# Find the most likely location of agent in the mission and then the probability of the observed location based on that position.
-			obs_probs = self.observation(obs_states, obs_states[np.argmax(np.asarray(policy_prob))], self.error_prob)
-			bad_probs = self.observation(obs_states, obs_states[np.argmax(np.asarray(bad_prob))], self.error_prob)
-			# Add it to probability tuple
-			if self.bad_model:
-				view_prob.append([obs_probs[obs_states.index(a_s[0])],bad_probs[obs_states.index(a_s[0])]])
-			else:
-				view_prob.append(obs_probs[obs_states.index(a_s[0])]/obs_probs.max())
-		return view_prob
-
-
 
 	def shareBelief(self,belief_arrays):
 		actual_belief = {}
@@ -362,9 +396,9 @@ class Agent():
 		neighbor_set = {}
 		for theta in self.actual_belief:
 			if self.asyncBeliefUpdate(theta,belief_arrays):
-				for t_i in self.information:
-					for v_i in [j_i for j_i in self.neighbor_belief[theta] if self.neighbor_belief[theta][j_i] != -1]:
-						self.information[t_i] = self.information[t_i].union(info_packet[v_i][t_i])
+				# for t_i in self.information:
+				# 	for v_i in [j_i for j_i in self.neighbor_belief[theta] if self.neighbor_belief[theta][j_i] != -1]:
+				# 		self.information[t_i] = self.information[t_i].union(info_packet[v_i][t_i])
 				self.belief_calls += 1
 				space = set.union(*[self.neighbor_set[x] for x in self.neighbor_set if x is not theta])
 				belief_list = []
@@ -411,6 +445,9 @@ class Agent():
 			if len(self.information[t_i]) >= 2*self.no_bad + 1:
 				self.comms_env[t_i] = 1
 				# self.information[t_i] = set()
+			if self.comms_env[t_i]==1 and self.current in self.meeting_state:
+				self.comms_env[t_i] = 0
+
 
 	def asyncBeliefUpdate(self,belief,belief_arrays):
 		if self.resetFlags[belief]:

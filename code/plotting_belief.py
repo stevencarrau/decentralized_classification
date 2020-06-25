@@ -18,7 +18,7 @@ import pickle
 
 
 # ---------- PART 1: Globals
-fname = 'Fixed_Env_5_Agents_Range'
+fname = 'Sandia_Sim_5_Agents_No_Meet'
 with open(fname+'.json') as json_file:
 	data = json.load(json_file)
 with open(fname+'.pickle','rb') as env_file:
@@ -30,20 +30,14 @@ writer = Writer(fps=2.0, metadata=dict(artist='Me'), bitrate=1800)
 # fig = texfig.figure(width=2000/my_dpi,dpi=my_dpi)
 # fig = plt.figure(figsize=(3600/my_dpi, 2000/my_dpi), dpi=my_dpi)
 fig = plt.figure(figsize=(2000/my_dpi, 1600/my_dpi), dpi=my_dpi)
-my_palette = plt.cm.get_cmap("tab10",len(df.index)+5)
-seed_iter = iter(range(0,5))
+my_palette = plt.cm.get_cmap("tab10",10)
+seed_iter = iter(range(0,len(df.index)))
 categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
 categories = []
 for k in seed_iter:
 	np.random.seed(k)
 	categories.append(str(np.random.randint(1000)))
-# cat_hold = []
-# cat_hold.append(categories.pop())
-# cat_hold.append(categories.pop())
-# cat_hold.append(categories.pop())
-# categories.append(cat_hold.pop(0))
-# categories.append(cat_hold.pop(0))
-# categories.append(cat_hold.pop(0))
+
 belief_good = df['0'][0]['GoodBelief']
 belief_bad = df['0'][0]['BadBelief']
 N = len(df[str(0)][-1]['Targets'])
@@ -58,7 +52,7 @@ belief_x_bad = []
 belief_y_bad = []
 belief_y_good = []
 # plt.show()
-frames = 250
+frames = 1000
 
 for row in range(0, N_a):
 	ax = plt.subplot(4, N_a+1, row+1+int(1+(N_a+1)/2)*int(row/((N_a)/2)), polar=True)
@@ -162,6 +156,12 @@ def grid_init(gwg):
 		ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
 		i += 1
 
+	for m_s in gwg.meeting_states:
+		color = (1.0,0.875,0)
+		s_c = coords(m_s, ncols)
+		ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.95)
+
+
 	return ag_array
 
 def belief_chart_init():
@@ -183,7 +183,7 @@ def belief_chart_init():
 		belief_x_good[i].append(0)
 		belief_y_good.append([])
 		belief_y_good[i].append(df['0'][id_no]['ActBelief'][belief_good])
-		px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=3, linestyle='solid', label=r'$b^a_'+str(i)+r'(\theta^\star)$')
+		px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=2, linestyle='solid', label=r'$b^a_'+str(i)+r'(\theta^\star)$')
 		# px2, = ax.plot([0,0.0], [0.0,0.0], color=my_palette(i), linewidth=3, linestyle='dashed', label=r'Incorrect belief $b^a_'+str(i)+r'(\theta_0)$')
 		px2 = None
 		plt_array.append((px1,px2))
@@ -298,8 +298,8 @@ ax_ar = grid_init(gwg)
 # 	update_all(i)
 ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=True,repeat=False)
 plt.show()
-# ani = FuncAnimation(fig, update_all, frames=frames, interval=50, blit=False,repeat=False)
-# ani.save('Plus-Simulation-Update.mp4', writer = writer)
+# ani = FuncAnimation(fig, update_all, frames=frames, interval=10, blit=False,repeat=False)
+# ani.save('Sandia-Sim-NoMeeting-LONG-0.8.mp4', writer = writer)
 # ani.save('QuickCycle.mp4',dpi=80,writer=writer)
 #
 # ani = FuncAnimation(fig, update, frames=50, interval=200, blit=True)

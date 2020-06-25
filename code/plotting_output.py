@@ -14,14 +14,16 @@ from matplotlib.offsetbox import (DrawingArea,OffsetImage,AnnotationBbox)
 import numpy as np
 from gridworld import *
 # import texfig
+import pickle
 
 
 
 # ---------- PART 1: Globals
-
-with open('Fixed_Env_5_Agents_Range.json') as json_file:
-# with open('Fixed_Env_5_Agents.json') as json_file:
+fname = 'data/5agents_4-3_range_async_min'
+with open(fname+'.json') as json_file:
 	data = json.load(json_file)
+# with open(fname+'.pickle','rb') as env_file:
+# 	gwg = pickle.load(env_file)
 df = pd.DataFrame(data)
 my_dpi = 150
 Writer = matplotlib.animation.writers['ffmpeg']
@@ -32,10 +34,10 @@ fig = plt.figure(figsize=(2000/my_dpi, 1600/my_dpi), dpi=my_dpi)
 my_palette = plt.cm.get_cmap("tab10",len(df.index)+5)
 seed_iter = iter(range(0,5))
 categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
-categories = []
-for k in seed_iter:
-	np.random.seed(k)
-	categories.append(str(np.random.randint(1000)))
+# categories = []
+# for k in seed_iter:
+# 	np.random.seed(k)
+# 	categories.append(str(np.random.randint(1000)))
 # cat_hold = []
 # cat_hold.append(categories.pop())
 # cat_hold.append(categories.pop())
@@ -45,7 +47,8 @@ for k in seed_iter:
 # categories.append(cat_hold.pop(0))
 belief_good = df['0'][0]['GoodBelief']
 belief_bad = df['0'][0]['BadBelief']
-N = len(df[str(0)][-1]['Targets'])
+# N = len(df[str(0)][-1]['Targets'])
+N = len(df[str(0)][-1]['Id_no'])
 N_a = len(categories)
 output_dict = dict([[c_i,{}] for c_i in categories])
 angles = [n / float(N) * 2 * pi for n in range(N)]
@@ -58,7 +61,7 @@ belief_x_bad = []
 belief_y_bad = []
 belief_y_good = []
 # plt.show()
-frames = 250
+frames = 50
 
 for row in range(0, N_a):
 	ax = plt.subplot(4, N_a+1, row+1+int(1+(N_a+1)/2)*int(row/((N_a)/2)), polar=True)
@@ -87,11 +90,11 @@ for row in range(0, N_a):
 plot_data = [l_data, f_data]
 
 def update_all(i):
-	rad_obj = update(i)
+	# rad_obj = update(i)
 	grid_obj = grid_update(i)
 	conn_obj = connect_update(i)
 	belf_obj = belief_update(i)
-	return rad_obj + grid_obj+conn_obj + belf_obj
+	return grid_obj+conn_obj + belf_obj
 
 def update(i):
 	global plot_data, df
@@ -133,7 +136,7 @@ def grid_init(nrows, ncols, obs_range):
 	for id_no in categories:
 		# p_t = df[str(0)][id_no]['PublicTargets']
 		color = my_palette(i)
-		init_loc = tuple(reversed(coords(df[str(0)][id_no]['AgentLoc'], ncols)))
+		init_loc = tuple(reversed(coords(df[str(0)][id_no]['AgentLoc'][0], ncols)))
 		c_i = plt.Circle(init_loc, 0.45, color=color)
 		# route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
 		cir_ax = ax.add_artist(c_i)
@@ -147,11 +150,11 @@ def grid_init(nrows, ncols, obs_range):
 		ag_array.append([cir_ax, lin_ax])
 		i += 1
 
-	for k in df[str(0)][-1]['Targets']:
-		color = my_palette(i)
-		s_c = coords(k, ncols)
-		ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
-		i += 1
+	# for k in df[str(0)][-1]['Targets']:
+	# 	color = my_palette(i)
+	# 	s_c = coords(k, ncols)
+	# 	ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
+	# 	i += 1
 
 	return ag_array
 
@@ -213,7 +216,7 @@ def grid_update(i):
 	for a_x, id_no in zip(ax_ar, categories):
 		# c_i, l_i, p_i,p_2 = a_x
 		c_i, l_i = a_x
-		loc = tuple(reversed(coords(df[str(i)][id_no]['AgentLoc'], ncols)))
+		loc = tuple(reversed(coords(df[str(i)][id_no]['AgentLoc'][0], ncols)))
 		c_i.set_center(loc)
 		l_i.set_xy(np.array(loc)-obs_range-0.5)
 		# route_x, route_y = zip(*[tuple(reversed(coords(df[str(i)][str(id_no)]['NominalTrace'][s][0], ncols))) for s in df[str(i)][str(id_no)]['NominalTrace']])
@@ -295,13 +298,15 @@ def stringify_keys(d):
 
 # ---------- PART 2:
 
-nrows = df['0'][df.first_valid_index()]['Rows']
-ncols = df['0'][df.first_valid_index()]['Cols']
-moveobstacles = []
-obstacles = []
+# nrows = gwg.nrows
+# ncols = gwg.ncols
+nrows = 10
+ncols = 10
+
 
 # #4 agents larger range
-obs_range = 2
+# obs_range = gwg.obs_range
+obs_range = 4
 
 
 
@@ -316,7 +321,7 @@ ax_ar = grid_init(nrows, ncols, obs_range)
 for i in range(frames):
 	update_all(i)
 
-write_JSON('Agents_Gridworld.json',output_dict)
+write_JSON('UAV_Trace_ADHT.json',output_dict)
 # ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=True,repeat=False)
 # plt.show()
 # ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=False,repeat=False)

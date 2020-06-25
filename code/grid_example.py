@@ -5,64 +5,50 @@ from agent import Agent
 import json
 import itertools
 import pickle
+import pathlib
+import copy
 
 def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
-	current_node = [0]*len(agent_array)
-	no_targets = len(agent_array[0].target_dict)
-	current_env = [(0,)*no_targets]*len(agent_array)
-	env_list = list(itertools.product(*[(0,1)]*(no_targets+1)))
-	env_list_conv = list(itertools.product(*[(0,1)]*(no_targets)))
+	# current_node = [0]*len(agent_array)
+	# no_targets = len(agent_array[0].target_dict)
+	# current_env = [(0,)*no_targets]*len(agent_array)
+	# env_list = list(itertools.product(*[(0,1)]*(no_targets+1)))
+	# env_list_conv = list(itertools.product(*[(0,1)]*(no_targets)))
 	conv_list = [0]*len(agent_array)
 	state_label = 's'
 	plotting_dictionary = dict()
 	time_t = 0
 	agent_loc = dict([[a.id_no, a.current] for a in agent_array])
+	agent_loc_new = copy.deepcopy(agent_loc)
 	time_p = {}
 	# Initialize missing status
 	for a_a in agent_array:
-		# a_a.initLastSeen(agent_loc.keys(), agent_loc.values())
 		time_p.update({a_a.id_no: a_a.writeOutputTimeStamp(agent_loc.keys())})
 	plotting_dictionary.update({str(time_t): time_p})
-	target_union = set()
-	for t in grid.targets:
-		target_union.update(set(t))
+
 	while time_t<tot_t:
 		print("Time: "+str(time_t))
 		time_p = {}
 		time_t += 1
 		## Movement update
 		for ind,a_i in enumerate(agent_array):
-			if conv_list[ind] == 1:
-				a_i.policy[current_node[ind]]['Successors'][env_list_conv.index(current_env[ind])]
-			else:
-				current_node[ind] = a_i.policy[current_node[ind]]['Successors'][env_list.index(current_env[ind]+(conv_list[ind],))]
-			s = a_i.policy[current_node[ind]]['State'][state_label]
-			a_i.updateAgent(s)
-			agent_loc[a_i.id_no] = a_i.current
-			# print("Local likelihood for ", a_i.id_no, ": ",
-			#           a_i.policy.observation((s, q), [prev_state], 1))
-		# ## Local update
-		for a_i,  p_i in enumerate(agent_array):
-			p_i.updateVision(p_i.current, agent_loc)
+			a_i.update(agent_loc)
+			agent_loc_new[a_i.id_no] = a_i.current
+
+		agent_loc = agent_loc_new
 		# ## Sharing update
 		packet_dict = {}
 		for a_i, p_i in enumerate(agent_array):
-			if p_i.async_flag:
-				# belief_packet = dict([[v_a,agent_array[p_i.id_idx[v_a]].actual_belief] for v_a in p_i.viewable_agents])
-				belief_packet,info_packet = beliefPacketFn(p_i,agent_array) ## ADHT belief packet
-				packet_dict.update({p_i:(belief_packet,info_packet)})
-			else:
-				belief_packet = [agent_array[p_i.id_idx[v_a]].actual_belief for v_a in p_i.viewable_agents]
-				p_i.shareBelief(belief_packet)
+			belief_packet,info_packet = beliefPacketFn(p_i,agent_array) ## ADHT belief packet
+			packet_dict.update({p_i:(belief_packet,info_packet)})
 		for a_i,p_i in enumerate(agent_array):
 			belief_packet,info_packet = packet_dict[p_i]
 			p_i.ADHT(belief_packet, info_packet)
 			time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
-			current_env[a_i] = tuple(p_i.comms_env)
-			if max(p_i.actual_belief.values())>0.99:
-				conv_list[a_i] = 1
+			# current_env[a_i] = tuple(p_i.comms_env)
+
 		plotting_dictionary.update({str(time_t): time_p})
-	fname = str('Fixed_Env_{}_Agents_Range').format(len(agent_array))
+	fname = str('Sandia_Sim_{}_Agents_No_Meet').format(len(agent_array))
 	print("Writing to "+fname)
 	write_JSON(fname+'.json', stringify_keys(plotting_dictionary))
 	env_file = open(fname+'.pickle','wb')
@@ -125,17 +111,22 @@ random.seed(0)
 nrows = 25
 ncols = 25
 border_size = 10
-no_agents = 5
+# no_agents = 5
 allowed_region =  list(range(border_size)) + list(range(ncols-border_size,ncols))
 moveobstacles = []
 valid_states = [o_i for o_i in range(nrows*ncols) if coords(o_i,ncols)[0] not in allowed_region or coords(o_i,ncols)[1] not in allowed_region ]
 obstacles = list(set(range(nrows*ncols))-set(valid_states))
-target_prob = 0.80
+target_prob = 0.99
+
 # # # 5 agents small range
-initial = random.sample(valid_states,no_agents)
-targets = [dict([[border_size+2,1-target_prob],[(border_size+2)*ncols,target_prob],[(border_size+3)*ncols-1,target_prob]])]*no_agents
+# initial = random.sample(valid_states,no_agents)
+initial = [86,500,1629,1741,681]
+no_agents = len(initial)
+meeting_state = [1059]
+# targets = [dict([[border_size+2,1-target_prob],[(border_size+2)*ncols,target_prob],[(border_size+3)*ncols-1,target_prob]])]*no_agents
+targets = [dict([[47,1-target_prob],[261,target_prob],[979,target_prob]])]*no_agents
 no_targets = len(targets[0])
-obs_range = 2
+obs_range = 10
 np.random.seed(1)
 
 #
@@ -148,7 +139,12 @@ regions['deterministic']= range(nrows*ncols)
 # regions_det = dict.fromkeys(regionkeys,{-1})
 # regions_det['deterministic'] = range(nrows*ncols)
 slugs_location = '~/slugs/'
-gwg = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions,obs_range=obs_range)
+env_loc = pathlib.Path().absolute()
+# mapname = 'RVR_2_7_20_site_cropped'
+# scale = (74,29)
+mapname = 'Sandia'
+scale = (49,37)
+gwg = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions=None,obs_range=obs_range,filename=[str(env_loc)+'/'+mapname+'.png',scale,cv2.INTER_LINEAR_EXACT],meeting_states=meeting_state)
 #
 states = range(gwg.nstates)
 alphabet = [0,1,2,3] # North, south, west, east
@@ -164,7 +160,7 @@ for s in states:
 		#     det_trans.append((s, alphabet.index(a), t2, p_det))
 
 mdp = MDP(states, set(alphabet),transitions)
-# nfa = MDP(states,set(alphabet),det_trans) #deterministic transitions
+
 print("Models built")
 agent_array = []
 c_i = 0
@@ -174,12 +170,14 @@ for i in range(len(initial)):
 	bad_b += (0,)
 belief_tracks = [str((1,1,1)), str((0,1,1))]
 seed_iter = iter(range(0,5+len(initial)))
-meeting_state = [312]
+
+
+## Initializing agents
 for i, j in zip(initial, targets):
 	np.random.seed(next(seed_iter))
 	if c_i ==3:
 		agent_array.append(Agent(init=i, target_list=j,meeting_state=meeting_state, gw_env=gwg, belief_tracks=belief_tracks, id_no=np.random.randint(1000),
-								 policy_load=False, slugs_location=slugs_location, evil=(1,0,1)))
+								 policy_load=False, slugs_location=slugs_location, evil=(1,1,0)))
 	else:
 		agent_array.append(Agent(init=i, target_list=j,meeting_state=meeting_state, gw_env = gwg, belief_tracks=belief_tracks,id_no=np.random.randint(1000),policy_load = False,slugs_location=slugs_location,evil=False))
 	# else:
@@ -187,11 +185,11 @@ for i, j in zip(initial, targets):
 	print("Policy ", c_i, " -- complete")
 	c_i += 1
 id_list = [a_l.id_no for a_l in agent_array]
-# pol_list = [a_l.policy for a_l in agent_array]
+agent_loc = dict([[a.id_no, a.current] for a in agent_array])
 for a_i in agent_array:
 	a_i.initBelief([a_l.id_no for a_l in agent_array],1,no_targets)
-	# a_i.definePolicyDict(id_list,pol_list)
+	a_i.initInfo(agent_loc)
 
-play_sim(True,agent_array,gwg,250)
+play_sim(True,agent_array,gwg,1500)
 
 
