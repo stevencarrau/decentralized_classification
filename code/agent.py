@@ -73,6 +73,7 @@ class Agent():
 			self.conv_list = 1
 		else:
 			self.conv_list = 0
+		return self.current
 
 	def updateConvFlags(self,agent_loc):
 		# Inserting information if passes over a target
@@ -171,17 +172,17 @@ class Agent():
 		file.write('\n[SYS_LIVENESS]\n')
 		t_s = self.id_idx[self.id_no] % len(self.targets)
 
-		# No Meeting
-		for i,s in enumerate(self.targets[t_s:]+self.targets[0:t_s]):
-			file.write('s = {} \\/ converged = 1\n'.format(s, s, 1))
-
-		# Meeting
+		# # No Meeting
 		# for i,s in enumerate(self.targets[t_s:]+self.targets[0:t_s]):
-		# 	if i == 0:
-		# 		file.write('s = {} \\/ converged = 1\n'.format(s, s, 1))
-		# 	else:
-		# 		file.write('s = {} \\/ c{} = {} \\/ converged = 1 \n'.format(s,s,1))
-		# file.write('s = {}\n'.format(self.meeting_state[0]))
+		# 	file.write('s = {} \\/ converged = 1\n'.format(s, s, 1))
+
+		# # Meeting
+		for i,s in enumerate(self.targets[t_s:]+self.targets[0:t_s]):
+			if i == 0:
+				file.write('s = {} \\/ converged = 1\n'.format(s, s, 1))
+			else:
+				file.write('s = {} \\/ c{} = {} \\/ converged = 1 \n'.format(s,s,1))
+		file.write('s = {}\n'.format(self.meeting_state[0]))
 
 		file.close()
 

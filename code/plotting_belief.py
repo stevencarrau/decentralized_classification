@@ -18,7 +18,7 @@ import pickle
 
 
 # ---------- PART 1: Globals
-fname = 'Sandia_Sim_5_Agents_No_Meet'
+fname = 'Sandia_Sim_5_Agents_Meet'
 with open(fname+'.json') as json_file:
 	data = json.load(json_file)
 with open(fname+'.pickle','rb') as env_file:
