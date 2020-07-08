@@ -3,13 +3,10 @@ __author__ = 'sudab'
 import os, sys, getopt, pdb, string
 import random
 import numpy as np
-# import pygame
 from matplotlib import colors as mcolors
 import math
 import matplotlib.pyplot as plt
-from skimage import io
-import cv2
-# import pygame.locals as pgl
+import cPickle
 
 class Gridworld():
     # a gridworld with uneven terrain
@@ -17,8 +14,7 @@ class Gridworld():
         # walls are the obstacles. The edges of the gridworld will be included into the walls.
         # region is a string and can be one of: ['pavement','gravel', 'grass', 'sand']
         if filename[0] != None:
-            data = io.imread(filename[0])
-            data = cv2.resize(data, filename[1], interpolation=filename[2])
+            data = cPickle.load(open("Gridworld.p","rb"))
             regionkeys = {'pavement', 'gravel', 'grass', 'sand', 'deterministic'}
             (nrows, ncols) = data.shape[:2]
             data = data.flatten()

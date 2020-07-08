@@ -83,7 +83,7 @@ class Agent():
 				if a_i == self.id_no:
 					self.information[self.targets.index(a_l)].add(a_i)
 		for a_i,a_l in agent_loc.items():
-			view_agents,*_ = self.agent_in_view(a_l, agent_loc.values(),agent_loc.keys())
+			view_agents = self.agent_in_view(a_l, agent_loc.values(),agent_loc.keys())[0]
 			for v_a in view_agents:
 				for k in self.informationDict[a_i]:
 					self.informationDict[a_i][k].update(self.informationDict[v_a][k])

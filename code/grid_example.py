@@ -5,7 +5,6 @@ from agent import Agent
 import json
 import itertools
 import pickle
-import pathlib
 import copy
 
 def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
@@ -52,8 +51,8 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 	env_file = open(fname+'.pickle','wb')
 	pickle.dump(gwg,env_file)
 	env_file.close()
-	x = [print('Agent_{}: Steps {}'.format(a_i.id_no,a_i.steps)) for a_i in agent_array]
-	return print("Goal!")
+	# x = [print('Agent_{}: Steps {}'.format(a_i.id_no,a_i.steps)) for a_i in agent_array]
+	# return print("Goal!")
 
 
 def beliefPacketFn(agent_p,agent_array):
@@ -137,14 +136,8 @@ regions['deterministic']= range(nrows*ncols)
 # regions_det = dict.fromkeys(regionkeys,{-1})
 # regions_det['deterministic'] = range(nrows*ncols)
 slugs_location = '~/slugs/'
-env_loc = pathlib.Path().absolute()
-# mapname = 'RVR_2_7_20_site_cropped'
-# scale = (74,29)
 
-# Create and load map
-mapname = 'Sandia'
-scale = (49,37)
-gwg = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions=None,obs_range=obs_range,filename=[str(env_loc)+'/'+mapname+'.png',scale,cv2.INTER_LINEAR_EXACT],meeting_states=meeting_state)
+gwg = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions=None,obs_range=obs_range,filename=[1,1,1],meeting_states=meeting_state)
 # Create MDP model
 states = range(gwg.nstates)
 alphabet = [0,1,2,3] # North, south, west, east
