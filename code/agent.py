@@ -115,7 +115,7 @@ class Agent():
 		return out_dict
 
 
-	def Policy(self,infile=None,slugs_location=None):
+	def Policy(self,infile=None,slugs_location=None,preload=False):
 
 		if infile == None:
 			infile = 'grid_example_{}'.format(self.id_no)
@@ -123,7 +123,11 @@ class Agent():
 		else:
 			filename = infile +'_{}'.format(self.id_no)+'.structuredslugs'
 
+		if preload:
+			return self.parseJson(infile+'.json')
+
 		file = open(filename, 'w')
+
 
 
 		file.write('[INPUT]\n')
@@ -234,6 +238,7 @@ class Agent():
 			return automaton
 		else:
 			self.writeJson(None,outfilename,automaton)
+			return automaton
 
 	def definePolicyDict(self,id_list,policy_array):
 		self.policy_list = dict([[i,p_i] for i,p_i in zip(id_list,policy_array)])
@@ -253,7 +258,7 @@ class Agent():
 		self.current = state
 		
 	### Belief Rules
-	def initBelief(self,agent_id,no_bad,no_targets):
+	def initBelief(self,agent_id,no_bad,no_targets,pre_load=False):
 		self.no_bad = no_bad
 		no_agents = len(agent_id)
 		## Combinarotic approach
@@ -294,7 +299,10 @@ class Agent():
 		if self.policy_load:
 			self.loadPolicy()
 		else:
-			self.policy = self.Policy(slugs_location=self.slugs_loc)
+			if pre_load:
+				self.policy = self.Policy(slugs_location=self.slugs_loc,preload=True)
+			else:
+				self.policy = self.Policy(slugs_location=self.slugs_loc)
 
 	def updateBelief(self, viewable_agents,target):
 		if not target:

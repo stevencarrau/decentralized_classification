@@ -176,10 +176,8 @@ id_list = [a_l.id_no for a_l in agent_array] # List of id_nos : not required
 agent_loc = dict([[a.id_no, a.current] for a in agent_array]) # Dictionary {agent_id:agent_loc}
 # Initialize agent belief and information-sharing structures
 for a_i in agent_array:
-	a_i.initBelief([a_l.id_no for a_l in agent_array],1,no_targets)
+	a_i.initBelief([a_l.id_no for a_l in agent_array],1,no_targets,pre_load=False)
 	a_i.initInfo(agent_loc)
 
-# Run simulation
-play_sim(True,agent_array,gwg,1500)
 
 

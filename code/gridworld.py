@@ -6,7 +6,8 @@ import numpy as np
 from matplotlib import colors as mcolors
 import math
 import matplotlib.pyplot as plt
-import cPickle
+# import cPickle
+import pickle
 
 class Gridworld():
     # a gridworld with uneven terrain
@@ -14,7 +15,7 @@ class Gridworld():
         # walls are the obstacles. The edges of the gridworld will be included into the walls.
         # region is a string and can be one of: ['pavement','gravel', 'grass', 'sand']
         if filename[0] != None:
-            data = cPickle.load(open("Gridworld.p","rb"))
+            data = pickle.load(open("Gridworld.p","rb"))
             regionkeys = {'pavement', 'gravel', 'grass', 'sand', 'deterministic'}
             (nrows, ncols) = data.shape[:2]
             data = data.flatten()
