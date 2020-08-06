@@ -133,7 +133,7 @@ class Agent():
 		file.write('[INPUT]\n')
 		for t in self.targets:
 			file.write('c{}:0...1\n'.format(t))
-		file.write('converged:0...1\n')
+		file.write('shared:0...1\n')
 		file.write('\n') # Add moving obstacles
 
 		file.write('\n[OUTPUT]\n')
@@ -142,16 +142,24 @@ class Agent():
 		file.write('\n[ENV_INIT]\n')
 		for t in self.targets:
 			file.write('c{} = 0\n'.format(t))
-		file.write('converged = 0\n')
+		file.write('shared = 0\n')
 		file.write('\n') # Add moving obstacles
 
 		file.write('\n[SYS_INIT]\n')
 		file.write('s={}\n'.format(self.current))
 
 		file.write('\n[ENV_TRANS]\n')
-		file.write('converged=1 -> converged\'=1\n')
+		file.write('shared=1 -> shared\'=0\n')
+		for t in self.targets:
+			file.write('c{} = 1 -> c{}\' = 0\n'.format(t,t))
 
-		# file.write('\n[ENV_LIVENESS]\n')
+		file.write('\n[ENV_LIVENESS]\n')
+		for t in self.meeting_state:
+			str += 's={} \\/'.format(t)
+		str = str[:-3]
+		str += '-> shared = 1\n'
+
+
 		# for s in self.targets:
 		# 	str = ''
 		# 	for t in self.meeting_state:
@@ -192,11 +200,11 @@ class Agent():
 		# # # Meeting
 		for i,s in enumerate(self.targets[t_s:]+self.targets[0:t_s]):
 			if i == 0:
-				file.write('s = {} \\/ converged = 1\n'.format(s, s, 1))
+				file.write('s = {}\n'.format(s))
 			else:
-				file.write('s = {} \\/ c{} = {} \\/ converged = 1 \n'.format(s,s,1))
+				file.write('s = {} \\/ c{} = {}\n'.format(s,s,1))
 		file.write('s = {}\n'.format(self.meeting_state[0]))
-
+		file.write('shared = 1')
 		file.close()
 
 		if slugs_location!=None:
