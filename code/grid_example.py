@@ -112,10 +112,10 @@ target_prob = 0.75
 
 # # # Specific Scenario -- 5 agents, 3 targets, 1 meeting place
 # initial = random.sample(valid_states,no_agents)
-initial = [153,699,811,1369,1195]
+initial = [153,478,877,1307,700]
 no_agents = len(initial)
-meeting_state = [665]
-targets = [dict([[1614,1-target_prob],[884,target_prob],[166,target_prob]])]*no_agents
+meeting_state = [471]
+targets = [dict([[1194,1-target_prob],[758,target_prob],[153,target_prob]])]*no_agents
 # targets = [dict([[1614,1-target_prob],[884,target_prob]])]*no_agents
 no_targets = len(targets[0])
 obs_range = 5
