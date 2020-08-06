@@ -112,9 +112,9 @@ target_prob = 0.75
 
 # # # Specific Scenario -- 5 agents, 3 targets, 1 meeting place
 # initial = random.sample(valid_states,no_agents)
-initial = [120,848,926,1111,1507]
+initial = [153,699,811,1369,1195]
 no_agents = len(initial)
-meeting_state = [803]
+meeting_state = [665]
 targets = [dict([[1614,1-target_prob],[884,target_prob],[166,target_prob]])]*no_agents
 # targets = [dict([[1614,1-target_prob],[884,target_prob]])]*no_agents
 no_targets = len(targets[0])

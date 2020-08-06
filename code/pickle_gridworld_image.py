@@ -15,6 +15,6 @@ env_loc = pathlib.Path().absolute()
 
 # Create and load map
 mapname = 'rvr_2020_08_03_site_controller'
-scale = (49,37)
+scale = (63,24)
 fname = [str(env_loc)+'/'+mapname+'.png',scale,cv2.INTER_LINEAR_EXACT]
 write_pickled_image(fname)

@@ -154,6 +154,7 @@ class Agent():
 			file.write('c{} = 1 -> c{}\' = 0\n'.format(t,t))
 
 		file.write('\n[ENV_LIVENESS]\n')
+		str=  ''
 		for t in self.meeting_state:
 			str += 's={} \\/'.format(t)
 		str = str[:-3]
