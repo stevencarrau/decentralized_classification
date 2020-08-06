@@ -181,6 +181,15 @@ class Agent():
 		# 	file.write('s = {} \\/ converged = 1\n'.format(s, s, 1))
 
 		# # Meeting
+		# for i,s in enumerate(self.targets[t_s:]+self.targets[0:t_s]):
+		# 	if i == 0:
+		# 		file.write('s = {} \\/ c{} = {} \\/ converged = 1 \n'.format(s,s,1))
+		# 	else:
+		# 		file.write('s = {} \\/ converged = 1\n'.format(s, s, 1))
+		# file.write('s = {}\n'.format(self.meeting_state[0]))
+
+
+		# # # Meeting
 		for i,s in enumerate(self.targets[t_s:]+self.targets[0:t_s]):
 			if i == 0:
 				file.write('s = {} \\/ converged = 1\n'.format(s, s, 1))

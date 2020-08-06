@@ -7,6 +7,8 @@ import itertools
 import pickle
 import copy
 
+
+
 def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 	# Define agent location
 	agent_loc = dict([[a.id_no, a.current] for a in agent_array])
@@ -45,7 +47,6 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 		plotting_dictionary.update({str(time_t): time_p})
 
 	# Writing outputs
-	fname = str('Sandia_Sim_{}_Agents_Meet').format(len(agent_array))
 	print("Writing to "+fname)
 	write_JSON(fname+'.json', stringify_keys(plotting_dictionary))
 	env_file = open(fname+'.pickle','wb')
@@ -107,37 +108,27 @@ def coords(s,ncols):
 
 
 ## Define model as a gridworld function
-random.seed(0)
-nrows = 25
-ncols = 25
-border_size = 10
-# no_agents = 5
-allowed_region =  list(range(border_size)) + list(range(ncols-border_size,ncols))
-moveobstacles = []
-valid_states = [o_i for o_i in range(nrows*ncols) if coords(o_i,ncols)[0] not in allowed_region or coords(o_i,ncols)[1] not in allowed_region ]
-obstacles = list(set(range(nrows*ncols))-set(valid_states))
-target_prob = 0.9
+target_prob = 0.75
 
 # # # Specific Scenario -- 5 agents, 3 targets, 1 meeting place
 # initial = random.sample(valid_states,no_agents)
-initial = [86,500,1629,1741,681]
+initial = [120,848,926,1111,1507]
 no_agents = len(initial)
-meeting_state = [1059]
-targets = [dict([[47,1-target_prob],[261,target_prob],[979,target_prob]])]*no_agents
+meeting_state = [803]
+targets = [dict([[1614,1-target_prob],[884,target_prob],[166,target_prob]])]*no_agents
+# targets = [dict([[1614,1-target_prob],[884,target_prob]])]*no_agents
 no_targets = len(targets[0])
-obs_range = 10
+obs_range = 5
 np.random.seed(1)
 
 evil_switch = True
 
 regionkeys = {'pavement','gravel','grass','sand','deterministic'}
-regions = dict.fromkeys(regionkeys,{-1})
-regions['deterministic']= range(nrows*ncols)
-# regions_det = dict.fromkeys(regionkeys,{-1})
 # regions_det['deterministic'] = range(nrows*ncols)
 slugs_location = '~/slugs/'
 
-gwg = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions=None,obs_range=obs_range,filename=[1,1,1],meeting_states=meeting_state)
+gwg = Gridworld(initial, nagents=len(initial), targets=targets,regions=None,obs_range=obs_range,filename=[1,1,1],meeting_states=meeting_state)
+
 # Create MDP model
 states = range(gwg.nstates)
 alphabet = [0,1,2,3] # North, south, west, east
@@ -156,6 +147,7 @@ bad_b = ()
 for i in range(len(initial)):
 	bad_b += (0,)
 belief_tracks = [str((1,1,1)), str((0,1,1))] # For output plots
+# belief_tracks = [str((1,1)), str((0,1))] # For output plots
 seed_iter = iter(range(0,5+len(initial)))
 
 
@@ -167,7 +159,7 @@ for i, j in zip(initial, targets):
 	np.random.seed(next(seed_iter))
 	if c_i ==3:
 		agent_array.append(Agent(init=i, target_list=j,meeting_state=meeting_state, gw_env=gwg, belief_tracks=belief_tracks, id_no=np.random.randint(1000),
-								 policy_load=False, slugs_location=slugs_location, evil=(1,1,0)))
+								 policy_load=False, slugs_location=slugs_location, evil=(1,1,1)))
 	else:
 		agent_array.append(Agent(init=i, target_list=j,meeting_state=meeting_state, gw_env = gwg, belief_tracks=belief_tracks,id_no=np.random.randint(1000),policy_load = False,slugs_location=slugs_location,evil=False))
 	print("Policy ", c_i, " -- complete")
@@ -176,10 +168,11 @@ id_list = [a_l.id_no for a_l in agent_array] # List of id_nos : not required
 agent_loc = dict([[a.id_no, a.current] for a in agent_array]) # Dictionary {agent_id:agent_loc}
 # Initialize agent belief and information-sharing structures
 for a_i in agent_array:
-	a_i.initBelief([a_l.id_no for a_l in agent_array],1,no_targets,pre_load=True)
+	a_i.initBelief([a_l.id_no for a_l in agent_array],1,no_targets,pre_load=False)
 	a_i.initInfo(agent_loc)
 
 # Run simulation
+fname = str('Sandia_Sim_{}_Agents_Meet_New_Small').format(len(agent_array))
 play_sim(True,agent_array,gwg,1500)
 
 

@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib import colors as mcolors
 import math
 import matplotlib.pyplot as plt
-# import cPickle
+import pygame
 import pickle
 
 class Gridworld():
