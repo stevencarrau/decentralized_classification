@@ -108,17 +108,17 @@ def coords(s,ncols):
 
 
 ## Define model as a gridworld function
-target_prob = 0.75
+target_prob = 0.999
 
 # # # Specific Scenario -- 5 agents, 3 targets, 1 meeting place
 # initial = random.sample(valid_states,no_agents)
-initial = [153,478,877,1307,700]
+initial = [141,215,344,222,318]
 no_agents = len(initial)
-meeting_state = [471]
-targets = [dict([[1194,1-target_prob],[758,target_prob],[153,target_prob]])]*no_agents
+meeting_state = [181]
+targets = [dict([[350,1-target_prob],[77,target_prob],[221,target_prob]])]*no_agents
 # targets = [dict([[1614,1-target_prob],[884,target_prob]])]*no_agents
 no_targets = len(targets[0])
-obs_range = 5
+obs_range = 1
 np.random.seed(1)
 
 evil_switch = True
@@ -172,7 +172,7 @@ for a_i in agent_array:
 	a_i.initInfo(agent_loc)
 
 # Run simulation
-fname = str('Sandia_Sim_{}_Agents_Meet_New_Small').format(len(agent_array))
-play_sim(True,agent_array,gwg,1500)
+fname = str('Sandia_Sim_{}_Agents_No_Meet_New_Small').format(len(agent_array))
+play_sim(True,agent_array,gwg,300)
 
 

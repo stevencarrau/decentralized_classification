@@ -13,6 +13,7 @@ from collections import OrderedDict
 import pickle
 import policy_reactive
 import simplejson as json
+import operator
 
 
 class ProbablilityNotOne(Exception):
@@ -60,22 +61,26 @@ class Agent():
 		self.informationDict = dict([[k_i, deepcopy(self.information)] for k_i in agent_loc])
 
 	def update(self, agent_loc):
-		if self.conv == 1:
-			self.policy[self.current_node]['Successors'][self.env_list_conv.index(self.current_env)]
+		# if self.conv == 1:
+		# 	self.policy[self.current_node]['Successors'][self.env_list_conv.index(self.current_env)]
+		# else:
+		env_ind = np.nonzero(1-np.array(list(self.policy[self.current_node]['State'].values())[0:-1]))[0]
+		if len(env_ind)==0:
+			self.current_node = self.policy[self.current_node]['Successors'][0]
 		else:
-			self.current_node = self.policy[self.current_node]['Successors'][
-				self.env_list.index(self.current_env + (self.conv,))]
+			self.current_node = self.policy[self.current_node]['Successors'][int(''.join(map(str,np.array(list(self.current_env + (self.conv,)))[env_ind].tolist())),2)]
+		# self.current_node = self.policy[self.current_node]['Successors'][self.env_list.index(self.current_env + (self.conv,))]
 		s = self.policy[self.current_node]['State'][self.state_label]
 		self.updateAgent(s)
 		## Vision
 		self.updateVision(self.current, agent_loc)
+		self.current_env = (0,) * len(self.targets)
+		if s in self.meeting_state and self.conv ==0:
+			self.conv = 1
+		elif self.conv == 1:
+			self.conv = 0
 		self.updateConvFlags(agent_loc)
 
-		# Convergence Flag
-		if max(self.actual_belief.values()) > self.stop_val and not self.evil:
-			self.conv_list = 1
-		else:
-			self.conv_list = 0
 		return self.current
 
 	def updateConvFlags(self, agent_loc):
@@ -97,6 +102,7 @@ class Agent():
 				hold_env = list(self.current_env)
 				hold_env[t_i] = 1
 				self.current_env = tuple(hold_env)
+				self.information[t_i].clear()
 
 	def writeOutputTimeStamp(self, init=[]):
 		out_dict = dict()
@@ -152,21 +158,17 @@ class Agent():
 		for t in self.targets:
 			file.write('c{} = 1 -> c{}\' = 0\n'.format(t, t))
 
-		file.write('\n[ENV_LIVENESS]\n')
-		str = ''
-		for t in self.meeting_state:
-			str += 's={} \\/'.format(t)
-		str = str[:-3]
-		str += '-> shared = 1\n'
-		file.write(str)
+		#""" No Meeting Comment Before
 
-		# for s in self.targets:
-		# 	str = ''
-		# 	for t in self.meeting_state:
-		# 		str += 's={} \\/'.format(t)
-		# 	str = str[:-3]
-		# 	str += '-> c{} = 1\n'.format(s)
-		# 	file.write(str)
+		# file.write('\n[ENV_LIVENESS]\n')
+		# str = ''
+		# for t in self.meeting_state:
+		# 	str += 's={} \\/'.format(t)
+		# str = str[:-3]
+		# str += '-> shared = 1\n'
+		# file.write(str)
+		#""" END NO meeting comment
+
 		file.write('\n[SYS_TRANS]\n')
 
 		for s in self.gw.states:
@@ -186,7 +188,7 @@ class Agent():
 
 		# # No Meeting
 		for i,s in enumerate(self.targets[t_s:]+self.targets[0:t_s]):
-			file.write('s = {} \\/ converged = 1\n'.format(s, s, 1))
+			file.write('s = {} \n'.format(s))
 
 		# # # Meeting
 		# for i, s in enumerate(self.targets[t_s:] + self.targets[0:t_s]):
