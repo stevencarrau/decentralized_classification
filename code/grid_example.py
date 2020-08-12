@@ -108,7 +108,7 @@ def coords(s,ncols):
 
 
 ## Define model as a gridworld function
-target_prob = 0.999
+target_prob = 0.8
 
 # # # Specific Scenario -- 5 agents, 3 targets, 1 meeting place
 # initial = random.sample(valid_states,no_agents)

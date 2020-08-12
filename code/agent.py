@@ -158,16 +158,37 @@ class Agent():
 		for t in self.targets:
 			file.write('c{} = 1 -> c{}\' = 0\n'.format(t, t))
 
-		#""" No Meeting Comment Before
 
-		# file.write('\n[ENV_LIVENESS]\n')
-		# str = ''
-		# for t in self.meeting_state:
-		# 	str += 's={} \\/'.format(t)
-		# str = str[:-3]
-		# str += '-> shared = 1\n'
-		# file.write(str)
-		#""" END NO meeting comment
+		#"""# # No Meeting
+		file.write('\n[SYS_TRANS]\n')
+
+		for s in self.gw.states:
+			strn = 's = {} ->'.format(s)
+			repeat = set()
+			for u in self.gw.actlist:
+				snext = np.nonzero(self.gw.prob[u][s])[0][0]
+				if snext not in repeat:
+					repeat.add(snext)
+					strn += 's\' = {} \\/ '.format(snext)
+			strn = strn[:-3]
+			file.write(strn + '\n')
+		for s in self.gw.obstacles:
+			file.write('!s = {}\n'.format(s))
+		file.write('\n[SYS_LIVENESS]\n')
+		t_s = self.id_idx[self.id_no] % len(self.targets)
+
+		for i,s in enumerate(self.targets[t_s:]+self.targets[0:t_s]):
+			file.write('s = {} \n'.format(s))
+		#"""
+
+		""" Meeting Comment/Uncomment Here
+		file.write('\n[ENV_LIVENESS]\n')
+		str = ''
+		for t in self.meeting_state:
+			str += 's={} \\/'.format(t)
+		str = str[:-3]
+		str += '-> shared = 1\n'
+		file.write(str)
 
 		file.write('\n[SYS_TRANS]\n')
 
@@ -186,18 +207,16 @@ class Agent():
 		file.write('\n[SYS_LIVENESS]\n')
 		t_s = self.id_idx[self.id_no] % len(self.targets)
 
-		# # No Meeting
-		for i,s in enumerate(self.targets[t_s:]+self.targets[0:t_s]):
-			file.write('s = {} \n'.format(s))
 
-		# # # Meeting
-		# for i, s in enumerate(self.targets[t_s:] + self.targets[0:t_s]):
-		# 	if i == 0:
-		# 		file.write('s = {}\n'.format(s))
-		# 	else:
-		# 		file.write('s = {} \\/ c{} = {}\n'.format(s, s, 1))
-		# file.write('s = {}\n'.format(self.meeting_state[0]))
-		# file.write('shared = 1')
+		for i, s in enumerate(self.targets[t_s:] + self.targets[0:t_s]):
+			if i == 0:
+				file.write('s = {} \\/ c{} = {}\n'.format(s, s, 1))
+			else:
+				# file.write('s = {} \\/ c{} = {}\n'.format(s, s, 1))
+				file.write('s = {} \n'.format(s))
+		file.write('s = {}\n'.format(self.meeting_state[0]))
+		file.write('shared = 1')
+		#"""
 
 		file.close()
 
