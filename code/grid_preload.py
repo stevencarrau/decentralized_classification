@@ -138,9 +138,9 @@ regions['deterministic']= range(nrows*ncols)
 slugs_location = '~/slugs/'
 
 gwg = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions=None,obs_range=obs_range,filename=[1,1,1],meeting_states=meeting_state)
-gwg.render()
-gwg.draw_state_labels()
-gwg.save('SandiaCoarse.png')
+# gwg.render()
+# gwg.draw_state_labels()
+# gwg.save('SandiaCoarse.png')
 # Create MDP model
 states = range(gwg.nstates)
 alphabet = [0,1,2,3] # North, south, west, east

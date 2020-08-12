@@ -159,7 +159,7 @@ class Agent():
 			file.write('c{} = 1 -> c{}\' = 0\n'.format(t, t))
 
 
-		#"""# # No Meeting
+		# """# # No Meeting #  Comment/Uncomment Here
 		file.write('\n[SYS_TRANS]\n')
 
 		for s in self.gw.states:
@@ -210,10 +210,11 @@ class Agent():
 
 		for i, s in enumerate(self.targets[t_s:] + self.targets[0:t_s]):
 			if i == 0:
-				file.write('s = {} \\/ c{} = {}\n'.format(s, s, 1))
-			else:
-				# file.write('s = {} \\/ c{} = {}\n'.format(s, s, 1))
 				file.write('s = {} \n'.format(s))
+				# file.write('s = {} \\/ c{} = {}\n'.format(s, s, 1))
+			else:
+				file.write('s = {} \\/ c{} = {}\n'.format(s, s, 1))
+				# file.write('s = {} \n'.format(s))
 		file.write('s = {}\n'.format(self.meeting_state[0]))
 		file.write('shared = 1')
 		#"""
