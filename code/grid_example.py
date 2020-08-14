@@ -108,7 +108,7 @@ def coords(s,ncols):
 
 
 ## Define model as a gridworld function
-target_prob = 0.85
+target_prob = 0.999
 
 # # # Specific Scenario -- 5 agents, 3 targets, 1 meeting place
 # initial = random.sample(valid_states,no_agents)
@@ -172,7 +172,7 @@ for a_i in agent_array:
 	a_i.initInfo(agent_loc)
 
 # Run simulation
-fname = str('Sandia_Sim_{}_Agents_Meet_New_Small').format(len(agent_array))
+fname = str('Sandia_Sim_{}_Agents_No_Meet_New_Small').format(len(agent_array))
 play_sim(True,agent_array,gwg,300)
 
 

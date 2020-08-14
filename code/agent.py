@@ -75,9 +75,10 @@ class Agent():
 		## Vision
 		self.updateVision(self.current, agent_loc)
 		self.current_env = (0,) * len(self.targets)
+		info_len = [len(self.information[k]) for k in self.information]
 		if s in self.meeting_state and self.conv ==0:
 			self.conv = 1
-		elif self.conv == 1:
+		elif self.conv == 1 and max(info_len)>1:
 			self.conv = 0
 		self.updateConvFlags(agent_loc)
 
