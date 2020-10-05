@@ -1,7 +1,7 @@
 import json
 import matplotlib
-# matplotlib.use('pgf')
-matplotlib.use('Qt5Agg')
+matplotlib.use('pgf')
+# matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pandas as pd
@@ -15,10 +15,11 @@ import numpy as np
 from gridworld import *
 # import texfig
 import pickle
+import csv
 
 
 # ---------- PART 1: Globals
-fname = 'Sandia_Sim_5_Agents_Meet_New_Small'
+fname = 'Sandia_Sim_5_Agents_meeting_Trace'
 with open(fname+'.json') as json_file:
 	data = json.load(json_file)
 with open(fname+'.pickle','rb') as env_file:
@@ -33,10 +34,10 @@ fig = plt.figure(figsize=(2000/my_dpi, 1600/my_dpi), dpi=my_dpi)
 my_palette = plt.cm.get_cmap("tab10",10)
 seed_iter = iter(range(0,len(df.index)))
 categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
-categories = []
-for k in seed_iter:
-	np.random.seed(k)
-	categories.append(str(np.random.randint(1000)))
+# categories = []
+# for k in seed_iter:
+# 	np.random.seed(k)
+# 	categories.append(str(np.random.randint(1000)))
 
 belief_good = df['0'][0]['GoodBelief']
 belief_bad = df['0'][0]['BadBelief']
@@ -52,7 +53,7 @@ belief_x_bad = []
 belief_y_bad = []
 belief_y_good = []
 # plt.show()
-frames = 300
+frames = 100
 
 for row in range(0, N_a):
 	ax = plt.subplot(4, N_a+1, row+1+int(1+(N_a+1)/2)*int(row/((N_a)/2)), polar=True)
@@ -86,6 +87,14 @@ def update_all(i):
 	conn_obj = connect_update(i)
 	belf_obj = belief_update(i)
 	return rad_obj + grid_obj+conn_obj + belf_obj
+
+def write_csv(filename,data):
+	with open(filename, 'w') as csv_file:
+		writer = csv.writer(csv_file)
+		for key, value in data.items():
+			list_val = [value[v_i]['ActBelief']['(0, 1, 1)'] for v_i in value]
+			writer.writerow([key,*list_val])
+
 
 def update(i):
 	global plot_data, df
@@ -289,17 +298,17 @@ obs_range = gwg.obs_range
 con_dict = con_ar = con_init()
 bel_lines = belief_chart_init()
 ax_ar = grid_init(gwg)
-
+# write_csv('Meeting_Belief.csv',data)
 # update_all(50)
 # texfig.savefig("test")
 # update()
 # plt.show()
 # for i in range(10):
 # 	update_all(i)
-ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=True,repeat=False)
-plt.show()
-# ani = FuncAnimation(fig, update_all, frames=frames, interval=10, blit=False,repeat=False)
-# ani.save('Sandia-Sim-NoMeeting-LONG-0.8.mp4', writer = writer)
+# ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=True,repeat=False)
+# plt.show()
+ani = FuncAnimation(fig, update_all, frames=frames, interval=10, blit=False,repeat=False)
+ani.save('Sandia-Trace-Meeting.mp4', writer = writer)
 # ani.save('QuickCycle.mp4',dpi=80,writer=writer)
 #
 # ani = FuncAnimation(fig, update, frames=50, interval=200, blit=True)

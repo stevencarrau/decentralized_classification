@@ -22,7 +22,7 @@ class ProbablilityNotOne(Exception):
 
 class Agent():
 	def __init__(self, init=None, target_list=[], meeting_state=[], gw_env=None, belief_tracks=None, id_no=None,
-				 policy_load=False, slugs_location=None, evil=False):
+				 policy_load=False, slugs_location=None, evil=False,trace_load=False):
 		self.id_no = id_no
 		self.init = init
 		self.current = init
@@ -55,6 +55,9 @@ class Agent():
 		self.env_list_conv = list(itertools.product(*[(0, 1)] * (no_targets)))
 		self.conv = 0
 		self.state_label = 's'
+		self.trace_load = trace_load
+
+
 
 	# self.savePolicy()
 	def initInfo(self, agent_loc):
@@ -64,13 +67,17 @@ class Agent():
 		# if self.conv == 1:
 		# 	self.policy[self.current_node]['Successors'][self.env_list_conv.index(self.current_env)]
 		# else:
-		env_ind = np.nonzero(1-np.array(list(self.policy[self.current_node]['State'].values())[0:-1]))[0]
-		if len(env_ind)==0:
-			self.current_node = self.policy[self.current_node]['Successors'][0]
+		if self.trace_load:
+			s = int(self.trace_load.pop(0))
 		else:
-			self.current_node = self.policy[self.current_node]['Successors'][int(''.join(map(str,np.array(list(self.current_env + (self.conv,)))[env_ind].tolist())),2)]
-		# self.current_node = self.policy[self.current_node]['Successors'][self.env_list.index(self.current_env + (self.conv,))]
-		s = self.policy[self.current_node]['State'][self.state_label]
+			env_ind = np.nonzero(1-np.array(list(self.policy[self.current_node]['State'].values())[0:-1]))[0]
+			if 2**len(env_ind)>len(self.policy[self.current_node]['Successors']) or len(env_ind)==0:
+				self.current_node = self.policy[self.current_node]['Successors'][0]
+			else:
+				print('Current Env {}       Env index: {}'.format(self.current_env, env_ind))
+				self.current_node = self.policy[self.current_node]['Successors'][int(''.join(map(str,np.array(list(self.current_env + (self.conv,)))[env_ind].tolist())),2)]
+			# self.current_node = self.policy[self.current_node]['Successors'][self.env_list.index(self.current_env + (self.conv,))]
+			s = self.policy[self.current_node]['State'][self.state_label]
 		self.updateAgent(s)
 		## Vision
 		self.updateVision(self.current, agent_loc)
@@ -160,7 +167,7 @@ class Agent():
 			file.write('c{} = 1 -> c{}\' = 0\n'.format(t, t))
 
 
-		# """# # No Meeting #  Comment/Uncomment Here
+		"""# # No Meeting #  Comment/Uncomment Here
 		file.write('\n[SYS_TRANS]\n')
 
 		for s in self.gw.states:
@@ -182,7 +189,7 @@ class Agent():
 			file.write('s = {} \n'.format(s))
 		#"""
 
-		""" Meeting Comment/Uncomment Here
+		# """ Meeting Comment/Uncomment Here
 		file.write('\n[ENV_LIVENESS]\n')
 		str = ''
 		for t in self.meeting_state:

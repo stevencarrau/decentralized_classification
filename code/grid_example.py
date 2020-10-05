@@ -153,15 +153,25 @@ seed_iter = iter(range(0,5+len(initial)))
 
 ## Initialize Agents -- JESSE HERE
 print("Computing policies")
+run_type = 'no_meeting/'
+data_source = 'data/sandia_run/'
 agent_array = []
 c_i = 0
 for i, j in zip(initial, targets):
 	np.random.seed(next(seed_iter))
+	file_in = open(data_source+run_type+'platform{}_sTraj'.format(c_i),'r')
+	trace_in = file_in.read().split()
+	trace_san = [int(trace_in[0])]
+	# trace_san = trace_in if len(trace_in)<1000 else trace_in[0:-1:416]
+	for t_i in trace_in[1:]:
+		if int(t_i) != trace_san[-1]:
+			trace_san.append(int(t_i))
+	# trace_san = [t_i if t_i!=trace_san[-1] for t_i in trace_in]
 	if c_i ==3:
-		agent_array.append(Agent(init=i, target_list=j,meeting_state=meeting_state, gw_env=gwg, belief_tracks=belief_tracks, id_no=np.random.randint(1000),
-								 policy_load=False, slugs_location=slugs_location, evil=(1,1,1)))
+		agent_array.append(Agent(init=i, target_list=j,meeting_state=meeting_state, gw_env=gwg, belief_tracks=belief_tracks, id_no=c_i,
+								 policy_load=False, slugs_location=slugs_location, evil=(1,1,1),trace_load=trace_san))
 	else:
-		agent_array.append(Agent(init=i, target_list=j,meeting_state=meeting_state, gw_env = gwg, belief_tracks=belief_tracks,id_no=np.random.randint(1000),policy_load = False,slugs_location=slugs_location,evil=False))
+		agent_array.append(Agent(init=i, target_list=j,meeting_state=meeting_state, gw_env = gwg, belief_tracks=belief_tracks,id_no=c_i,policy_load = False,slugs_location=slugs_location,evil=False,trace_load=trace_san))
 	print("Policy ", c_i, " -- complete")
 	c_i += 1
 id_list = [a_l.id_no for a_l in agent_array] # List of id_nos : not required
@@ -172,7 +182,7 @@ for a_i in agent_array:
 	a_i.initInfo(agent_loc)
 
 # Run simulation
-fname = str('Sandia_Sim_{}_Agents_No_Meet_New_Small').format(len(agent_array))
-play_sim(True,agent_array,gwg,300)
+fname = str('Sandia_Sim_{}_Agents_{}_Trace').format(len(agent_array),run_type[:-1])
+play_sim(True,agent_array,gwg,100)
 
 
