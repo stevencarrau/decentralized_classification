@@ -7,55 +7,58 @@ import itertools
 import pickle
 import copy
 import itertools
+import numpy as np
 
 
 
-def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
-	# Define agent location
-	agent_loc = dict([[a.id_no, a.current] for a in agent_array])
-	agent_loc_new = copy.deepcopy(agent_loc)
-	## Labels for output plots
-	plotting_dictionary = dict()
-	time_p = {}
-	time_t = 0
-	for a_a in agent_array:
-		time_p.update({a_a.id_no: a_a.writeOutputTimeStamp(agent_loc.keys())})
-	plotting_dictionary.update({str(time_t): time_p})
-
-	# Movement loop
-	while time_t<tot_t:
-		print("Time: "+str(time_t))
+def play_runs(runs, agent_array=None,grid=None,tot_t=100):
+	avg_beliefs = np.zeros(shape=(tot_t+1,runs))
+	for r_i in range(runs):
+		print("Run {}".format(r_i))
+		[a_i.reset() for a_i in agent_array]
+		# Define agent location
+		agent_loc = dict([[a.id_no, a.current] for a in agent_array])
+		agent_loc_new = copy.deepcopy(agent_loc)
+		## Labels for output plots
 		time_p = {}
-		time_t += 1
-		## Movement update -- Jesse Start HERE
-		for ind,a_i in enumerate(agent_array):
-			# Loop through agents to update
-			agent_loc_new[a_i.id_no] = a_i.update(agent_loc)
-		# Update agent location
-		agent_loc = agent_loc_new
+		time_t = 0
+		avg_beliefs[time_t, r_i] = np.average([a_i.actual_belief[(0, 1, 1)] for a_i in agent_array])
+		for a_a in agent_array:
+			time_p.update({a_a.id_no: a_a.writeOutputTimeStamp(agent_loc.keys())})
 
-		# ## Sharing update -- Jesse not needed for you
-		packet_dict = {}
-		for a_i, p_i in enumerate(agent_array):
-			belief_packet,info_packet = beliefPacketFn(p_i,agent_array) ## ADHT belief packet
-			packet_dict.update({p_i:(belief_packet,info_packet)})
-		for a_i,p_i in enumerate(agent_array):
-			belief_packet,info_packet = packet_dict[p_i]
-			p_i.ADHT(belief_packet, info_packet)
-			time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
-			# current_env[a_i] = tuple(p_i.comms_env)
-		# Plotting dictionary
-		plotting_dictionary.update({str(time_t): time_p})
 
+		# Movement loop
+		while time_t<tot_t:
+			# print("Time: "+str(time_t))
+			time_p = {}
+			time_t += 1
+			## Movement update -- Jesse Start HERE
+			for ind,a_i in enumerate(agent_array):
+				# Loop through agents to update
+				agent_loc_new[a_i.id_no] = a_i.update(agent_loc)
+			# Update agent location
+			agent_loc = agent_loc_new
+
+			# ## Sharing update -- Jesse not needed for you
+			packet_dict = {}
+			for a_i, p_i in enumerate(agent_array):
+				belief_packet,info_packet = beliefPacketFn(p_i,agent_array) ## ADHT belief packet
+				packet_dict.update({p_i:(belief_packet,info_packet)})
+			for a_i,p_i in enumerate(agent_array):
+				belief_packet,info_packet = packet_dict[p_i]
+				p_i.ADHT(belief_packet, info_packet)
+				time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
+			avg_beliefs[time_t,r_i] = np.average([a_i.actual_belief[(0,1,1)] for a_i in agent_array])
+				# current_env[a_i] = tuple(p_i.comms_env)
 	# Writing outputs
+	run_output = np.vstack([np.max(avg_beliefs,axis=1),np.min(avg_beliefs,axis=1),np.average(avg_beliefs,axis=1)])
 	print("Writing to "+fname)
-	write_JSON(fname+'.json', stringify_keys(plotting_dictionary))
+	# write_JSON(fname+'.json', stringify_keys(plotting_dictionary))
+	np.savetxt(fname+'.csv',run_output,delimiter=', ')
 	env_file = open(fname+'.pickle','wb')
 	pickle.dump(gwg,env_file)
 	env_file.close()
-	# x = [print('Agent_{}: Steps {}'.format(a_i.id_no,a_i.steps)) for a_i in agent_array]
-	# return print("Goal!")
-
+	return run_output
 
 def beliefPacketFn(agent_p,agent_array):
 	belief_packet = {}
@@ -109,7 +112,7 @@ def coords(s,ncols):
 
 
 ## Define model as a gridworld function
-target_prob = 0.8
+target_prob = 0.65
 
 # # # Specific Scenario -- 5 agents, 3 targets, 1 meeting place
 # initial = random.sample(valid_states,no_agents)
@@ -192,6 +195,9 @@ for a_i in agent_array:
 
 # Run simulation
 fname = str('Hallway_Sim_{}_Agents_{}').format(len(agent_array),'Meet')
-play_sim(True,agent_array,gwg,300)
-
+x_states = 1500
+output = play_runs(25,agent_array,gwg,x_states)
+x = range(0,x_states+1)
+plt.fill_between(x,output[0],output[1])
+plt.show()
 

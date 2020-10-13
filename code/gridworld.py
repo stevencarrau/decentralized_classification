@@ -14,6 +14,7 @@ class Gridworld():
     def __init__(self, initial, nrows=8, ncols=8, nagents=1, targets=[], obstacles=[], moveobstacles = [], regions=None,size=100,obs_range=3,public_targets=[],filename=None,meeting_states=[]):
         # walls are the obstacles. The edges of the gridworld will be included into the walls.
         # region is a string and can be one of: ['pavement','gravel', 'grass', 'sand']
+        regionkeys = {'pavement', 'gravel', 'grass', 'sand', 'deterministic'}
         if filename[0] != None:
             data = pickle.load(open("Gridworld.p","rb"))
             regionkeys = {'pavement', 'gravel', 'grass', 'sand', 'deterministic'}

@@ -57,7 +57,17 @@ class Agent():
 		self.state_label = 's'
 		self.trace_load = trace_load
 
-
+	def reset(self):
+		self.information = dict([[m, set()] for m in range(len(self.target_dict))])
+		self.comms_env = [0, ] * len(self.target_dict)
+		self.current = self.init
+		self.viewable_agents = []
+		self.current_node = 0
+		no_targets = len(self.targets)
+		self.current_env = (0,) * no_targets
+		self.env_list = list(itertools.product(*[(0, 1)] * (no_targets + 1)))
+		self.env_list_conv = list(itertools.product(*[(0, 1)] * (no_targets)))
+		self.initBelief(list(self.id_idx.keys()),1,len(self.targets))
 
 	# self.savePolicy()
 	def initInfo(self, agent_loc):
@@ -74,7 +84,7 @@ class Agent():
 			if 2**len(env_ind)>len(self.policy[self.current_node]['Successors']) or len(env_ind)==0:
 				self.current_node = self.policy[self.current_node]['Successors'][0]
 			else:
-				print('Current Env {}       Env index: {}'.format(self.current_env, env_ind))
+				# print('Current Env {}       Env index: {}'.format(self.current_env, env_ind))
 				self.current_node = self.policy[self.current_node]['Successors'][int(''.join(map(str,np.array(list(self.current_env + (self.conv,)))[env_ind].tolist())),2)]
 			# self.current_node = self.policy[self.current_node]['Successors'][self.env_list.index(self.current_env + (self.conv,))]
 			s = self.policy[self.current_node]['State'][self.state_label]
@@ -189,7 +199,7 @@ class Agent():
 			file.write('s = {} \n'.format(s))
 		#"""
 
-		# """ Meeting Comment/Uncomment Here
+		""" Meeting Comment/Uncomment Here
 		file.write('\n[ENV_LIVENESS]\n')
 		str = ''
 		for t in self.meeting_state:
@@ -223,6 +233,44 @@ class Agent():
 			else:
 				file.write('s = {} \\/ c{} = {}\n'.format(s, s, 1))
 				# file.write('s = {} \n'.format(s))
+		file.write('s = {}\n'.format(self.meeting_state[0]))
+		file.write('shared = 1')
+		#"""
+
+		# """ Meeting2 Comment/Uncomment Here
+		file.write('\n[ENV_LIVENESS]\n')
+		str = ''
+		for t in self.meeting_state:
+			str += 's={} \\/'.format(t)
+		str = str[:-3]
+		str += '-> shared = 1\n'
+		file.write(str)
+
+		file.write('\n[SYS_TRANS]\n')
+
+		for s in self.gw.states:
+			strn = 's = {} ->'.format(s)
+			repeat = set()
+			for u in self.gw.actlist:
+				snext = np.nonzero(self.gw.prob[u][s])[0][0]
+				if snext not in repeat:
+					repeat.add(snext)
+					strn += 's\' = {} \\/ '.format(snext)
+			strn = strn[:-3]
+			file.write(strn + '\n')
+		for s in self.gw.obstacles:
+			file.write('!s = {}\n'.format(s))
+		file.write('\n[SYS_LIVENESS]\n')
+		t_s = self.id_idx[self.id_no] % len(self.targets)
+
+
+		for i, s in enumerate(self.targets[t_s:] + self.targets[0:t_s]):
+			if i == 0:
+				file.write('s = {} \n'.format(s))
+				# file.write('s = {} \\/ c{} = {}\n'.format(s, s, 1))
+			else:
+				# file.write('s = {} \\/ c{} = {}\n'.format(s, s, 1))
+				file.write('s = {} \n'.format(s))
 		file.write('s = {}\n'.format(self.meeting_state[0]))
 		file.write('shared = 1')
 		#"""
@@ -299,7 +347,7 @@ class Agent():
 		self.current = state
 
 	### Belief Rules
-	def initBelief(self, agent_id, no_bad, no_targets, pre_load=False):
+	def initBelief(self, agent_id, no_bad, no_targets):
 		self.no_bad = no_bad
 		no_agents = len(agent_id)
 		## Combinarotic approach
@@ -338,6 +386,7 @@ class Agent():
 				for n_i in agent_id:
 					self.neighbor_belief[t_p][n_i] = -1  ## b^a_j(theta)
 
+	def initPolicy(self, pre_load=False):
 		if self.policy_load:
 			self.loadPolicy()
 		else:
@@ -467,11 +516,12 @@ class Agent():
 					actual_belief[theta] = min(self.local_belief[theta],
 											   np.mean(list(belief_list)[self.no_bad:-1 * self.no_bad]))
 				else:
-					actual_belief[theta] = min(
-						[self.local_belief[theta]] + list(belief_list)[self.no_bad:-1 * self.no_bad])
+					actual_belief[theta] = min([self.local_belief[theta]] + list(belief_list)[self.no_bad:-1 * self.no_bad])
+					# actual_belief[theta] = min(list(belief_list)[self.no_bad:-1 * self.no_bad])
 			else:
 				if self.observation():
 					actual_belief.update({theta: min(self.actual_belief[theta], self.local_belief[theta])})
+					# actual_belief.update({theta:self.actual_belief[theta]})
 				else:
 					actual_belief.update({theta: self.actual_belief[theta]})
 			if actual_belief[theta] < 0:

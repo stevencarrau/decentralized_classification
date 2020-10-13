@@ -1,7 +1,7 @@
 import json
 import matplotlib
-matplotlib.use('pgf')
-# matplotlib.use('Qt5Agg')
+# matplotlib.use('pgf')
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pandas as pd
@@ -19,7 +19,7 @@ import csv
 
 
 # ---------- PART 1: Globals
-fname = 'Sandia_Sim_5_Agents_meeting_Trace'
+fname = 'Hallway_Sim_12_Agents_NoMeet'
 with open(fname+'.json') as json_file:
 	data = json.load(json_file)
 with open(fname+'.pickle','rb') as env_file:
@@ -31,7 +31,7 @@ writer = Writer(fps=2.0, metadata=dict(artist='Me'), bitrate=1800)
 # fig = texfig.figure(width=2000/my_dpi,dpi=my_dpi)
 # fig = plt.figure(figsize=(3600/my_dpi, 2000/my_dpi), dpi=my_dpi)
 fig = plt.figure(figsize=(2000/my_dpi, 1600/my_dpi), dpi=my_dpi)
-my_palette = plt.cm.get_cmap("tab10",10)
+my_palette = plt.cm.get_cmap("tab20",20)
 seed_iter = iter(range(0,len(df.index)))
 categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
 # categories = []
@@ -53,7 +53,7 @@ belief_x_bad = []
 belief_y_bad = []
 belief_y_good = []
 # plt.show()
-frames = 100
+frames = 300
 
 for row in range(0, N_a):
 	ax = plt.subplot(4, N_a+1, row+1+int(1+(N_a+1)/2)*int(row/((N_a)/2)), polar=True)
@@ -305,10 +305,10 @@ ax_ar = grid_init(gwg)
 # plt.show()
 # for i in range(10):
 # 	update_all(i)
-# ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=True,repeat=False)
-# plt.show()
-ani = FuncAnimation(fig, update_all, frames=frames, interval=10, blit=False,repeat=False)
-ani.save('Sandia-Trace-Meeting.mp4', writer = writer)
+ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=True,repeat=False)
+plt.show()
+# ani = FuncAnimation(fig, update_all, frames=frames, interval=10, blit=False,repeat=False)
+# ani.save('Hallway-NoMeeting10.mp4', writer = writer)
 # ani.save('QuickCycle.mp4',dpi=80,writer=writer)
 #
 # ani = FuncAnimation(fig, update, frames=50, interval=200, blit=True)
