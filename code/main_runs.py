@@ -48,13 +48,13 @@ def play_runs(runs, agent_array=None,grid=None,tot_t=100):
 				belief_packet,info_packet = packet_dict[p_i]
 				p_i.ADHT(belief_packet, info_packet)
 				time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
-			avg_beliefs[time_t,r_i] = np.average([a_i.actual_belief[(0,1,1)] for a_i in agent_array])
+			avg_beliefs[time_t,r_i] = np.average([a_i.actual_belief[(0,1,1)] for a_i in agent_array if not a_i.evil])
 				# current_env[a_i] = tuple(p_i.comms_env)
 	# Writing outputs
 	run_output = np.vstack([np.max(avg_beliefs,axis=1),np.min(avg_beliefs,axis=1),np.average(avg_beliefs,axis=1)])
 	print("Writing to "+fname)
 	# write_JSON(fname+'.json', stringify_keys(plotting_dictionary))
-	np.savetxt(fname+'.csv',run_output,delimiter=', ')
+	np.savetxt(fname+'.csv',run_output.T,delimiter=', ')
 	env_file = open(fname+'.pickle','wb')
 	pickle.dump(gwg,env_file)
 	env_file.close()
@@ -112,7 +112,7 @@ def coords(s,ncols):
 
 
 ## Define model as a gridworld function
-target_prob = 0.65
+target_prob = 0.80
 
 # # # Specific Scenario -- 5 agents, 3 targets, 1 meeting place
 # initial = random.sample(valid_states,no_agents)
@@ -123,7 +123,7 @@ targets = [dict([[24,1-target_prob],[1249,target_prob],[2474,target_prob]])]*no_
 # targets = [dict([[1614,1-target_prob],[884,target_prob]])]*no_agents
 no_targets = len(targets[0])
 obs_range = 1
-np.random.seed(1)
+# np.random.seed(1)
 
 evil_switch = True
 
@@ -169,7 +169,7 @@ print("Computing policies")
 agent_array = []
 c_i = 0
 for i, j in zip(initial, targets):
-	np.random.seed(next(seed_iter))
+	# np.random.seed(next(seed_iter))
 	# file_in = open(data_source+run_type+'platform{}_sTraj'.format(c_i),'r')
 	# trace_in = file_in.read().split()
 	# trace_san = [int(trace_in[0])]
@@ -190,14 +190,24 @@ agent_loc = dict([[a.id_no, a.current] for a in agent_array]) # Dictionary {agen
 # Initialize agent belief and information-sharing structures
 for a_i in agent_array:
 	a_i.initBelief([a_l.id_no for a_l in agent_array],1,no_targets)
-	a_i.initPolicy(pre_load=False)
+	a_i.initPolicy(pre_load=False,meeting=False)
 	a_i.initInfo(agent_loc)
 
 # Run simulation
+fname = str('Hallway_Sim_{}_Agents_{}').format(len(agent_array),'NoMeet')
+x_states = 500
+output_nomeet = play_runs(100,agent_array,gwg,x_states)
+
+for a_i in agent_array:
+	a_i.initBelief([a_l.id_no for a_l in agent_array],1,no_targets)
+	a_i.initPolicy(pre_load=False,meeting=True)
+	a_i.initInfo(agent_loc)
 fname = str('Hallway_Sim_{}_Agents_{}').format(len(agent_array),'Meet')
-x_states = 1500
-output = play_runs(25,agent_array,gwg,x_states)
+output_meet = play_runs(100,agent_array,gwg,x_states)
+
 x = range(0,x_states+1)
-plt.fill_between(x,output[0],output[1])
+plt.fill_between(x,output_nomeet[0],output_nomeet[1],color='b',alpha=0.25)
+plt.fill_between(x,output_meet[0],output_meet[1],color='r',alpha=0.25)
 plt.show()
+
 

@@ -140,7 +140,7 @@ class Agent():
 			out_dict.update({'Cols': self.gw.ncols})
 		return out_dict
 
-	def Policy(self, infile=None, slugs_location=None, preload=False):
+	def Policy(self, infile=None, slugs_location=None, preload=False,meeting=False):
 
 		if infile == None:
 			infile = 'grid_example_{}'.format(self.id_no)
@@ -176,28 +176,28 @@ class Agent():
 		for t in self.targets:
 			file.write('c{} = 1 -> c{}\' = 0\n'.format(t, t))
 
+		if not meeting:
+			# """# # No Meeting #  Comment/Uncomment Here
+			file.write('\n[SYS_TRANS]\n')
 
-		"""# # No Meeting #  Comment/Uncomment Here
-		file.write('\n[SYS_TRANS]\n')
+			for s in self.gw.states:
+				strn = 's = {} ->'.format(s)
+				repeat = set()
+				for u in self.gw.actlist:
+					snext = np.nonzero(self.gw.prob[u][s])[0][0]
+					if snext not in repeat:
+						repeat.add(snext)
+						strn += 's\' = {} \\/ '.format(snext)
+				strn = strn[:-3]
+				file.write(strn + '\n')
+			for s in self.gw.obstacles:
+				file.write('!s = {}\n'.format(s))
+			file.write('\n[SYS_LIVENESS]\n')
+			t_s = self.id_idx[self.id_no] % len(self.targets)
 
-		for s in self.gw.states:
-			strn = 's = {} ->'.format(s)
-			repeat = set()
-			for u in self.gw.actlist:
-				snext = np.nonzero(self.gw.prob[u][s])[0][0]
-				if snext not in repeat:
-					repeat.add(snext)
-					strn += 's\' = {} \\/ '.format(snext)
-			strn = strn[:-3]
-			file.write(strn + '\n')
-		for s in self.gw.obstacles:
-			file.write('!s = {}\n'.format(s))
-		file.write('\n[SYS_LIVENESS]\n')
-		t_s = self.id_idx[self.id_no] % len(self.targets)
-
-		for i,s in enumerate(self.targets[t_s:]+self.targets[0:t_s]):
-			file.write('s = {} \n'.format(s))
-		#"""
+			for i,s in enumerate(self.targets[t_s:]+self.targets[0:t_s]):
+				file.write('s = {} \n'.format(s))
+			#"""
 
 		""" Meeting Comment/Uncomment Here
 		file.write('\n[ENV_LIVENESS]\n')
@@ -236,44 +236,44 @@ class Agent():
 		file.write('s = {}\n'.format(self.meeting_state[0]))
 		file.write('shared = 1')
 		#"""
+		if meeting:
+			# """ Meeting2 Comment/Uncomment Here
+			file.write('\n[ENV_LIVENESS]\n')
+			str = ''
+			for t in self.meeting_state:
+				str += 's={} \\/'.format(t)
+			str = str[:-3]
+			str += '-> shared = 1\n'
+			file.write(str)
 
-		# """ Meeting2 Comment/Uncomment Here
-		file.write('\n[ENV_LIVENESS]\n')
-		str = ''
-		for t in self.meeting_state:
-			str += 's={} \\/'.format(t)
-		str = str[:-3]
-		str += '-> shared = 1\n'
-		file.write(str)
+			file.write('\n[SYS_TRANS]\n')
 
-		file.write('\n[SYS_TRANS]\n')
-
-		for s in self.gw.states:
-			strn = 's = {} ->'.format(s)
-			repeat = set()
-			for u in self.gw.actlist:
-				snext = np.nonzero(self.gw.prob[u][s])[0][0]
-				if snext not in repeat:
-					repeat.add(snext)
-					strn += 's\' = {} \\/ '.format(snext)
-			strn = strn[:-3]
-			file.write(strn + '\n')
-		for s in self.gw.obstacles:
-			file.write('!s = {}\n'.format(s))
-		file.write('\n[SYS_LIVENESS]\n')
-		t_s = self.id_idx[self.id_no] % len(self.targets)
+			for s in self.gw.states:
+				strn = 's = {} ->'.format(s)
+				repeat = set()
+				for u in self.gw.actlist:
+					snext = np.nonzero(self.gw.prob[u][s])[0][0]
+					if snext not in repeat:
+						repeat.add(snext)
+						strn += 's\' = {} \\/ '.format(snext)
+				strn = strn[:-3]
+				file.write(strn + '\n')
+			for s in self.gw.obstacles:
+				file.write('!s = {}\n'.format(s))
+			file.write('\n[SYS_LIVENESS]\n')
+			t_s = self.id_idx[self.id_no] % len(self.targets)
 
 
-		for i, s in enumerate(self.targets[t_s:] + self.targets[0:t_s]):
-			if i == 0:
-				file.write('s = {} \n'.format(s))
-				# file.write('s = {} \\/ c{} = {}\n'.format(s, s, 1))
-			else:
-				# file.write('s = {} \\/ c{} = {}\n'.format(s, s, 1))
-				file.write('s = {} \n'.format(s))
-		file.write('s = {}\n'.format(self.meeting_state[0]))
-		file.write('shared = 1')
-		#"""
+			for i, s in enumerate(self.targets[t_s:] + self.targets[0:t_s]):
+				if i == 0:
+					file.write('s = {} \n'.format(s))
+					# file.write('s = {} \\/ c{} = {}\n'.format(s, s, 1))
+				else:
+					# file.write('s = {} \\/ c{} = {}\n'.format(s, s, 1))
+					file.write('s = {} \n'.format(s))
+			file.write('s = {}\n'.format(self.meeting_state[0]))
+			file.write('shared = 1')
+			#"""
 
 		file.close()
 
@@ -386,14 +386,14 @@ class Agent():
 				for n_i in agent_id:
 					self.neighbor_belief[t_p][n_i] = -1  ## b^a_j(theta)
 
-	def initPolicy(self, pre_load=False):
+	def initPolicy(self, pre_load=False,meeting=False):
 		if self.policy_load:
 			self.loadPolicy()
 		else:
 			if pre_load:
 				self.policy = self.Policy(slugs_location=self.slugs_loc, preload=True)
 			else:
-				self.policy = self.Policy(slugs_location=self.slugs_loc)
+				self.policy = self.Policy(slugs_location=self.slugs_loc,meeting=meeting)
 
 	def updateBelief(self, viewable_agents, target):
 		if not target:
