@@ -11,6 +11,8 @@ import copy
 
 def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 	# Define agent location
+	agent_belief = np.zeros((tot_t+1,len(agent_array)+1))
+	agent_belief[:,0] = range(101)
 	agent_loc = dict([[a.id_no, a.current] for a in agent_array])
 	agent_loc_new = copy.deepcopy(agent_loc)
 	## Labels for output plots
@@ -42,6 +44,7 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 			belief_packet,info_packet = packet_dict[p_i]
 			p_i.ADHT(belief_packet, info_packet)
 			time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
+			agent_belief[time_t,a_i+1] = p_i.actual_belief[p_i.belief_tracks[1]]
 			# current_env[a_i] = tuple(p_i.comms_env)
 		# Plotting dictionary
 		plotting_dictionary.update({str(time_t): time_p})
@@ -50,6 +53,7 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 	print("Writing to "+fname)
 	write_JSON(fname+'.json', stringify_keys(plotting_dictionary))
 	env_file = open(fname+'.pickle','wb')
+	np.savetxt(fname+'.csv',agent_belief,delimiter=',')
 	pickle.dump(gwg,env_file)
 	env_file.close()
 	# x = [print('Agent_{}: Steps {}'.format(a_i.id_no,a_i.steps)) for a_i in agent_array]
@@ -146,7 +150,7 @@ print("Models built")
 bad_b = ()
 for i in range(len(initial)):
 	bad_b += (0,)
-belief_tracks = [str((1,1,1)), str((0,1,1))] # For output plots
+belief_tracks = [str((1,1,1)), (0,1,1)] # For output plots
 # belief_tracks = [str((1,1)), str((0,1))] # For output plots
 seed_iter = iter(range(0,5+len(initial)))
 

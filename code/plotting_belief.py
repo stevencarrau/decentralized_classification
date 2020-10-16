@@ -1,7 +1,7 @@
 import json
 import matplotlib
-matplotlib.use('pgf')
-# matplotlib.use('Qt5Agg')
+# matplotlib.use('pgf')
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pandas as pd
@@ -19,7 +19,7 @@ import csv
 
 
 # ---------- PART 1: Globals
-fname = 'Sandia_Sim_5_Agents_meeting_Trace'
+fname = 'Sandia_Sim_5_Agents_no_meeting_Trace'
 with open(fname+'.json') as json_file:
 	data = json.load(json_file)
 with open(fname+'.pickle','rb') as env_file:
@@ -191,7 +191,7 @@ def belief_chart_init():
 		belief_x_good.append([])
 		belief_x_good[i].append(0)
 		belief_y_good.append([])
-		belief_y_good[i].append(df['0'][id_no]['ActBelief'][belief_good])
+		belief_y_good[i].append(df['0'][id_no]['ActBelief'][str(tuple(belief_good))])
 		px1, = ax.plot([0,0.0], [0,0.0], color=my_palette(i), linewidth=2, linestyle='solid', label=r'$b^a_'+str(i)+r'(\theta^\star)$')
 		# px2, = ax.plot([0,0.0], [0.0,0.0], color=my_palette(i), linewidth=3, linestyle='dashed', label=r'Incorrect belief $b^a_'+str(i)+r'(\theta_0)$')
 		px2 = None
@@ -250,7 +250,7 @@ def belief_update(i):
 	for j, id_no in enumerate(categories):
 		# belief_x_bad[j].append(i)
 		belief_x_good[j].append(i)
-		belief_y_good[j].append(df[str(i)][id_no]['ActBelief'][belief_good])
+		belief_y_good[j].append(df[str(i)][id_no]['ActBelief'][str(tuple(belief_good))])
 		# belief_y_bad[j].append(df[str(i)][id_no]['ActBelief'][belief_bad])
 		bel_lines[j][0].set_xdata(belief_x_good[j])
 		bel_lines[j][0].set_ydata(belief_y_good[j])
@@ -305,10 +305,10 @@ ax_ar = grid_init(gwg)
 # plt.show()
 # for i in range(10):
 # 	update_all(i)
-# ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=True,repeat=False)
-# plt.show()
-ani = FuncAnimation(fig, update_all, frames=frames, interval=10, blit=False,repeat=False)
-ani.save('Sandia-Trace-Meeting.mp4', writer = writer)
+ani = FuncAnimation(fig, update_all, frames=frames, interval=200, blit=True,repeat=False)
+plt.show()
+# ani = FuncAnimation(fig, update_all, frames=frames, interval=10, blit=False,repeat=False)
+# ani.save('Sandia-Trace-Meeting.mp4', writer = writer)
 # ani.save('QuickCycle.mp4',dpi=80,writer=writer)
 #
 # ani = FuncAnimation(fig, update, frames=50, interval=200, blit=True)
