@@ -13,6 +13,7 @@ import numpy as np
 
 def play_runs(runs, agent_array=None,grid=None,tot_t=100):
 	avg_beliefs = np.zeros(shape=(tot_t+1,runs))
+	avg_belief_calls = np.zeros(shape=(tot_t+1,runs))
 	for r_i in range(runs):
 		print("Run {}".format(r_i))
 		[a_i.reset() for a_i in agent_array]
@@ -22,7 +23,8 @@ def play_runs(runs, agent_array=None,grid=None,tot_t=100):
 		## Labels for output plots
 		time_p = {}
 		time_t = 0
-		avg_beliefs[time_t, r_i] = np.average([a_i.actual_belief[(0, 1, 1)] for a_i in agent_array])
+		avg_beliefs[time_t, r_i] = np.average([a_i.actual_belief[(0, 1, 1)] for a_i in agent_array if not a_i.evil])
+		avg_belief_calls[time_t,r_i] = np.average([a_i.belief_calls for a_i in agent_array if not a_i.evil])
 		for a_a in agent_array:
 			time_p.update({a_a.id_no: a_a.writeOutputTimeStamp(agent_loc.keys())})
 
@@ -49,12 +51,15 @@ def play_runs(runs, agent_array=None,grid=None,tot_t=100):
 				p_i.ADHT(belief_packet, info_packet)
 				time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
 			avg_beliefs[time_t,r_i] = np.average([a_i.actual_belief[(0,1,1)] for a_i in agent_array if not a_i.evil])
+			avg_belief_calls[time_t, r_i] = np.average([a_i.belief_calls for a_i in agent_array])
 				# current_env[a_i] = tuple(p_i.comms_env)
 	# Writing outputs
 	run_output = np.vstack([np.max(avg_beliefs,axis=1),np.min(avg_beliefs,axis=1),np.average(avg_beliefs,axis=1)])
+	run_bcalls = np.vstack([np.arange(0,tot_t+1),np.max(avg_belief_calls,axis=1),np.min(avg_belief_calls,axis=1),np.average(avg_belief_calls,axis=1)])
 	print("Writing to "+fname)
 	# write_JSON(fname+'.json', stringify_keys(plotting_dictionary))
 	np.savetxt(fname+'.csv',run_output.T,delimiter=', ')
+	np.savetxt(fname + '_calls.csv', run_bcalls.T, delimiter=', ')
 	env_file = open(fname+'.pickle','wb')
 	pickle.dump(gwg,env_file)
 	env_file.close()
