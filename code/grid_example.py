@@ -12,7 +12,7 @@ import copy
 def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
 	# Define agent location
 	agent_belief = np.zeros((tot_t+1,len(agent_array)+1))
-	agent_belief[:,0] = range(101)
+	agent_belief[:,0] = range(tot_t+1)
 	agent_loc = dict([[a.id_no, a.current] for a in agent_array])
 	agent_loc_new = copy.deepcopy(agent_loc)
 	## Labels for output plots
@@ -157,7 +157,7 @@ seed_iter = iter(range(0,5+len(initial)))
 
 ## Initialize Agents -- JESSE HERE
 print("Computing policies")
-run_type = 'no_meeting/'
+run_type = 'meeting/'
 data_source = 'data/sandia_run/'
 agent_array = []
 c_i = 0
@@ -187,6 +187,6 @@ for a_i in agent_array:
 
 # Run simulation
 fname = str('Sandia_Sim_{}_Agents_{}_Trace').format(len(agent_array),run_type[:-1])
-play_sim(True,agent_array,gwg,100)
+play_sim(True,agent_array,gwg,110)
 
 
