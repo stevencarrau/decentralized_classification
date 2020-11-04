@@ -19,7 +19,7 @@ import csv
 
 
 # ---------- PART 1: Globals
-fname = 'Hallway_Sim_12_Agents_NoMeet'
+fname = 'Hallway_Sim_12_Agents_Meet'
 with open(fname+'.json') as json_file:
 	data = json.load(json_file)
 with open(fname+'.pickle','rb') as env_file:

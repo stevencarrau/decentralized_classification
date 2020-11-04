@@ -68,6 +68,7 @@ class Agent():
 		self.env_list = list(itertools.product(*[(0, 1)] * (no_targets + 1)))
 		self.env_list_conv = list(itertools.product(*[(0, 1)] * (no_targets)))
 		self.initBelief(list(self.id_idx.keys()),1,len(self.targets))
+		self.belief_calls=0
 
 	# self.savePolicy()
 	def initInfo(self, agent_loc):

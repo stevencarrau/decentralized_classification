@@ -187,7 +187,7 @@ agent_loc = dict([[a.id_no, a.current] for a in agent_array]) # Dictionary {agen
 # Initialize agent belief and information-sharing structures
 for a_i in agent_array:
 	a_i.initBelief([a_l.id_no for a_l in agent_array],1,no_targets)
-	a_i.initPolicy(pre_load=False)
+	a_i.initPolicy(pre_load=False,meeting=True)
 	a_i.initInfo(agent_loc)
 
 # Run simulation
