@@ -4,7 +4,6 @@ from dfa import *
 import numpy as np
 from scipy import stats
 import random
-from tqdm import tqdm
 
 class MDP(NFA):
     def __init__(self, states=[], alphabet=set(), transitions=[],init=None,L=dict([])):
@@ -182,7 +181,7 @@ class MDP(NFA):
         Q = dict([])
         while e > epsilon:
             Vstate = Vstate1.copy()
-            for s in tqdm(self.states - sink- targstates):
+            for s in self.states - sink- targstates:
                 acts = self.available(s)
                 optimal = -1000
                 act = None
@@ -225,7 +224,7 @@ class MDP(NFA):
         Q = dict([])
         while e > epsilon:
             Vstate = Vstate1.copy()
-            for s in tqdm(set(self.states) - Win - sinks):
+            for s in set(self.states) - Win - sinks:
                 acts = self.available(s)
                 optimal = 0
                 act = None
