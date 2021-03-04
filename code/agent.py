@@ -217,13 +217,13 @@ class Agent():
 				self.actual_belief[b_i] = 0
 			# self.local_belief[(1,0,1,1,1)] = 1.0
 			# self.actual_belief[(1,0,1,1,1)] = 1.0
-			self.local_belief[(1,0,1,0,1,1,1,1,1,1,1,1)] = 1.0
-			self.actual_belief[(1,0,1,0,1,1,1,1,1,1,1,1)] = 1.0
-			# random_belief = np.random.rand(len(self.local_belief))
-			# random_belief /= np.sum(random_belief)
-			# for b_i,r_b in zip(self.local_belief, random_belief):
-			# 	self.local_belief[b_i] = r_b
-			# 	self.actual_belief[b_i] = r_b
+			# self.local_belief[(1,0,1,0,1,1,1,1,1,1,1,1)] = 1.0
+			# self.actual_belief[(1,0,1,0,1,1,1,1,1,1,1,1)] = 1.0
+			random_belief = np.random.rand(len(self.local_belief))
+			random_belief /= np.sum(random_belief)
+			for b_i,r_b in zip(self.local_belief, random_belief):
+				self.local_belief[b_i] = r_b
+				self.actual_belief[b_i] = r_b
 
 	# def updateAsyncBelief(self,viewable_agents,viewable_states):
 	# 	## Local rule

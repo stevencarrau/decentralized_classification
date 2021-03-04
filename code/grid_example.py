@@ -24,14 +24,8 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
         time_t += 1
         ## Movement update
         for a_i in agent_array:
-            # prev_state = a_i.current
-            # s, q = a_i.pmdp.sample(prev_state, a_i.policy.sample(prev_state))
-            # a_i.updateAgent((s, q))
-            # agent_loc[a_i.id_no] = a_i.current
             agent_loc[a_i.id_no] = a_i.update()
-            # a_i.policy.updateNominal(a_i.current)
-            # print("Local likelihood for ", a_i.id_no, ": ",
-            #           a_i.policy.observation((s, q), [prev_state], 1))
+
         ## Local update
         for a_i,  p_i in enumerate(agent_array):
             p_i.updateVision(p_i.current, agent_loc)
@@ -78,22 +72,21 @@ def stringify_keys(d):
             del d[key]
     return d
 
-nrows = 30
-ncols = 30
+nrows = 10
+ncols = 10
 moveobstacles = []
 obstacles = []
 # # # 5 agents small range
-# initial = [(33,1),(41,0),(7,0),(80,1),(69,1)]
-# targets = [[29,0],[60,69],[20,39],[69,96],[99,11]]
-# public_targets = [[29,0],[60,69],[20,39],[68,93],[99,11]]
-# bad_models = [[1,19],[60,58],[30,29],[69,96],[81,18]]
+initial = [33,41,7,80,69]
+targets = [[29,0],[60,69],[20,39],[69,96],[99,11]]
+public_targets = [[29,0],[60,69],[20,39],[68,93],[99,11]]
+bad_models = [[1,19],[60,58],[30,29],[69,96],[81,18]]
 obs_range = 6
-np.random.seed(1)
-
-initial = [31,93,45,194,636,481,88,116,346,800,525,669]
-targets =        [[871,4],[0,899],[5,874],[25,895],[834,37],[52,812],[876,29],[897,60],[14,885],[360,389],[779,390],[780,329]]
-public_targets = [[871,4],[0,899],[5,874],[25,895],[834,37],[52,812],[876,29],[897,60],[14,885],[360,389],[778,420],[750,299]]
-bad_models =     [[872,4],[31,868],[6,875],[26,894],[835,35],[54,808],[877,59],[898,61],[15,886],[390,359],[778,420],[750,299]]
+#
+# initial = [31,93,45,194,636,481,88,116,346,800,525,669]
+# targets =        [[871,4],[0,899],[5,874],[25,895],[834,37],[52,812],[876,29],[897,60],[14,885],[360,389],[779,390],[780,329]]
+# public_targets = [[871,4],[0,899],[5,874],[25,895],[834,37],[52,812],[876,29],[897,60],[14,885],[360,389],[778,420],[750,299]]
+# bad_models =     [[872,4],[31,868],[6,875],[26,894],[835,35],[54,808],[877,59],[898,61],[15,886],[390,359],[778,420],[750,299]]
 
 
 #
@@ -103,8 +96,6 @@ evil_switch = True
 regionkeys = {'pavement','gravel','grass','sand','deterministic'}
 regions = dict.fromkeys(regionkeys,{-1})
 regions['deterministic']= range(nrows*ncols)
-# regions_det = dict.fromkeys(regionkeys,{-1})
-# regions_det['deterministic'] = range(nrows*ncols)
 
 gwg = Gridworld(initial, nrows, ncols, len(initial), targets, obstacles,moveobstacles,regions,public_targets=public_targets,obs_range=obs_range)
 #
@@ -117,12 +108,8 @@ for s in states:
         for t in np.nonzero(gwg.prob[gwg.actlist[a]][s])[0]:
             p = gwg.prob[gwg.actlist[a]][s][t]
             transitions.append((s, alphabet.index(a), t, p))
-        # for t2 in np.nonzero(det_gw.prob[det_gw.actlist[a]][s])[0]:
-        #     p_det = det_gw.prob[det_gw.actlist[a]][s][t2]
-        #     det_trans.append((s, alphabet.index(a), t2, p_det))
 
 mdp = MDP(states, set(alphabet),transitions)
-# nfa = MDP(states,set(alphabet),det_trans) #deterministic transitions
 print("Models built")
 agent_array = []
 c_i = 0
@@ -134,8 +121,6 @@ for i in range(len(initial)):
 belief_tracks = [str(bad_b), str(tuple([int(i==j) for i, j in zip(targets, public_targets)]))]
 for i, j, k, l in zip(initial, targets, public_targets, bad_models):
     agent_array.append(Agent(init=i, target_list=j, public_list=k, mdp=mdp, gw_env=gwg, belief_tracks=belief_tracks, bad_models=l,id_no=c_i,slugs_location=slugs_location))
-    # else:
-    #     agent_array.append(Agent(i, j, k, mdp, gwg, belief_tracks, l,np.random.randint(1000),True))
     print("Policy ", c_i, " -- complete")
     c_i += 1
 id_list = [a_l.id_no for a_l in agent_array]
