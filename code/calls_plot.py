@@ -15,15 +15,16 @@ from matplotlib.offsetbox import (DrawingArea,OffsetImage,AnnotationBbox)
 import numpy as np
 from gridworld import *
 import texfig
+import csv
 
 
 
 # ---------- PART 1: Globals
 
-with open('5agents_3-3_range_sync_min.json') as json_file:
+with open('/home/scarr/Downloads/5agents_3-3_range_sync_min.json') as json_file:
 	data = json.load(json_file)
 df = pd.DataFrame(data)
-with open('5agents_4-3_range_async_min.json') as json_file2:
+with open('/home/scarr/Downloads/5agents_4-3_range_async_min.json') as json_file2:
 	data2 = json.load(json_file2)
 df2 = pd.DataFrame(data2)
 my_dpi = 100
@@ -259,6 +260,14 @@ for j in range(time_i+1):
 	belief_update(j)
 # ax_ar = grid_init(nrows, ncols, obs_range)
 # update_all(50)
+
+with open('Calls.csv', 'w') as f:
+	writer = csv.writer(f)
+	for time,x1,y1 in zip(bel_lines[0][0]._xorig,bel_lines[0][0]._yorig,bel_lines[0][1]._yorig):
+		row_tup = (time,x1,y1)
+		writer.writerow(row_tup)
+
+
 texfig.savefig("Call_results_"+str(time_i))
 # update()
 # plt.show()

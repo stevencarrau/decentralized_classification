@@ -24,11 +24,12 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
         time_t += 1
         ## Movement update
         for a_i in agent_array:
-            prev_state = a_i.current
-            s, q = a_i.pmdp.sample(prev_state, a_i.policy.sample(prev_state))
-            a_i.updateAgent((s, q))
-            agent_loc[a_i.id_no] = a_i.current
-            a_i.policy.updateNominal(a_i.current)
+            # prev_state = a_i.current
+            # s, q = a_i.pmdp.sample(prev_state, a_i.policy.sample(prev_state))
+            # a_i.updateAgent((s, q))
+            # agent_loc[a_i.id_no] = a_i.current
+            agent_loc[a_i.id_no] = a_i.update()
+            # a_i.policy.updateNominal(a_i.current)
             # print("Local likelihood for ", a_i.id_no, ": ",
             #           a_i.policy.observation((s, q), [prev_state], 1))
         ## Local update
@@ -44,7 +45,7 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
                 p_i.shareBelief(belief_packet)
             time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
         plotting_dictionary.update({str(time_t): time_p})
-    fname = str(len(agent_loc))+'agents_'+str(grid.obs_range)+'-'+str(8)+'_range_async_average.json'
+    fname = str(len(agent_loc))+'agents_'+str(grid.obs_range)+'-'+str('HV')+'_range_async_min.json'
     print("Writing to "+fname)
     write_JSON(fname, stringify_keys(plotting_dictionary))
     return print("Goal!")
@@ -77,79 +78,24 @@ def stringify_keys(d):
             del d[key]
     return d
 
-nrows = 10
-ncols = 10
+nrows = 30
+ncols = 30
 moveobstacles = []
 obstacles = []
 # # # 5 agents small range
-initial = [(33,0),(41,0),(7,0),(80,0),(69,1)]
-targets = [[18,81],[60,69],[20,39],[69,95],[99,11]]
-public_targets = [[18,81],[60,69],[20,39],[68,93],[99,11]]
-bad_models = [[1,19],[60,58],[30,29],[69,95],[81,18]]
-obs_range = 4
+# initial = [(33,1),(41,0),(7,0),(80,1),(69,1)]
+# targets = [[29,0],[60,69],[20,39],[69,96],[99,11]]
+# public_targets = [[29,0],[60,69],[20,39],[68,93],[99,11]]
+# bad_models = [[1,19],[60,58],[30,29],[69,96],[81,18]]
+obs_range = 6
 np.random.seed(1)
 
-# # # 6 agents small range
-# initial = [(33,0),(41,0),(7,0),(80,0),(69,1),(92,0)]
-# targets = [[0,9],[60,69],[20,39],[69,95],[99,11],[9,91]]
-# public_targets = [[0,9],[60,69],[20,39],[55,95],[99,11],[9,91]]
-# obs_range = 2
-
-# # # 8 agents small range
-# initial = [(50,0),(43,0),(75,0),(88,0),(13,0),(37,0),(57,0),(73,0)]
-# targets = [[0,90],[3,93],[5,95],[98,8],[9,40],[31,39],[51,59],[55,71]]
-# public_targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[31,39],[51,59],[79,71]]
-# obs_range = 3
-
-# # 8 agents small range
-# initial = [(50,0),(43,0),(75,0),(88,0),(13,0),(37,0),(57,0),(73,0)]
-# targets = [[0,90],[3,93],[5,95],[98,8],[9,40],[31,39],[51,59],[55,71]]
-# public_targets = [[0,90],[3,93],[5,95],[98,8],[11,19],[31,39],[51,59],[79,53]]
-# bad_models = [[8,10],[3,38],[10,85],[91,33],[11,19],[62,68],[23,57],[55,71]]
-# obs_range = 4
-
-# ## 8 Spokes on a wheel
-# initial = [(0,0),(9,0),(90,0),(99,0),(5,0),(40,0),(94,0),(59,0)]
-# public_targets = [[33,0],[36,9],[63,90],[66,99],[54,5],[55,4],[45,94],[44,59]]
-# bad_models = [[18,88],[11,91],[36,9],[2,82],[69,99],[27,77],[4,30],[64,59]]
-# targets = [[33,0],[36,9],[63,90],[66,99],[54,5],[55,4],[45,94],[64,59]]
-# obs_range = 3
-# np.random.seed(1)
-
-# ## 6 Spokes on a wheel
-# initial = [(0,0),(9,0),(90,0),(99,0),(5,0),(40,0)]
-# public_targets = [[33,0],[36,9],[63,90],[66,99],[54,5],[45,94]]
-# bad_models = [[18,88],[11,91],[36,9],[2,82],[69,99],[96,59]]
-# targets = [[33,0],[36,9],[63,90],[66,99],[54,5],[96,59]]
-# obs_range = 4
-#
-# ## 6 Spokes on a wheel - Tighter centers
-# initial = [(0,0),(9,0),(90,0),(99,0),(5,0),(40,0)]
-# public_targets = [[43,0],[46,9],[53,90],[56,99],[64,5],[35,94]]
-# bad_models = [[18,88],[11,91],[36,9],[2,82],[69,99],[96,59]]
-# targets = [[43,0],[46,9],[53,90],[56,99],[64,5],[96,59]]
-# obs_range = 3
-
-## 4 Spokes on a wheel - Tighter centers
-# initial = [(1,0),(4,0),(55,0),(35,0)]
-# public_targets = [[26,1],[27,4],[32,55],[33,58]]
-# bad_models = [[25,0],[28,5],[31,54],[34,58]]
-# targets = [[26,1],[27,4],[32,55],[34,58]]
-# obs_range = 3
-# # obs_range = 8
+initial = [31,93,45,194,636,481,88,116,346,800,525,669]
+targets =        [[871,4],[0,899],[5,874],[25,895],[834,37],[52,812],[876,29],[897,60],[14,885],[360,389],[779,390],[780,329]]
+public_targets = [[871,4],[0,899],[5,874],[25,895],[834,37],[52,812],[876,29],[897,60],[14,885],[360,389],[778,420],[750,299]]
+bad_models =     [[872,4],[31,868],[6,875],[26,894],[835,35],[54,808],[877,59],[898,61],[15,886],[390,359],[778,420],[750,299]]
 
 
-# #4 agents larger range
-# initial = [(33,0),(41,0),(7,0),(80,0)]
-# targets = [[0,9],[60,69],[20,39],[69,95]]
-# public_targets = [[0,9],[60,69],[20,39],[55,95]]
-# obs_range = 5
-
-# #4 agents big range
-# initial = [(33,0),(41,0),(7,0),(80,0)]
-# targets = [[0,9],[60,69],[20,39],[69,95]]
-# public_targets = [[0,9],[60,69],[20,39],[55,95]]
-# obs_range = 4
 #
 
 evil_switch = True
@@ -180,15 +126,14 @@ mdp = MDP(states, set(alphabet),transitions)
 print("Models built")
 agent_array = []
 c_i = 0
+slugs_location = '~/slugs/'
 print("Computing policies")
 bad_b = ()
 for i in range(len(initial)):
     bad_b += (0,)
 belief_tracks = [str(bad_b), str(tuple([int(i==j) for i, j in zip(targets, public_targets)]))]
-seed_iter = iter(range(0,5+len(initial)))
 for i, j, k, l in zip(initial, targets, public_targets, bad_models):
-    np.random.seed(next(seed_iter))
-    agent_array.append(Agent(i, j, k, mdp, gwg, belief_tracks, l,np.random.randint(1000),True))
+    agent_array.append(Agent(init=i, target_list=j, public_list=k, mdp=mdp, gw_env=gwg, belief_tracks=belief_tracks, bad_models=l,id_no=c_i,slugs_location=slugs_location))
     # else:
     #     agent_array.append(Agent(i, j, k, mdp, gwg, belief_tracks, l,np.random.randint(1000),True))
     print("Policy ", c_i, " -- complete")
@@ -196,9 +141,14 @@ for i, j, k, l in zip(initial, targets, public_targets, bad_models):
 id_list = [a_l.id_no for a_l in agent_array]
 pol_list = [a_l.policy for a_l in agent_array]
 for a_i in agent_array:
-    a_i.initBelief([a_l.id_no for a_l in agent_array],1)
+    a_i.initBelief([a_l.id_no for a_l in agent_array],2)
     a_i.definePolicyDict(id_list,pol_list)
 
+
+fname =  str(len(agent_array))+'agents_'+str(obs_range)+'-'+str('HV')+'_range_async_min'
+env_file = open(fname + '.pickle', 'wb')
+pickle.dump(gwg, env_file)
+env_file.close()
 play_sim(True,agent_array,gwg,100)
 
 
