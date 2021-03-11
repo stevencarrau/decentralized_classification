@@ -3,11 +3,11 @@ __author__ = 'sudab'
 import os, sys, getopt, pdb, string
 import random
 import numpy as np
-import pygame
+# import pygame
 from matplotlib import colors as mcolors
 import math
 import matplotlib.pyplot as plt
-import pygame.locals as pgl
+# import pygame.locals as pgl
 
 class Gridworld():
     # a gridworld with uneven terrain
@@ -204,47 +204,47 @@ class Gridworld():
 
     ## Everything from here onwards is for creating the image
 
-    def render(self,multicolor=False,nom_policy=False):
-    
-        #       # initialize pygame ( SDL extensions )
-        pygame.init()
-        pygame.display.set_mode((self.width+self.connect_width, self.height))
-        pygame.display.set_caption('Gridworld')
-        self.screen = pygame.display.get_surface()
-        self.surface = pygame.Surface(self.screen.get_size())
-        self.bg = self.surface.subsurface(pygame.Rect(0,0,self.width, self.height)).copy()
-        self.bg_rendered = False  # optimize background render
-        self.connected = self.surface.subsurface(pygame.Rect(self.width,0,self.connect_width,self.height/2)).copy()
-        self.belief = self.surface.subsurface(pygame.Rect(self.width,self.height/2,self.connect_width,self.height/2)).copy()
-        
-        self.background(multicolor)
-        self.connection_background()
-        self.belief_background()
-        
-        self.build_templates()
-        self.updategui = True  # switch to stop updating gui if you want to collect a trace quickly
-    
-        for a_i in self.agent_list:
-            a_i.draw(self.screen,self.surface,nom_policy)
-            a_i.draw_connect_line(self.screen,self.surface)
-        for a_i in self.agent_list:
-            a_i.draw_connect(self.screen, self.surface)
-            a_i.draw_belief(self.screen,self.surface)
-    
-    def getkeyinput(self):
-        events = pygame.event.get()
-        for event in events:
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    return 'W'
-                elif event.key == pygame.K_RIGHT:
-                    return 'E'
-                if event.key == pygame.K_UP:
-                    return 'N'
-                elif event.key == pygame.K_DOWN:
-                    return 'S'
-                elif event.key == pygame.K_SPACE:
-                    return 'Space'
+    # def render(self,multicolor=False,nom_policy=False):
+    #
+    #     #       # initialize pygame ( SDL extensions )
+    #     pygame.init()
+    #     pygame.display.set_mode((self.width+self.connect_width, self.height))
+    #     pygame.display.set_caption('Gridworld')
+    #     self.screen = pygame.display.get_surface()
+    #     self.surface = pygame.Surface(self.screen.get_size())
+    #     self.bg = self.surface.subsurface(pygame.Rect(0,0,self.width, self.height)).copy()
+    #     self.bg_rendered = False  # optimize background render
+    #     self.connected = self.surface.subsurface(pygame.Rect(self.width,0,self.connect_width,self.height/2)).copy()
+    #     self.belief = self.surface.subsurface(pygame.Rect(self.width,self.height/2,self.connect_width,self.height/2)).copy()
+    #
+    #     self.background(multicolor)
+    #     self.connection_background()
+    #     self.belief_background()
+    #
+    #     self.build_templates()
+    #     self.updategui = True  # switch to stop updating gui if you want to collect a trace quickly
+    #
+    #     for a_i in self.agent_list:
+    #         a_i.draw(self.screen,self.surface,nom_policy)
+    #         a_i.draw_connect_line(self.screen,self.surface)
+    #     for a_i in self.agent_list:
+    #         a_i.draw_connect(self.screen, self.surface)
+    #         a_i.draw_belief(self.screen,self.surface)
+    #
+    # def getkeyinput(self):
+    #     events = pygame.event.get()
+    #     for event in events:
+    #         if event.type == pygame.KEYDOWN:
+    #             if event.key == pygame.K_LEFT:
+    #                 return 'W'
+    #             elif event.key == pygame.K_RIGHT:
+    #                 return 'E'
+    #             if event.key == pygame.K_UP:
+    #                 return 'N'
+    #             elif event.key == pygame.K_DOWN:
+    #                 return 'S'
+    #             elif event.key == pygame.K_SPACE:
+    #                 return 'Space'
 
     def build_templates(self):
 
@@ -319,171 +319,171 @@ class Gridworld():
     def coord2indx(self, xy):
         return self.rcoords(int((xy[0] / (self.size + 1)), int(xy[1] / (self.size + 1))))
 
-    def draw_state_labels(self):
-        font = pygame.font.SysFont("FreeSans", 10)
-        for s in range(self.nstates):
-            x, y = self.indx2coord(s, False)
-            txt = font.render("%d" % s, True, (0, 0, 0))
-            self.surface.blit(txt, (y, x))
-
-        self.screen.blit(self.surface, (0, 0))
-        pygame.display.flip()
-
-    def coord2state(self, coord):
-        s = self.coord2indx((coord[0], coord[1]))
-        return s
-
-    def state2circle(self, state, bg=True, blit=True,multicolor=False):
-        if bg:
-            self.background(multicolor)
-
-        colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
-        for n in range(self.nagents):
-            x, y = self.indx2coord(state[n], center=True)
-            if multicolor:
-                pygame.draw.circle(self.surface, tuple(255*np.array(colors[list(colors)[n]])) , (y, x), int(self.size / 2))
-            else:
-                pygame.draw.circle(self.surface, (0, 0, 255), (y, x), int(self.size / 2))
-        if len(self.moveobstacles) > 0:
-            for s in self.moveobstacles:
-                x, y = self.indx2coord(s, center=True)
-                pygame.draw.circle(self.surface, (205, 92, 0), (y, x), int(self.size / 2))
-        if blit:
-            self.screen.blit(self.surface, (0, 0))
-            pygame.display.flip()
-            
-    def routes(self,state,nom_policy,multicolor=False,blit=True):
-        colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
-        for n in range(self.nagents):
-            line_s = [list(reversed(self.indx2coord(s,center=True))) for s in nom_policy[n].values()]
-            if multicolor:
-                pygame.draw.lines(self.surface,tuple(255*np.array(colors[list(colors)[n]])),False,line_s,10)
-            else:
-                pygame.draw.lines(self.surface, (0,0,255), False, line_s,
-                                  10)
-        if blit:
-            self.screen.blit(self.surface, (0, 0))
-            pygame.display.flip()
-
-    def draw_values(self, vals):
-        """
-        vals: a dict with state labels as the key
-        """
-        font = pygame.font.SysFont("FreeSans", 10)
-
-        for s in range(self.nstates):
-            x, y = self.indx2coord(s, False)
-            v = vals[s]
-            txt = font.render("%.1f" % v, True, (0, 0, 0))
-            self.surface.blit(txt, (y, x))
-
-        self.screen.blit(self.surface, (0, 0))
-        pygame.display.flip()
-
+    # def draw_state_labels(self):
+    #     font = pygame.font.SysFont("FreeSans", 10)
+    #     for s in range(self.nstates):
+    #         x, y = self.indx2coord(s, False)
+    #         txt = font.render("%d" % s, True, (0, 0, 0))
+    #         self.surface.blit(txt, (y, x))
     #
-    def save(self, filename):
-        pygame.image.save(self.surface, filename)
+    #     self.screen.blit(self.surface, (0, 0))
+    #     pygame.display.flip()
+    #
+    # def coord2state(self, coord):
+    #     s = self.coord2indx((coord[0], coord[1]))
+    #     return s
+    #
+    # def state2circle(self, state, bg=True, blit=True,multicolor=False):
+    #     if bg:
+    #         self.background(multicolor)
+    #
+    #     colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
+    #     for n in range(self.nagents):
+    #         x, y = self.indx2coord(state[n], center=True)
+    #         if multicolor:
+    #             pygame.draw.circle(self.surface, tuple(255*np.array(colors[list(colors)[n]])) , (y, x), int(self.size / 2))
+    #         else:
+    #             pygame.draw.circle(self.surface, (0, 0, 255), (y, x), int(self.size / 2))
+    #     if len(self.moveobstacles) > 0:
+    #         for s in self.moveobstacles:
+    #             x, y = self.indx2coord(s, center=True)
+    #             pygame.draw.circle(self.surface, (205, 92, 0), (y, x), int(self.size / 2))
+    #     if blit:
+    #         self.screen.blit(self.surface, (0, 0))
+    #         pygame.display.flip()
+    #
+    # def routes(self,state,nom_policy,multicolor=False,blit=True):
+    #     colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
+    #     for n in range(self.nagents):
+    #         line_s = [list(reversed(self.indx2coord(s,center=True))) for s in nom_policy[n].values()]
+    #         if multicolor:
+    #             pygame.draw.lines(self.surface,tuple(255*np.array(colors[list(colors)[n]])),False,line_s,10)
+    #         else:
+    #             pygame.draw.lines(self.surface, (0,0,255), False, line_s,
+    #                               10)
+    #     if blit:
+    #         self.screen.blit(self.surface, (0, 0))
+    #         pygame.display.flip()
 
-    def redraw(self):
-        self.screen.blit(self.surface, (0, 0))
-        pygame.display.flip()
-
-    def move_obj(self, s, bg=True, blit=True):
-
-        """Including A moving object into the gridworld, which moves uniformly at
-        random in all accessible directions (including idle), without
-        hitting the wall or another other statitic obstacle.  Input: a
-        gridworld gui, the current state index for the obstacle and the
-        number of steps.
-
-        """
-        if bg:
-            self.background()
-        x, y = self.indx2coord(s, center=True)
-        pygame.draw.circle(self.surface, (205, 92, 0), (y, x), int(self.size / 2))
-
-        if blit:
-            self.screen.blit(self.surface, (0, 0))
-            pygame.display.flip()
-
-        return
-
-    def move_deter(self, next_state):
-        self.current = next_state
-
-        return
-
-    def background(self,multicolor=False):
-        colors = dict(mcolors.BASE_COLORS)
-        if self.bg_rendered:
-            self.surface.blit(self.bg, (0, 0))
-        else:
-            self.bg.fill((84, 84, 84))
-            font = pygame.font.SysFont("FreeSans", 10)
-
-            for s in range(self.nstates):
-                x, y = self.indx2coord(s, False)
-                coords = pygame.Rect(y, x, self.size, self.size)
-                pygame.draw.rect(self.bg, ((250, 250, 250)), coords)
-            for n in range(self.nagents):
-                for t in self.public_targets[n]:
-                    x, y = self.indx2coord(t, center=True)
-                    coords = pygame.Rect(y - self.size / 2, x - self.size / 2, self.size, self.size)
-                    if multicolor:
-                        pygame.draw.rect(self.bg, tuple(255*np.array(colors[list(colors)[n]])), coords)
-                    else:
-                        pygame.draw.rect(self.bg, (0, 204, 102) , coords)
-
-                # Draw Wall in black color.
-            # for s in self.edges:
-            #     (x, y) = self.indx2coord(s)
-            #     coords = pygame.Rect(y - self.size / 2, x - self.size / 2, self.size, self.size)
-            #     coords = pygame.Rect(y, x, self.size, self.size)
-            #     pygame.draw.rect(self.bg, (192, 192, 192), coords)  # the obstacles are in color grey
-
-            for s in self.obstacles:
-                (x, y) = self.indx2coord(s)
-                coords = pygame.Rect(y, x, self.size, self.size)
-                pygame.draw.rect(self.bg, (255, 0, 0), coords)  # the obstacles are in color red
-
-            color = {'sand': (223, 225, 179), 'gravel': (255, 255, 255), 'grass': (211, 255, 192),
-                     'pavement': (192, 255, 253),'deterministic': (255,255,255)}
-            for s in range(self.nstates):
-                if not any(s in x for x in self.public_targets) and s not in self.obstacles and not any(s in x for x in self.colorstates):
-                    (x, y) = self.indx2coord(s)
-                    coords = pygame.Rect(y - self.size / 2, x - self.size / 2, self.size, self.size)
-                    coords = pygame.Rect(y, x, self.size, self.size)
-                    pygame.draw.rect(self.bg, color[self.getStateRegion(s)], coords)  # the obstacles are in color grey
-            statecols = [(0,0,0),(150,150,150)]
-            for i in range(len(self.colorstates)):
-                for s in self.colorstates[i]:
-                    if not any(s in x for x in self.targets) and s not in self.obstacles:
-                        (x, y) = self.indx2coord(s)
-                        coords = pygame.Rect(y, x, self.size, self.size)
-                        pygame.draw.rect(self.bg, statecols[i], coords)  # the obstacles are in color grey
-
-        self.bg_rendered = True  # don't render again unless flag is set
-        self.surface.blit(self.bg, (0, 0))
-
-    def connection_background(self):
-        colors = dict(mcolors.BASE_COLORS)
-        self.connected.fill((150, 150, 150))
-        self.surface.blit(self.connected,(self.width,0))
-        
-
-    def belief_background(self):
-        font = pygame.font.SysFont("FreeSans", 16)
-        self.belief.fill((211, 211, 211))
-        self.surface.blit(self.belief, (self.width, int(self.height/2)))
-        spacing = np.linspace(25,self.connect_width-150,self.nagents)
-        for s in spacing[1:]:
-            pygame.draw.line(self.belief, (0, 0, 0),(s-25,0), (s-25,self.height/2), 10)
-            self.surface.blit(self.belief, (self.width,self.height/2))
-            pygame.display.flip()
-        for i,s_p in zip(range(self.nagents),spacing):
-            txt = font.render("Agent %d Belief:" % i, True, (0, 0, 0))
-            self.surface.blit(txt,(s_p+self.width,self.height/2+50))
-            pygame.display.flip()
+    # def draw_values(self, vals):
+    #     """
+    #     vals: a dict with state labels as the key
+    #     """
+    #     font = pygame.font.SysFont("FreeSans", 10)
+    #
+    #     for s in range(self.nstates):
+    #         x, y = self.indx2coord(s, False)
+    #         v = vals[s]
+    #         txt = font.render("%.1f" % v, True, (0, 0, 0))
+    #         self.surface.blit(txt, (y, x))
+    #
+    #     self.screen.blit(self.surface, (0, 0))
+    #     pygame.display.flip()
+    #
+    # #
+    # def save(self, filename):
+    #     pygame.image.save(self.surface, filename)
+    #
+    # def redraw(self):
+    #     self.screen.blit(self.surface, (0, 0))
+    #     pygame.display.flip()
+    #
+    # def move_obj(self, s, bg=True, blit=True):
+    #
+    #     """Including A moving object into the gridworld, which moves uniformly at
+    #     random in all accessible directions (including idle), without
+    #     hitting the wall or another other statitic obstacle.  Input: a
+    #     gridworld gui, the current state index for the obstacle and the
+    #     number of steps.
+    #
+    #     """
+    #     if bg:
+    #         self.background()
+    #     x, y = self.indx2coord(s, center=True)
+    #     pygame.draw.circle(self.surface, (205, 92, 0), (y, x), int(self.size / 2))
+    #
+    #     if blit:
+    #         self.screen.blit(self.surface, (0, 0))
+    #         pygame.display.flip()
+    #
+    #     return
+    #
+    # def move_deter(self, next_state):
+    #     self.current = next_state
+    #
+    #     return
+    #
+    # def background(self,multicolor=False):
+    #     colors = dict(mcolors.BASE_COLORS)
+    #     if self.bg_rendered:
+    #         self.surface.blit(self.bg, (0, 0))
+    #     else:
+    #         self.bg.fill((84, 84, 84))
+    #         font = pygame.font.SysFont("FreeSans", 10)
+    #
+    #         for s in range(self.nstates):
+    #             x, y = self.indx2coord(s, False)
+    #             coords = pygame.Rect(y, x, self.size, self.size)
+    #             pygame.draw.rect(self.bg, ((250, 250, 250)), coords)
+    #         for n in range(self.nagents):
+    #             for t in self.public_targets[n]:
+    #                 x, y = self.indx2coord(t, center=True)
+    #                 coords = pygame.Rect(y - self.size / 2, x - self.size / 2, self.size, self.size)
+    #                 if multicolor:
+    #                     pygame.draw.rect(self.bg, tuple(255*np.array(colors[list(colors)[n]])), coords)
+    #                 else:
+    #                     pygame.draw.rect(self.bg, (0, 204, 102) , coords)
+    #
+    #             # Draw Wall in black color.
+    #         # for s in self.edges:
+    #         #     (x, y) = self.indx2coord(s)
+    #         #     coords = pygame.Rect(y - self.size / 2, x - self.size / 2, self.size, self.size)
+    #         #     coords = pygame.Rect(y, x, self.size, self.size)
+    #         #     pygame.draw.rect(self.bg, (192, 192, 192), coords)  # the obstacles are in color grey
+    #
+    #         for s in self.obstacles:
+    #             (x, y) = self.indx2coord(s)
+    #             coords = pygame.Rect(y, x, self.size, self.size)
+    #             pygame.draw.rect(self.bg, (255, 0, 0), coords)  # the obstacles are in color red
+    #
+    #         color = {'sand': (223, 225, 179), 'gravel': (255, 255, 255), 'grass': (211, 255, 192),
+    #                  'pavement': (192, 255, 253),'deterministic': (255,255,255)}
+    #         for s in range(self.nstates):
+    #             if not any(s in x for x in self.public_targets) and s not in self.obstacles and not any(s in x for x in self.colorstates):
+    #                 (x, y) = self.indx2coord(s)
+    #                 coords = pygame.Rect(y - self.size / 2, x - self.size / 2, self.size, self.size)
+    #                 coords = pygame.Rect(y, x, self.size, self.size)
+    #                 pygame.draw.rect(self.bg, color[self.getStateRegion(s)], coords)  # the obstacles are in color grey
+    #         statecols = [(0,0,0),(150,150,150)]
+    #         for i in range(len(self.colorstates)):
+    #             for s in self.colorstates[i]:
+    #                 if not any(s in x for x in self.targets) and s not in self.obstacles:
+    #                     (x, y) = self.indx2coord(s)
+    #                     coords = pygame.Rect(y, x, self.size, self.size)
+    #                     pygame.draw.rect(self.bg, statecols[i], coords)  # the obstacles are in color grey
+    #
+    #     self.bg_rendered = True  # don't render again unless flag is set
+    #     self.surface.blit(self.bg, (0, 0))
+    #
+    # def connection_background(self):
+    #     colors = dict(mcolors.BASE_COLORS)
+    #     self.connected.fill((150, 150, 150))
+    #     self.surface.blit(self.connected,(self.width,0))
+    #
+    #
+    # def belief_background(self):
+    #     font = pygame.font.SysFont("FreeSans", 16)
+    #     self.belief.fill((211, 211, 211))
+    #     self.surface.blit(self.belief, (self.width, int(self.height/2)))
+    #     spacing = np.linspace(25,self.connect_width-150,self.nagents)
+    #     for s in spacing[1:]:
+    #         pygame.draw.line(self.belief, (0, 0, 0),(s-25,0), (s-25,self.height/2), 10)
+    #         self.surface.blit(self.belief, (self.width,self.height/2))
+    #         pygame.display.flip()
+    #     for i,s_p in zip(range(self.nagents),spacing):
+    #         txt = font.render("Agent %d Belief:" % i, True, (0, 0, 0))
+    #         self.surface.blit(txt,(s_p+self.width,self.height/2+50))
+    #         pygame.display.flip()
         
     class Agent_Vis():
         def __init__(self, loc, color, icon_size,obs_range, c_loc,c_dict,belief_loc):
@@ -498,54 +498,54 @@ class Gridworld():
             self.connects = None
             self.belief_loc = belief_loc
             self.belief_color = None
-    
+
         def updateSize(self, size):
             self.size = size
-    
+
         def updatePosition(self, loc,box):
             self.location = loc
             self.box = box
-            
+
         def updateRoute(self, route):
             self.route = route
-            
+
         def updateConnects(self,connects):
             self.connects = []
             for c_i in connects:
                 self.connects.append(self.con_dict[c_i])
-    
+
         def updateBeliefColor(self,color):
             self.belief_color = color
-    
-        def draw(self,screen, surface, route=False):
-            if route:
-                pygame.draw.rect(surface,self.lightener(self.color,0.6),self.box,5)
-                pygame.draw.lines(surface, self.color, False, self.route, int(self.size / 5))
-            pygame.draw.circle(surface, self.color, tuple(reversed(self.location)), self.size)
-            screen.blit(surface, (0, 0))
-            pygame.display.flip()
-            
-        def draw_connect(self,screen,surface):
-            pygame.draw.circle(surface,self.color,tuple(reversed(self.connect_loc)),self.size)
-            screen.blit(surface, (0, 0))
-            pygame.display.flip()
-        
-        def draw_connect_line(self,screen,surface):
-            if self.connects:
-                for l_i in self.connects:
-                    pygame.draw.line(surface,(0,0,0),tuple(reversed(self.connect_loc)),tuple(l_i),10)
-                screen.blit(surface, (0, 0))
-                pygame.display.flip()
-            else:
-                pass
-        
-        def draw_belief(self,screen,surface):
-            if self.belief_color:
-                pygame.draw.circle(surface, self.belief_color, self.belief_loc, self.size)
-                screen.blit(surface, (0, 0))
-                pygame.display.flip()
-        
-        def lightener(self,color,ratio):
-            color = np.array(color)
-            white = np.array([255,255,255])
-            return (1.0-ratio)*color+ratio*white
+    #
+    #     def draw(self,screen, surface, route=False):
+    #         if route:
+    #             pygame.draw.rect(surface,self.lightener(self.color,0.6),self.box,5)
+    #             pygame.draw.lines(surface, self.color, False, self.route, int(self.size / 5))
+    #         pygame.draw.circle(surface, self.color, tuple(reversed(self.location)), self.size)
+    #         screen.blit(surface, (0, 0))
+    #         pygame.display.flip()
+    #
+    #     def draw_connect(self,screen,surface):
+    #         pygame.draw.circle(surface,self.color,tuple(reversed(self.connect_loc)),self.size)
+    #         screen.blit(surface, (0, 0))
+    #         pygame.display.flip()
+    #
+    #     def draw_connect_line(self,screen,surface):
+    #         if self.connects:
+    #             for l_i in self.connects:
+    #                 pygame.draw.line(surface,(0,0,0),tuple(reversed(self.connect_loc)),tuple(l_i),10)
+    #             screen.blit(surface, (0, 0))
+    #             pygame.display.flip()
+    #         else:
+    #             pass
+    #
+    #     def draw_belief(self,screen,surface):
+    #         if self.belief_color:
+    #             pygame.draw.circle(surface, self.belief_color, self.belief_loc, self.size)
+    #             screen.blit(surface, (0, 0))
+    #             pygame.display.flip()
+    #
+    #     def lightener(self,color,ratio):
+    #         color = np.array(color)
+    #         white = np.array([255,255,255])
+    #         return (1.0-ratio)*color+ratio*white

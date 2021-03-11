@@ -4,6 +4,7 @@ from policy import Policy
 from agent import Agent
 import json
 import pickle
+import ray
 
 def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
     plotting_dictionary = dict()
@@ -36,19 +37,28 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
         for a_i,  p_i in enumerate(agent_array):
             p_i.updateVision(p_i.current, agent_loc)
         ## Sharing update
+        belief_updates = []
         for a_i, p_i in enumerate(agent_array):
             if p_i.async_flag:
                 belief_packet = dict([[v_a,agent_array[p_i.id_idx[v_a]].actual_belief] for v_a in p_i.viewable_agents])
-                p_i.ADHT(belief_packet)
+                belief_updates.append(belief_parallel.remote(p_i,belief_packet))
             else:
                 belief_packet = [agent_array[p_i.id_idx[v_a]].actual_belief for v_a in p_i.viewable_agents]
                 p_i.shareBelief(belief_packet)
+        agent_array = ray.get(belief_updates)
+        for a_i, p_i in enumerate(agent_array):
             time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
         plotting_dictionary.update({str(time_t): time_p})
     fname = str(len(agent_loc))+'agents_'+str(grid.obs_range)+'-'+str('HV')+'_range_async_min.json'
     print("Writing to "+fname)
     write_JSON(fname, stringify_keys(plotting_dictionary))
     return print("Goal!")
+
+
+@ray.remote
+def belief_parallel(p_i,belief_array):
+    p_i.ADHT(belief_array)
+    return p_i
 
 def write_JSON(filename,data):
     with open(filename,'w') as outfile:
@@ -117,12 +127,8 @@ for s in states:
         for t in np.nonzero(gwg.prob[gwg.actlist[a]][s])[0]:
             p = gwg.prob[gwg.actlist[a]][s][t]
             transitions.append((s, alphabet.index(a), t, p))
-        # for t2 in np.nonzero(det_gw.prob[det_gw.actlist[a]][s])[0]:
-        #     p_det = det_gw.prob[det_gw.actlist[a]][s][t2]
-        #     det_trans.append((s, alphabet.index(a), t2, p_det))
 
 mdp = MDP(states, set(alphabet),transitions)
-# nfa = MDP(states,set(alphabet),det_trans) #deterministic transitions
 print("Models built")
 agent_array = []
 c_i = 0
@@ -145,10 +151,13 @@ for a_i in agent_array:
     a_i.definePolicyDict(id_list,pol_list)
 
 
-fname =  str(len(agent_array))+'agents_'+str(obs_range)+'-'+str('HV')+'_range_async_min'
+# fname =  str(len(agent_array))+'agents_'+str(obs_range)+'-'+str('HV')+'_range_async_min'
+fname = 'data/Largearray/{}agents_{}range_async_min'.format(len(agent_array),obs_range)
+# fname = 'data/Largearray/{}agents_{}range_async_avg'
 env_file = open(fname + '.pickle', 'wb')
 pickle.dump(gwg, env_file)
 env_file.close()
-play_sim(True,agent_array,gwg,100)
+ray.init()
+play_sim(True,agent_array,gwg,200)
 
 

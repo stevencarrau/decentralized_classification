@@ -12,10 +12,12 @@ from collections import OrderedDict
 import subprocess
 import json
 import pickle
+import ray
 
 
 class ProbablilityNotOne(Exception):
 	pass
+
 
 class Agent():
 	def __init__(self,init=None,target_list=[],public_list=[],mdp=None,gw_env=None,belief_tracks=None,bad_models=[],id_no=None,policy_load=False, trace_load=False,slugs_location=None):
