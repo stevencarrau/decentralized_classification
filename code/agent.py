@@ -32,7 +32,7 @@ class Agent():
 		self.bad_model = bad_models
 		self.evil = False
 		self.async_flag = True
-		self.av_flag = False
+		self.av_flag = True
 		self.belief_calls = 0
 		if target_list != public_list:
 			self.evil = True
@@ -42,7 +42,7 @@ class Agent():
 		self.last_seen = {}
 		self.mdp = mdp
 		self.public_mdp = deepcopy(mdp)
-		self.error_prob = 1.2
+		self.error_prob = 0.95#1.05#2.5
 		self.slugs_loc= slugs_location
 		self.state_label = 's'
 		self.current_node = 0
@@ -136,7 +136,7 @@ class Agent():
 		prob_view = np.array([])
 		for o_s in obs_states:
 			prob_view = np.append(prob_view, 1.0/2.0/math.pi/error_prob*np.exp(-1.0/2/error_prob**2*(np.sum(np.square(np.array(self.gw.coords(o_s))-np.array(self.gw.coords(ref_agent)))))))
-		prob_view /= prob_view.sum()
+		prob_view /= 1 if prob_view.sum() == 0 else prob_view.sum()
 		return prob_view
 		
 	
@@ -209,18 +209,19 @@ class Agent():
 		view_prob = self.ViewProbability(viewable_agents,viewable_states)
 		for b_i in self.local_belief:
 			tot_b += self.likelihood(b_i, viewable_agents, view_prob)*self.local_belief[b_i]
-		for b_i in self.local_belief:
-			self.local_belief[b_i] = (1-self.alpha)*self.local_belief[b_i] + self.alpha*self.likelihood(b_i, viewable_agents, view_prob)*self.local_belief[b_i]/tot_b
+		if tot_b != 0:
+			for b_i in self.local_belief:
+				self.local_belief[b_i] = (1-self.alpha)*self.local_belief[b_i] + self.alpha*self.likelihood(b_i, viewable_agents, view_prob)*self.local_belief[b_i]/tot_b
 		if abs(sum(self.local_belief.values())-1.0)>1e-6:
 			raise ProbablilityNotOne("Sum is "+str(sum(self.local_belief.values())))
 		if self.evil:
 			for b_i in self.local_belief:
 				self.local_belief[b_i] = 0
 				self.actual_belief[b_i] = 0
-			# self.local_belief[(1,0,1,1,1)] = 1.0
-			# self.actual_belief[(1,0,1,1,1)] = 1.0
-			self.local_belief[(1,0,1,0,1,1,1,1,1,1,1,1)] = 1.0
-			self.actual_belief[(1,0,1,0,1,1,1,1,1,1,1,1)] = 1.0
+			self.local_belief[(1,0,1,1,1)] = 1.0
+			self.actual_belief[(1,0,1,1,1)] = 1.0
+			# self.local_belief[(1,0,1,0,1,1,1,1,1,1,1,1)] = 1.0
+			# self.actual_belief[(1,0,1,0,1,1,1,1,1,1,1,1)] = 1.0
 			# random_belief = np.random.rand(len(self.local_belief))
 			# random_belief /= np.sum(random_belief)
 			# for b_i,r_b in zip(self.local_belief, random_belief):
@@ -292,8 +293,8 @@ class Agent():
 				belief_list,agent_order = zip(*sorted(zip(belief_list,agent_order)))
 				neighbor_set[theta] = set(agent_order[self.no_bad:])
 				if self.av_flag:
-					if theta == (1,1,1,1,1,1,1,0) and self.id_no==560:
-						print(" ")
+					# if theta == (1,1,1,1,1,1,1,0) and self.id_no==560:
+					# 	print(" ")
 					actual_belief[theta] = min(self.local_belief[theta],np.mean(list(belief_list)[self.no_bad:-1*self.no_bad]))
 				else:
 					actual_belief[theta] = min([self.local_belief[theta]]+list(belief_list)[self.no_bad:])
@@ -304,12 +305,12 @@ class Agent():
 		self.actual_belief = dict([[theta, actual_belief[theta] / sum(actual_belief.values())] for theta in actual_belief])
 		for n_s in neighbor_set:
 			self.neighbor_set[n_s] = neighbor_set[n_s]
-		if self.evil:
-			random_belief = np.random.rand(len(self.local_belief))
-			random_belief /= np.sum(random_belief)
-			for b_i, r_b in zip(self.local_belief, random_belief):
-				self.local_belief[b_i] = r_b
-				self.actual_belief[b_i] = r_b
+		# if self.evil:
+		# 	random_belief = np.random.rand(len(self.local_belief))
+		# 	random_belief /= np.sum(random_belief)
+		# 	for b_i, r_b in zip(self.local_belief, random_belief):
+		# 		self.local_belief[b_i] = r_b
+		# 		self.actual_belief[b_i] = r_b
 
 	def asyncBeliefUpdate(self,belief,belief_arrays):
 		if self.resetFlags[belief]:

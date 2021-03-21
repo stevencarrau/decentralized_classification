@@ -6,7 +6,7 @@ import json
 import pickle
 import ray
 
-def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
+def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100,fname=None):
     plotting_dictionary = dict()
     time_t = 0
     agent_loc = dict([[a.id_no, a.current] for a in agent_array])
@@ -41,23 +41,28 @@ def play_sim(multicolor=True, agent_array=None,grid=None,tot_t=100):
         for a_i, p_i in enumerate(agent_array):
             if p_i.async_flag:
                 belief_packet = dict([[v_a,agent_array[p_i.id_idx[v_a]].actual_belief] for v_a in p_i.viewable_agents])
-                belief_updates.append(belief_parallel.remote(p_i,belief_packet))
+                p_i.ADHT(belief_packet)
+                # belief_updates.append(belief_parallel.remote(p_i,belief_packet))
             else:
                 belief_packet = [agent_array[p_i.id_idx[v_a]].actual_belief for v_a in p_i.viewable_agents]
                 p_i.shareBelief(belief_packet)
-        agent_array = ray.get(belief_updates)
+                # belief_updates.append(belief_parallel.remote(p_i,belief_packet))
+        # agent_array = ray.get(belief_updates)
         for a_i, p_i in enumerate(agent_array):
             time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
         plotting_dictionary.update({str(time_t): time_p})
-    fname = str(len(agent_loc))+'agents_'+str(grid.obs_range)+'-'+str('HV')+'_range_async_min.json'
+    # fname = str(len(agent_loc))+'agents_'+str(grid.obs_range)+'-'+str('HV')+'_range_async_min.json'
     print("Writing to "+fname)
-    write_JSON(fname, stringify_keys(plotting_dictionary))
+    write_JSON(fname+'.json', stringify_keys(plotting_dictionary))
     return print("Goal!")
 
 
 @ray.remote
 def belief_parallel(p_i,belief_array):
-    p_i.ADHT(belief_array)
+    if p_i.async_flag:
+        p_i.ADHT(belief_array)
+    else:
+        p_i.shareBelief(belief_array)
     return p_i
 
 def write_JSON(filename,data):
@@ -88,22 +93,26 @@ def stringify_keys(d):
             del d[key]
     return d
 
-nrows = 30
-ncols = 30
+
 moveobstacles = []
 obstacles = []
 # # # 5 agents small range
-# initial = [(33,1),(41,0),(7,0),(80,1),(69,1)]
-# targets = [[29,0],[60,69],[20,39],[69,96],[99,11]]
-# public_targets = [[29,0],[60,69],[20,39],[68,93],[99,11]]
-# bad_models = [[1,19],[60,58],[30,29],[69,96],[81,18]]
-obs_range = 6
+nrows = 10
+ncols = 10
+initial = [33,41,7,80,69]
+targets = [[79,0],[60,69],[80,39],[69,5],[99,11]]
+public_targets = [[79,0],[60,69],[80,39],[89,7],[99,11]]
+bad_models = [[69,1],[50,58],[70,29],[69,5],[81,18]]
+obs_range = 3
 np.random.seed(1)
 
-initial = [31,93,45,194,636,481,88,116,346,800,525,669]
-targets =        [[871,4],[0,899],[5,874],[25,895],[834,37],[52,812],[876,29],[897,60],[14,885],[360,389],[779,390],[780,329]]
-public_targets = [[871,4],[0,899],[5,874],[25,895],[834,37],[52,812],[876,29],[897,60],[14,885],[360,389],[778,420],[750,299]]
-bad_models =     [[872,4],[31,868],[6,875],[26,894],[835,35],[54,808],[877,59],[898,61],[15,886],[390,359],[778,420],[750,299]]
+
+# nrows = 30
+# ncols = 30
+# initial = [31,93,45,194,636,481,88,116,346,800,525,669]
+# targets =        [[871,4],[0,899],[5,874],[25,895],[834,37],[52,812],[876,29],[897,60],[14,885],[360,389],[779,390],[780,329]]
+# public_targets = [[871,4],[0,899],[5,874],[25,895],[834,37],[52,812],[876,29],[897,60],[14,885],[360,389],[778,420],[750,299]]
+# bad_models =     [[872,4],[31,868],[6,875],[26,894],[835,35],[54,808],[877,59],[898,61],[15,886],[390,359],[778,420],[750,299]]
 
 
 #
@@ -152,12 +161,12 @@ for a_i in agent_array:
 
 
 # fname =  str(len(agent_array))+'agents_'+str(obs_range)+'-'+str('HV')+'_range_async_min'
-fname = 'data/Largearray/{}agents_{}range_async_min'.format(len(agent_array),obs_range)
+fname = 'data/Largearray/{}agents_{}range_async_avg'.format(len(agent_array),obs_range)
 # fname = 'data/Largearray/{}agents_{}range_async_avg'
 env_file = open(fname + '.pickle', 'wb')
 pickle.dump(gwg, env_file)
 env_file.close()
 ray.init()
-play_sim(True,agent_array,gwg,200)
+play_sim(True,agent_array,gwg,100,fname)
 
 
