@@ -11,7 +11,7 @@ import pygame.locals as pgl
 
 class Gridworld():
     # a gridworld with uneven terrain
-    def __init__(self, initial, nrows=8, ncols=8, nagents=1, targets=[], obstacles=[], moveobstacles = [], regions=dict(),size=100,obs_range=3,public_targets=[]):
+    def __init__(self, initial, nrows=8, ncols=8, nagents=1, targets=[], obstacles=[], moveobstacles = [], regions=dict(),size=100,obs_range=3,public_targets=[[1]]):
         # walls are the obstacles. The edges of the gridworld will be included into the walls.
         # region is a string and can be one of: ['pavement','gravel', 'grass', 'sand']
         self.size = size
