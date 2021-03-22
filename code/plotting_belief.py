@@ -49,7 +49,7 @@ frames = 100
 
 def update_all(i):
 	grid_obj = grid_update(i)
-	return rad_obj + grid_obj+conn_obj + belf_obj
+	return grid_obj
 
 
 def grid_init(nrows, ncols, obs_range):
@@ -79,9 +79,7 @@ def grid_init(nrows, ncols, obs_range):
 		c_i = plt.Circle(init_loc, 0.45, color=color)
 		# route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
 		cir_ax = ax.add_artist(c_i)
-		lin_ax = None
-		# lin_ax = ax.add_patch(patches.Rectangle(np.array(init_loc)-obs_range-0.5, 2*obs_range+1, 2*obs_range+1,fill=False, color=color, clip_on=True, alpha=0.5, ls='--', lw=4))
-		ag_array.append([cir_ax, lin_ax])
+		ag_array.append([cir_ax])
 		# for k in p_t:
 		# 	s_c = coords(k, ncols)
 		# 	ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
@@ -93,10 +91,10 @@ def grid_update(i):
 	write_objects = []
 	for a_x, id_no in zip(ax_ar, categories):
 		# c_i, l_i, p_i,p_2 = a_x
-		c_i, l_i = a_x
+		c_i = a_x[0]
 		loc = tuple(reversed(coords(df[str(i)][id_no]['AgentLoc'], ncols)))
 		c_i.set_center(loc)
-		l_i.set_xy(np.array(loc)-obs_range-0.5)
+		# l_i.set_xy(np.array(loc)-obs_range-0.5)
 		# route_x, route_y = zip(*[tuple(reversed(coords(df[str(i)][str(id_no)]['NominalTrace'][s][0], ncols))) for s in df[str(i)][str(id_no)]['NominalTrace']])
 		# p_i.set_xdata(route_x)
 		# p_i.set_ydata(route_y)
@@ -104,7 +102,7 @@ def grid_update(i):
 		#                          df[str(i)][str(id_no)]['BadTrace']])
 		# p_2.set_xdata(route_x2)
 		# p_2.set_ydata(route_y2)
-		write_objects += [c_i] + [l_i] # + [p_i] + [p_2]
+		write_objects += [c_i]
 	return write_objects
 
 def coords(s,ncols):
