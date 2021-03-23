@@ -30,20 +30,23 @@ def stringify_keys(d):
     return d
 
 
-def list_sequence(list_in):
-	list_out = dict()
-	for i,l_i in enumerate(list_in):
-		list_out.update({i:dict({'AgentLoc':l_i})})
-	return list_out
 
 def all_agent_tracks(list_agent_names,list_tracks):
 	dict_out = dict()
-	for l_a,l_t in zip(list_agent_names,list_tracks):
-		dict_out.update({l_a:list_sequence(l_t)})
+	tot_t = len(list_tracks[0])
+	for i in range(tot_t):
+		time_dict = dict()
+		for a_i,t_i in zip(list_agent_names,tracks):
+			agent_dict = dict({'AgentLoc':t_i[i]})
+			if i==0:
+				agent_dict.update({'Id_no':list_agent_names})
+			time_dict.update({a_i:agent_dict})
+		dict_out.update({i:time_dict})
+
 	return dict_out
 
 agents = [0,1,2,3]
-tracks = [[0,1,2,3,4,5,6,7,8,9],[10,11,12,13,14,15,16,17,18,19],[20,21,22,23,24,25,26,27,28,29]]
+tracks = [[0,1,2,3,4,5,6,7,8,9],[10,11,12,13,14,15,16,17,18,19],[20,21,22,23,24,25,26,27,28,29],[30,31,32,33,34,35,36,37,38,39]]
 agent_paths = all_agent_tracks(agents,tracks)
 write_JSON('AgentPaths.json',agent_paths)
 
