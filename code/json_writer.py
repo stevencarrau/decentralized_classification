@@ -46,14 +46,15 @@ def all_agent_tracks(list_agent_names, list_tracks):
     return dict_out
 
 
-agents = [0, 1, 2, 3, 4]
-tracks = [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-          [20, 21, 22, 23, 24, 25, 26, 27, 28, 29], [30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
-          [0, 11, 15, 19, 23, 33, 33, 33, 33, 33]]
+agents = [0, 1, 2, 3, 4, 5]
+# store A owner (Andy), store B owner (Barney), customer C (Chloe), customer D (Dora), customer E (Edward), robot
+tracks = [[397, 398, 399, 429, 428, 427, 457, 458, 459, 460], [854, 824, 825, 826, 827, 857, 856, 855, 854, 853],
+          [543, 546, 549, 489, 459, 460, 458, 489, 549, 552], [573, 576, 578, 488, 428, 368, 338, 278, 248, 250],
+          [723, 726, 729, 732, 735, 765, 795, 825, 826, 856], [633, 636, 639, 642, 645, 648, 651, 654, 657, 660]]
 agent_paths = all_agent_tracks(agents, tracks)
-write_JSON('AgentPaths.json', agent_paths)
+write_JSON('AgentPaths_pink_bad.json', agent_paths)
 
-with open('AgentPaths.json') as json_file:
+with open('AgentPaths_pink_bad.json') as json_file:
     data = json.load(json_file)
 
 print(data['1']['3']['AgentLoc'])
