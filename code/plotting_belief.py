@@ -19,7 +19,7 @@ from gridworld import *
 
 # ---------- PART 1: Globals
 
-with open('5agents_6-HV_range_async_min.json') as json_file:
+with open('AgentPaths.json') as json_file:
 	data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 150
@@ -32,19 +32,19 @@ my_palette = plt.cm.get_cmap("tab10",len(df.index))
 # seed_iter = iter(range(0,5))
 categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
 
-belief_good = df['0'][0]['GoodBelief']
-belief_bad = df['0'][0]['BadBelief']
-N = len(categories)
-angles = [n / float(N) * 2 * pi for n in range(N)]
-angles += angles[:1]
-axis_array = []
-l_data = []
-f_data = []
-belief_x_good = []
-belief_x_bad = []
-belief_y_bad = []
+# belief_good = df['0'][0]['GoodBelief']
+# belief_bad = df['0'][0]['BadBelief']
+# N = len(categories)
+# angles = [n / float(N) * 2 * pi for n in range(N)]
+# angles += angles[:1]
+# axis_array = []
+# l_data = []
+# f_data = []
+# belief_x_good = []
+# belief_x_bad = []
+# belief_y_bad = []
 belief_y_good = []
-frames = 100
+frames = 10
 
 
 def update_all(i):
@@ -58,8 +58,8 @@ def grid_init(nrows, ncols, obs_range):
 	t = 0
 	row_labels = range(nrows)
 	col_labels = range(ncols)
-	plt.xticks(range(ncols), col_labels)
-	plt.yticks(range(nrows), row_labels)
+	plt.xticks(range(ncols), '')
+	plt.yticks(range(nrows), '')
 	ax.set_xticks([x - 0.5 for x in range(1, ncols)], minor=True)
 	ax.set_yticks([y - 0.5 for y in range(1, nrows)], minor=True)
 	ax.set_xlim(-0.5,ncols-0.5)
@@ -68,18 +68,52 @@ def grid_init(nrows, ncols, obs_range):
 	ag_array = []
 	plt.grid(which="minor", ls="-", lw=1)
 	i = 0
+
+	# define a few colors
+	brown = (166.0/255.0, 123.0/255.0, 91.0/255.0)
+	gray = (134.0 / 255.0, 134.0 / 255.0, 134.0 / 255.0)
+	blue = (51.0/255.0, 153.0/255.0, 255.0/255.0)
+	dark_green = (0.0/255.0, 102.0/255.0, 0.0/255.0)
+
 	for id_no in categories:
-		p_t = df[str(0)][id_no]['PublicTargets']
-		if id_no == '10' or id_no == '11':
-			color = (255.0/255.0, 0.0/255.0, 14.0/255.0,1.0)
-		else:
-			color = (0/255.0, 254.0/255.0, 10.0/255.0,1.0)
+		# p_t = df[str(0)][id_no]['PublicTargets']
+		# if id_no == '4':
+		# 	# red, imposter
+		# 	color = (255.0/255.0, 0.0/255.0, 0.0/255.0,1.0)
+		# else:
+		color = dark_green
 		# color = my_palette(i)
 		init_loc = tuple(reversed(coords(df[str(0)][id_no]['AgentLoc'], ncols)))
 		c_i = plt.Circle(init_loc, 0.45, color=color)
 		# route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
 		cir_ax = ax.add_artist(c_i)
 		ag_array.append([cir_ax])
+
+		# fill in buildings
+		# store A
+		ax.fill([5 + 0.5, 10 + 0.5, 10 + 0.5, 5 + 0.5],
+				[12 - 0.5, 12 - 0.5, 15 + 0.5, 15 + 0.5], color=brown, alpha=0.9)
+
+		# Home
+		ax.fill([18 + 0.5, 23 + 0.5, 23 + 0.5, 18 + 0.5],
+				[12 - 0.5, 12 - 0.5, 15 + 0.5, 15 + 0.5], color=brown, alpha=0.9)
+
+		# Fence
+		ax.fill([5 + 0.5, 9 + 0.5, 16 + 0.5, 16 + 0.5, 5 + 0.5],
+				[12 - 0.5, 3 + 0.5, 3 + 0.5, 12 - 0.5, 12 - 0.5], color=gray, alpha=0.9)
+
+		# Electric Utility Control Box
+		ax.fill([12 + 0.5, 14 + 0.5, 14 + 0.5, 12 + 0.5],
+				[5 + 0.5, 5 + 0.5, 7 + 0.5, 7 + 0.5], color=blue, alpha=0.9)
+
+		# Street
+		ax.fill([-1.0 + 0.5, 29.5 + 0.5, 29.5 + 0.5, -1.0 + 0.5],
+				[17 + 0.5, 17 + 0.5, 24 + 0.5, 24 + 0.5], color=gray, alpha=0.9)
+
+		# store B
+		ax.fill([12 + 0.5, 17 + 0.5, 17 + 0.5, 12	 + 0.5],
+				[27 - 0.5, 27 - 0.5, 29 + 0.5, 29 + 0.5], color=brown, alpha=0.9)
+
 		# for k in p_t:
 		# 	s_c = coords(k, ncols)
 		# 	ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
@@ -109,17 +143,16 @@ def coords(s,ncols):
 	return (int(s /ncols), int(s % ncols))
 
 
-
-nrows = 20
-ncols = 20
+nrows = 30
+ncols = 30
 
 # ---------- PART 2:
 regionkeys = {'pavement','gravel','grass','sand','deterministic'}
 regions = dict.fromkeys(regionkeys,{-1})
 regions['deterministic']= range(nrows*ncols)
-gwg = Gridworld(initial=[0],nrows=nrows,ncols=ncols,regions=regions)
-gwg.render()
-gwg.draw_state_labels()
+# gwg = Gridworld(initial=[0],nrows=nrows,ncols=ncols,regions=regions)
+# gwg.render()
+# gwg.draw_state_labels()
 
 moveobstacles = []
 obstacles = []
