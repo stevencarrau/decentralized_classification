@@ -148,7 +148,9 @@ def grid_update(i):
         # c_i.set_center(loc)
 
         # Use this line if you're working with images
-        # c_i.xy = loc
+        c_i.xy = loc
+        c_i.xyann = loc
+        c_i.xybox = loc
 
 
         # l_i.set_xy(np.array(loc)-obs_range-0.5)
