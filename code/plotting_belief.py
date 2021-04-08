@@ -14,6 +14,7 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.offsetbox import (DrawingArea, OffsetImage, AnnotationBbox)
 import numpy as np
 from gridworld import *
+import itertools
 
 # import texfig
 
@@ -88,6 +89,11 @@ def grid_init(nrows, ncols, obs_range):
              'pictures/thanos.png', 'pictures/thor.png', 'pictures/ironman.png']
     # bad ppl: thanos
     # good ppl: Captain America, Iron man, spiderman, Hulk, Thor
+    storeA_squares = [list(range(m,m+5)) for m in range(366,486,30)]
+    home_squares = [list(range(m,m+5)) for m in range(380,500,30)]
+    storeB_squares = [list(range(m,m+5)) for m in range(823,890,30)]
+    building_squares = list(itertools.chain(*home_squares))+list(itertools.chain(*storeA_squares))+list(itertools.chain(*storeB_squares))
+    building_doors = [458,472,825]
 
     for id_no in categories:
         # p_t = df[str(0)][id_no]['PublicTargets']
@@ -103,13 +109,25 @@ def grid_init(nrows, ncols, obs_range):
         # legend = plt.legend(handles=cir_ax, loc=4, fontsize='small', fancybox=True)
 
         # fill in buildings
-        # store A
-        ax.fill([5 + 0.5, 10 + 0.5, 10 + 0.5, 5 + 0.5],
-                [12 - 0.5, 12 - 0.5, 15 + 0.5, 15 + 0.5], color=brown, alpha=0.9)
+        # # store A
+        # ax.fill([5 + 0.5, 10 + 0.5, 10 + 0.5, 5 + 0.5],
+        #         [12 - 0.5, 12 - 0.5, 15 + 0.5, 15 + 0.5], color=brown, alpha=0.9)
+        #
+        # # Home
+        # ax.fill([18 + 0.5, 23 + 0.5, 23 + 0.5, 18 + 0.5],
+        #         [12 - 0.5, 12 - 0.5, 15 + 0.5, 15 + 0.5], color=brown, alpha=0.9)
 
-        # Home
-        ax.fill([18 + 0.5, 23 + 0.5, 23 + 0.5, 18 + 0.5],
-                [12 - 0.5, 12 - 0.5, 15 + 0.5, 15 + 0.5], color=brown, alpha=0.9)
+        # # store B
+        # ax.fill([12 + 0.5, 17 + 0.5, 17 + 0.5, 12 + 0.5],
+        #         [27 - 0.5, 27 - 0.5, 29 + 0.5, 29 + 0.5], color=brown, alpha=0.9)
+        for h_s in building_squares:
+            h_loc = tuple(reversed(coords(h_s, ncols)))
+            ax.fill([h_loc[0]-0.5,h_loc[0]+0.5,h_loc[0]+0.5,h_loc[0]-0.5],[h_loc[1]-0.5,h_loc[1]-0.5,h_loc[1]+0.5,h_loc[1]+0.5],color=brown, alpha=0.8)
+
+        for b_d in building_doors:
+            b_loc = tuple(reversed(coords(b_d, ncols)))
+            ax.fill([b_loc[0] - 0.5, b_loc[0] + 0.5, b_loc[0] + 0.5, b_loc[0] - 0.5],
+                    [b_loc[1] - 0.5, b_loc[1] - 0.5, b_loc[1] + 0.5, b_loc[1] + 0.5], color=mustard, alpha=0.8)
 
         # Fence
         ax.fill([5 + 0.5, 9 + 0.5, 16 + 0.5, 16 + 0.5, 5 + 0.5],
@@ -123,9 +141,7 @@ def grid_init(nrows, ncols, obs_range):
         ax.fill([-1.0 + 0.5, 29.5 + 0.5, 29.5 + 0.5, -1.0 + 0.5],
                 [17 + 0.5, 17 + 0.5, 24 + 0.5, 24 + 0.5], color=gray, alpha=0.9)
 
-        # store B
-        ax.fill([12 + 0.5, 17 + 0.5, 17 + 0.5, 12 + 0.5],
-                [27 - 0.5, 27 - 0.5, 29 + 0.5, 29 + 0.5], color=brown, alpha=0.9)
+
 
         # for k in p_t:
         # 	s_c = coords(k, ncols)
@@ -134,11 +150,11 @@ def grid_init(nrows, ncols, obs_range):
 
     # legend = plt.legend(handles=ag_array, loc=4, fontsize='small', fancybox=True)
     # ax.legend()
-    return ag_array
+    return ag_array,building_squares
 
 
 def grid_update(i):
-    global ax_ar, df, ncols, obs_range
+    global ax_ar, df, ncols, obs_range,building_squares
     write_objects = []
     for a_x, id_no in zip(ax_ar, categories):
         # c_i, l_i, p_i,p_2 = a_x
@@ -151,6 +167,10 @@ def grid_update(i):
         c_i.xy = loc
         c_i.xyann = loc
         c_i.xybox = loc
+        if df[str(i)][id_no]['AgentLoc'] in building_squares:
+            c_i.offsetbox.image.set_alpha(0.35)
+        else:
+            c_i.offsetbox.image.set_alpha(1.0)
 
 
         # l_i.set_xy(np.array(loc)-obs_range-0.5)
@@ -188,7 +208,7 @@ obs_range = 6
 
 # con_dict = con_ar = con_init()
 # bel_lines = belief_chart_init()
-ax_ar = grid_init(nrows, ncols, obs_range)
+ax_ar,building_squares = grid_init(nrows, ncols, obs_range)
 
 # ani = FuncAnimation(fig, update_all, frames=10, interval=1000, blit=True, repeat=False)
 # plt.show()
