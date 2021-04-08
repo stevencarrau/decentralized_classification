@@ -1,8 +1,8 @@
 import json
 import matplotlib
 
-matplotlib.use('pgf')
-# matplotlib.use('Qt5Agg')
+# matplotlib.use('pgf')
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pandas as pd
@@ -84,13 +84,18 @@ def grid_init(nrows, ncols, obs_range):
     colors = [orange, violet, dark_green, lavender, mustard, dark_blue]
     names = ["Store A Owner: Andy", "Store B Owner: Barney", "Customer: Chloe", "Customer: Dora", "Customer: Edward",
              "Robot"]
+    paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
+             'pictures/thanos.png', 'pictures/thor.png', 'pictures/ironman.png']
+    # bad ppl: thanos
+    # good ppl: Captain America, Iron man, spiderman, Hulk, Thor
 
     for id_no in categories:
         # p_t = df[str(0)][id_no]['PublicTargets']
         color = colors[int(id_no)]
         # color = my_palette(i)
         init_loc = tuple(reversed(coords(df[str(0)][id_no]['AgentLoc'], ncols)))
-        c_i = plt.Circle(init_loc, 0.45, label=names[int(id_no)], color=color)
+        # c_i = plt.Circle(init_loc, 0.45, label=names[int(id_no)], color=color)
+        c_i = AnnotationBbox(OffsetImage(plt.imread(paths[int(id_no)]), zoom=0.05), xy=init_loc, frameon=False)
 
         # route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
         cir_ax = ax.add_artist(c_i)
@@ -139,7 +144,13 @@ def grid_update(i):
         # c_i, l_i, p_i,p_2 = a_x
         c_i = a_x[0]
         loc = tuple(reversed(coords(df[str(i)][id_no]['AgentLoc'], ncols)))
-        c_i.set_center(loc)
+        # Use below line if you're working with circles
+        # c_i.set_center(loc)
+
+        # Use this line if you're working with images
+        # c_i.xy = loc
+
+
         # l_i.set_xy(np.array(loc)-obs_range-0.5)
         # route_x, route_y = zip(*[tuple(reversed(coords(df[str(i)][str(id_no)]['NominalTrace'][s][0], ncols))) for s in df[str(i)][str(id_no)]['NominalTrace']])
         # p_i.set_xdata(route_x)
