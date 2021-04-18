@@ -21,7 +21,7 @@ import itertools
 
 # ---------- PART 1: Globals
 
-with open('AgentPaths_pink_bad.json') as json_file:
+with open('AgentPaths_ice_cream_truck_test.json') as json_file:
     data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 150
@@ -73,20 +73,26 @@ def grid_init(nrows, ncols, obs_range):
     i = 0
 
     # define a few colors
-    brown = (166.0 / 255.0, 123.0 / 255.0, 91.0 / 255.0)
-    gray = (134.0 / 255.0, 134.0 / 255.0, 134.0 / 255.0)
-    blue = (51.0 / 255.0, 153.0 / 255.0, 255.0 / 255.0)
-    dark_blue = (0.0 / 255.0, 0.0 / 255.0, 201.0 / 255.0)
-    dark_green = (0.0 / 255.0, 102.0 / 255.0, 0.0 / 255.0)
-    orange = (230.0 / 255.0, 115.0 / 255.0, 0.0 / 255.0)
-    violet = (170.0 / 255.0, 0.0 / 255.0, 179.0 / 255.0)
-    lavender = (255.0 / 255.0, 123.0 / 255.0, 251.0 / 255.0)
+    brown = (255.0 / 255.0, 179.0 / 255.0, 102.0 / 255.0)
+    gray = (211.0 / 255.0, 211.0 / 255.0, 211.0 / 255.0)
+    blue = (173.0 / 255.0, 216.0 / 255.0, 230.0 / 255.0)
     mustard = (255.0 / 255.0, 225.0 / 255.0, 77.0 / 255.0)
-    colors = [orange, violet, dark_green, lavender, mustard, dark_blue]
-    names = ["Store A Owner: Andy", "Store B Owner: Barney", "Customer: Chloe", "Customer: Dora", "Customer: Edward",
-             "Robot"]
-    paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
-             'pictures/thanos.png', 'pictures/thor.png', 'pictures/ironman.png']
+
+    # dark_blue = (0.0 / 255.0, 0.0 / 255.0, 201.0 / 255.0)
+    # dark_green = (0.0 / 255.0, 102.0 / 255.0, 0.0 / 255.0)
+    # orange = (230.0 / 255.0, 115.0 / 255.0, 0.0 / 255.0)
+    # violet = (170.0 / 255.0, 0.0 / 255.0, 179.0 / 255.0)
+    # lavender = (255.0 / 255.0, 123.0 / 255.0, 251.0 / 255.0)
+    # colors = [orange, violet, dark_green, lavender, mustard, dark_blue]
+    # names = ["Store A Owner: Andy", "Store B Owner: Barney", "Customer: Chloe", "Customer: Dora", "Customer: Edward",
+    #          "Robot"]
+
+    tests = ["ice_cream_truck_test", "fire_alarm_test", "police_donut_test", "maintenance_crew_test"]
+    test_image_paths = ['pictures/ice_cream.png', 'pictures/fire_alarm.png',
+                        'pictures/police_badge.png', 'pictures/wrench.png']
+    actor_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
+                   'pictures/thanos.png', 'pictures/thor.png', 'pictures/ironman.png']
+
     # bad ppl: thanos
     # good ppl: Captain America, Iron man, spiderman, Hulk, Thor
     storeA_squares = [list(range(m,m+5)) for m in range(366,486,30)]
@@ -97,11 +103,11 @@ def grid_init(nrows, ncols, obs_range):
 
     for id_no in categories:
         # p_t = df[str(0)][id_no]['PublicTargets']
-        color = colors[int(id_no)]
+        # color = colors[int(id_no)]
         # color = my_palette(i)
         init_loc = tuple(reversed(coords(df[str(0)][id_no]['AgentLoc'], ncols)))
         # c_i = plt.Circle(init_loc, 0.45, label=names[int(id_no)], color=color)
-        c_i = AnnotationBbox(OffsetImage(plt.imread(paths[int(id_no)]), zoom=0.05), xy=init_loc, frameon=False)
+        c_i = AnnotationBbox(OffsetImage(plt.imread(actor_paths[int(id_no)]), zoom=0.05), xy=init_loc, frameon=False)
 
         # route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
         cir_ax = ax.add_artist(c_i)
@@ -142,7 +148,6 @@ def grid_init(nrows, ncols, obs_range):
                 [17 + 0.5, 17 + 0.5, 24 + 0.5, 24 + 0.5], color=gray, alpha=0.9)
 
 
-
         # for k in p_t:
         # 	s_c = coords(k, ncols)
         # 	ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
@@ -167,6 +172,7 @@ def grid_update(i):
         c_i.xy = loc
         c_i.xyann = loc
         c_i.xybox = loc
+
         if df[str(i)][id_no]['AgentLoc'] in building_squares:
             c_i.offsetbox.image.set_alpha(0.35)
         else:
@@ -214,5 +220,5 @@ ax_ar,building_squares = grid_init(nrows, ncols, obs_range)
 # plt.show()
 # ani.save('6_agents_pink_bad.mp4', writer=writer)
 
-ani = FuncAnimation(fig, update_all, frames=10, interval=1000, blit=True)
+ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
 plt.show()
