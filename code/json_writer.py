@@ -36,7 +36,7 @@ def all_agent_tracks(list_agent_names, list_tracks):
     tot_t = len(list_tracks[0])
     for i in range(tot_t):
         time_dict = dict()
-        for a_i, t_i in zip(list_agent_names, tracks):
+        for a_i, t_i in zip(list_agent_names, list_tracks):
             agent_dict = dict({'AgentLoc': t_i[i]})
             if i == 0:
                 agent_dict.update({'Id_no': list_agent_names})
@@ -46,15 +46,15 @@ def all_agent_tracks(list_agent_names, list_tracks):
     return dict_out
 
 
-agents = [0, 1, 2, 3, 4, 5]
-# store A owner (Andy), store B owner (Barney), customer C (Chloe), customer D (Dora), customer E (Edward), robot
-tracks = [[397, 398, 399, 429, 428, 427, 457, 458, 459, 460], [854, 824, 825, 826, 827, 857, 856, 855, 854, 853],
-          [543, 546, 549, 489, 459, 460, 458, 489, 549, 552], [573, 576, 578, 488, 428, 368, 338, 278, 248, 250],
-          [723, 726, 729, 732, 735, 765, 795, 825, 826, 856], [633, 636, 639, 642, 645, 648, 651, 654, 657, 660]]
-agent_paths = all_agent_tracks(agents, tracks)
-write_JSON('AgentPaths_pink_bad.json', agent_paths)
+# agents = [0, 1, 2, 3, 4, 5]
+# # store A owner (Andy), store B owner (Barney), customer C (Chloe), customer D (Dora), customer E (Edward), robot
+# tracks = [[397, 398, 399, 429, 428, 427, 457, 458, 459, 460], [854, 824, 825, 826, 827, 857, 856, 855, 854, 853],
+#           [543, 546, 549, 489, 459, 460, 458, 489, 549, 552], [573, 576, 578, 488, 428, 368, 338, 278, 248, 250],
+#           [723, 726, 729, 732, 735, 765, 795, 825, 826, 856], [633, 636, 639, 642, 645, 648, 651, 654, 657, 660]]
+# agent_paths = all_agent_tracks(agents, tracks)
+# write_JSON('AgentPaths_pink_bad.json', agent_paths)
+#
+# with open('AgentPaths_pink_bad.json') as json_file:
+#     data = json.load(json_file)
 
-with open('AgentPaths_pink_bad.json') as json_file:
-    data = json.load(json_file)
-
-print(data['1']['3']['AgentLoc'])
+# print(data['1']['3']['AgentLoc'])
