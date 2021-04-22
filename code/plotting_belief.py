@@ -26,12 +26,17 @@ class GlobalState(Enum):
     FIRE_ALARM_TRIGGER_ENABLED = 2
     BLAST_TRIGGER_ENABLED = 3
 
-class AgentTye(Enum):
-    STORE_WORKER = 0
-    REPAIRMAN = 1
-    HOME_DWELLER = 2
-    SHOPPER = 3
-    EVIL_PERSON = 4
+class AgentType(Enum):
+    STORE_WORKER = 0 # Black Widow
+    REPAIRMAN = 1 # Captain America
+    HOME_DWELLER = 2  # Thor
+    SHOPPER = 3  # Hulk
+    EVIL_PERSON = 4  # Thanos
+    ROBOT = 5  # Ironman
+
+class Agent():
+    def __init__(self, agent_type):
+        self.agent_type = agent_type
 
 # ---------- PART 1: Globals
 
@@ -197,13 +202,15 @@ def grid_update(i):
         next_state = randint(-5, len(GlobalState)-1)
         trigger_icon = None
 
-        if global_state == GlobalState.NO_TRIGGER_ENABLED and next_state >= 0:
-            set_global_state(next_state)
+        # make sure triggers are enabled for at least 5 seconds
+        if active_trigger_time > 5:
+            if global_state == GlobalState.NO_TRIGGER_ENABLED and next_state >= 0:
+                set_global_state(next_state)
+                active_trigger_time = 0
 
-        if global_state != GlobalState.NO_TRIGGER_ENABLED:
-            trigger_icon = AnnotationBbox(OffsetImage(plt.imread(trigger_image_paths[global_state.value-1]), zoom=0.13),
-                                      xy=(3,3),frameon=False)
-
+            if global_state != GlobalState.NO_TRIGGER_ENABLED:
+                trigger_icon = AnnotationBbox(OffsetImage(plt.imread(trigger_image_paths[global_state.value-1]), zoom=0.13),
+                                          xy=(3,3),frameon=False)
 
 
 
@@ -218,7 +225,12 @@ def grid_update(i):
         write_objects += [c_i]
 
         if trigger_icon is not None:
+            print(trigger_icon)
+            print()
             write_objects += [trigger_icon]
+
+        if global_state != GlobalState.NO_TRIGGER_ENABLED:
+            active_trigger_time += 1
 
     return write_objects
 
