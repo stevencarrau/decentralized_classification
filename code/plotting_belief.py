@@ -40,7 +40,8 @@ class Agent():
 
 # ---------- PART 1: Globals
 
-with open('AgentPaths_ice_cream_truck_test.json') as json_file:
+with open('AgentPaths_MDP.json') as json_file:
+# with open('AgentPaths_ice_cream_truck_test.json') as json_file:
     data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 150
@@ -72,7 +73,7 @@ active_trigger_time = 0
 # belief_x_bad = []
 # belief_y_bad = []
 belief_y_good = []
-frames = 10
+frames = len(data)
 
 
 def update_all(i):
@@ -264,5 +265,6 @@ ax_ar,building_squares = grid_init(nrows, ncols, obs_range)
 # plt.show()
 # ani.save('6_agents_pink_bad.mp4', writer=writer)
 
-ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
+ani = FuncAnimation(fig, update_all, frames=frames, interval=300, blit=True)
+# ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
 plt.show()
