@@ -21,11 +21,8 @@ import itertools
 
 # ---------- PART 1: Globals
 
-<<<<<<< HEAD
 with open('AgentPaths_MDP.json') as json_file:
-=======
-with open('AgentPaths_ice_cream_truck_test.json') as json_file:
->>>>>>> e2b9a7feeb6a3adcc4ebee46ee93ef37b2bf6734
+# with open('AgentPaths_ice_cream_truck_test.json') as json_file:
     data = json.load(json_file)
 df = pd.DataFrame(data)
 my_dpi = 150
@@ -224,9 +221,6 @@ ax_ar,building_squares = grid_init(nrows, ncols, obs_range)
 # plt.show()
 # ani.save('6_agents_pink_bad.mp4', writer=writer)
 
-<<<<<<< HEAD
 ani = FuncAnimation(fig, update_all, frames=frames, interval=300, blit=True)
-=======
-ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
->>>>>>> e2b9a7feeb6a3adcc4ebee46ee93ef37b2bf6734
+# ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
 plt.show()
