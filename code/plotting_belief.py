@@ -15,9 +15,23 @@ from matplotlib.offsetbox import (DrawingArea, OffsetImage, AnnotationBbox)
 import numpy as np
 from gridworld import *
 import itertools
+from enum import Enum
+from random import randint
 
 # import texfig
 
+class GlobalState(Enum):
+    NO_TRIGGER_ENABLED = 0
+    ICE_CREAM_TRUCK_TRIGGER_ENABLED = 1
+    FIRE_ALARM_TRIGGER_ENABLED = 2
+    BLAST_TRIGGER_ENABLED = 3
+
+class AgentTye(Enum):
+    STORE_WORKER = 0
+    REPAIRMAN = 1
+    HOME_DWELLER = 2
+    SHOPPER = 3
+    EVIL_PERSON = 4
 
 # ---------- PART 1: Globals
 
@@ -33,6 +47,13 @@ fig = plt.figure(figsize=(3600 / my_dpi, 2000 / my_dpi), dpi=my_dpi)
 my_palette = plt.cm.get_cmap("tab10", len(df.index))
 # seed_iter = iter(range(0,5))
 categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
+global_state = GlobalState.NO_TRIGGER_ENABLED
+
+triggers = ["ice_cream_truck", "fire_alarm", "explosion"]
+trigger_image_paths = ['pictures/ice_cream.png', 'pictures/fire_alarm.png', 'pictures/explosion.png']
+actor_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
+               'pictures/thanos.png', 'pictures/thor.png', 'pictures/ironman.png']
+active_trigger_time = 0
 
 # belief_good = df['0'][0]['GoodBelief']
 # belief_bad = df['0'][0]['BadBelief']
@@ -52,6 +73,11 @@ frames = 10
 def update_all(i):
     grid_obj = grid_update(i)
     return grid_obj
+
+
+def set_global_state(next_state):
+    global global_state
+    global_state = GlobalState(next_state)
 
 
 def grid_init(nrows, ncols, obs_range):
@@ -77,21 +103,9 @@ def grid_init(nrows, ncols, obs_range):
     gray = (211.0 / 255.0, 211.0 / 255.0, 211.0 / 255.0)
     blue = (173.0 / 255.0, 216.0 / 255.0, 230.0 / 255.0)
     mustard = (255.0 / 255.0, 225.0 / 255.0, 77.0 / 255.0)
-
-    # dark_blue = (0.0 / 255.0, 0.0 / 255.0, 201.0 / 255.0)
-    # dark_green = (0.0 / 255.0, 102.0 / 255.0, 0.0 / 255.0)
-    # orange = (230.0 / 255.0, 115.0 / 255.0, 0.0 / 255.0)
-    # violet = (170.0 / 255.0, 0.0 / 255.0, 179.0 / 255.0)
-    # lavender = (255.0 / 255.0, 123.0 / 255.0, 251.0 / 255.0)
-    # colors = [orange, violet, dark_green, lavender, mustard, dark_blue]
     # names = ["Store A Owner: Andy", "Store B Owner: Barney", "Customer: Chloe", "Customer: Dora", "Customer: Edward",
     #          "Robot"]
 
-    tests = ["ice_cream_truck_test", "fire_alarm_test", "police_donut_test", "maintenance_crew_test"]
-    test_image_paths = ['pictures/ice_cream.png', 'pictures/fire_alarm.png',
-                        'pictures/police_badge.png', 'pictures/wrench.png']
-    actor_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
-                   'pictures/thanos.png', 'pictures/thor.png', 'pictures/ironman.png']
 
     # bad ppl: thanos
     # good ppl: Captain America, Iron man, spiderman, Hulk, Thor
@@ -107,7 +121,7 @@ def grid_init(nrows, ncols, obs_range):
         # color = my_palette(i)
         init_loc = tuple(reversed(coords(df[str(0)][id_no]['AgentLoc'], ncols)))
         # c_i = plt.Circle(init_loc, 0.45, label=names[int(id_no)], color=color)
-        c_i = AnnotationBbox(OffsetImage(plt.imread(actor_paths[int(id_no)]), zoom=0.05), xy=init_loc, frameon=False)
+        c_i = AnnotationBbox(OffsetImage(plt.imread(actor_paths[int(id_no)]), zoom=0.13), xy=init_loc, frameon=False)
 
         # route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
         cir_ax = ax.add_artist(c_i)
@@ -167,8 +181,9 @@ def grid_update(i):
         loc = tuple(reversed(coords(df[str(i)][id_no]['AgentLoc'], ncols)))
         # Use below line if you're working with circles
         # c_i.set_center(loc)
+        print(loc)
 
-        # Use this line if you're working with images
+        # Use these lines if you're working with images
         c_i.xy = loc
         c_i.xyann = loc
         c_i.xybox = loc
@@ -177,6 +192,19 @@ def grid_update(i):
             c_i.offsetbox.image.set_alpha(0.35)
         else:
             c_i.offsetbox.image.set_alpha(1.0)
+
+        # deal with triggers
+        next_state = randint(-5, len(GlobalState)-1)
+        trigger_icon = None
+
+        if global_state == GlobalState.NO_TRIGGER_ENABLED and next_state >= 0:
+            set_global_state(next_state)
+
+        if global_state != GlobalState.NO_TRIGGER_ENABLED:
+            trigger_icon = AnnotationBbox(OffsetImage(plt.imread(trigger_image_paths[global_state.value-1]), zoom=0.13),
+                                      xy=(3,3),frameon=False)
+
+
 
 
         # l_i.set_xy(np.array(loc)-obs_range-0.5)
@@ -188,6 +216,10 @@ def grid_update(i):
         # p_2.set_xdata(route_x2)
         # p_2.set_ydata(route_y2)
         write_objects += [c_i]
+
+        if trigger_icon is not None:
+            write_objects += [trigger_icon]
+
     return write_objects
 
 
