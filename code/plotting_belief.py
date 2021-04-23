@@ -92,7 +92,7 @@ def grid_init(nrows, ncols, obs_range):
     test_image_paths = ['pictures/ice_cream.png', 'pictures/fire_alarm.png',
                         'pictures/police_badge.png', 'pictures/wrench.png']
     actor_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
-                   'pictures/thanos.png', 'pictures/thor.png', 'pictures/ironman.png']
+                   'pictures/thor.png','pictures/thanos.png', 'pictures/ironman.png']
 
     # bad ppl: thanos
     # good ppl: Captain America, Iron man, spiderman, Hulk, Thor
@@ -108,7 +108,7 @@ def grid_init(nrows, ncols, obs_range):
         # color = my_palette(i)
         init_loc = tuple(reversed(coords(df[str(0)][id_no]['AgentLoc'], ncols)))
         # c_i = plt.Circle(init_loc, 0.45, label=names[int(id_no)], color=color)
-        c_i = AnnotationBbox(OffsetImage(plt.imread(actor_paths[int(id_no)]), zoom=0.05), xy=init_loc, frameon=False)
+        c_i = AnnotationBbox(OffsetImage(plt.imread(actor_paths[int(id_no)]), zoom=0.13), xy=init_loc, frameon=False)
 
         # route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
         cir_ax = ax.add_artist(c_i)
@@ -221,6 +221,6 @@ ax_ar,building_squares = grid_init(nrows, ncols, obs_range)
 # plt.show()
 # ani.save('6_agents_pink_bad.mp4', writer=writer)
 
-ani = FuncAnimation(fig, update_all, frames=frames, interval=300, blit=True)
+ani = FuncAnimation(fig, update_all, frames=frames, interval=1200, blit=True)
 # ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
 plt.show()
