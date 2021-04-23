@@ -80,6 +80,7 @@ def grid_init(nrows, ncols, obs_range):
     ax.set_ylim(-0.5, nrows - 0.5)
     ax.invert_yaxis()
     ag_array = []
+    tr_array = []
     plt.grid(which="minor", ls="-", lw=1)
     i = 0
 
@@ -115,17 +116,17 @@ def grid_init(nrows, ncols, obs_range):
         c_i = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.13), xy=init_loc, frameon=False)
         t_i = None
 
+        # route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
+        cir_ax = ax.add_artist(c_i)
+        ag_array.append([cir_ax])
+
         if int(id_no) < len(trigger_image_paths):
             trigger_image_path_index = int(id_no) % len(trigger_image_paths)
             t_i = AnnotationBbox(OffsetImage(plt.imread(trigger_image_paths[trigger_image_path_index]), zoom=0.08),
                              xy=trigger_image_xy, frameon=False)
             t_i.set_label(trigger_image_paths[trigger_image_path_index])
             trigger_ax = ax.add_artist(t_i)
-            ag_array.append([trigger_ax])
-
-        # route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
-        cir_ax = ax.add_artist(c_i)
-        ag_array.append([cir_ax])
+            tr_array.append([trigger_ax])
         # legend = plt.legend(handles=cir_ax, loc=4, fontsize='small', fancybox=True)
 
 
@@ -169,16 +170,31 @@ def grid_init(nrows, ncols, obs_range):
 
     # legend = plt.legend(handles=ag_array, loc=4, fontsize='small', fancybox=True)
     # ax.legend()
-    return ag_array,building_squares
+    return ag_array,tr_array,building_squares
 
 
 def grid_update(i):
-    global ax_ar, df, ncols, obs_range,building_squares
+    global ax_ar,tr_ar, df, ncols, obs_range,building_squares
     write_objects = []
+    active_event = df[str(i)][categories[0]]['Event']
+    if active_event == 0:
+        for t_i in tr_ar:
+            t_i[0].set_visible(False)
+            write_objects += t_i
+    else:
+        for ind,t_i in enumerate(tr_ar):
+            if active_event == ind+1:
+                t_i[0].set_visible(True)
+                write_objects += t_i
+            else:
+                t_i[0].set_visible(False)
+                write_objects += t_i
+
+
     for a_x, id_no in zip(ax_ar, categories):
         # c_i, l_i, p_i,p_2 = a_x
         c_i = a_x[0]
-        loc = tuple(reversed(coords(df[str(i)][id_no]['AgentLoc'], ncols)))
+        loc = tuple(reversed(coords(df[str(i)][id_no]['AgentLoc']-30, ncols)))
         # Use below line if you're working with circles
         # c_i.set_center(loc)
 
@@ -197,14 +213,6 @@ def grid_update(i):
         else:
             c_i.offsetbox.image.set_alpha(1.0)
 
-        # l_i.set_xy(np.array(loc)-obs_range-0.5)
-        # route_x, route_y = zip(*[tuple(reversed(coords(df[str(i)][str(id_no)]['NominalTrace'][s][0], ncols))) for s in df[str(i)][str(id_no)]['NominalTrace']])
-        # p_i.set_xdata(route_x)
-        # p_i.set_ydata(route_y)
-        # route_x2, route_y2 = zip(*[tuple(reversed(coords(df[str(i)][str(id_no)]['BadTrace'][s][0], ncols))) for s in
-        #                          df[str(i)][str(id_no)]['BadTrace']])
-        # p_2.set_xdata(route_x2)
-        # p_2.set_ydata(route_y2)
         write_objects += [c_i]
     return write_objects
 
@@ -232,7 +240,7 @@ obs_range = 6
 
 # con_dict = con_ar = con_init()
 # bel_lines = belief_chart_init()
-ax_ar,building_squares = grid_init(nrows, ncols, obs_range)
+ax_ar,tr_ar,building_squares = grid_init(nrows, ncols, obs_range)
 
 # ani = FuncAnimation(fig, update_all, frames=10, interval=1000, blit=True, repeat=False)
 # plt.show()

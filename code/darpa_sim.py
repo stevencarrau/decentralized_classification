@@ -83,13 +83,15 @@ home_mdp  = MDP(states=env_states,alphabet=event_space,transitions=home_trans)
 agents = [shop_a_mdp,shop_b_mdp,repair_mdp,shopper_mdp,threat_mdp,home_mdp] # List of MDPs for each agent
 agent_state = [1,0,2,0,4,3] # Initial states for models
 agent_tracks = [[] for a_i in agents] # List to store all the tracks for plotting
+event_tracks = [] # List to store active events
 T = 20 # Total execution time for the triggers
 event_active = False # flag to co-ordinate event execution
+event_list = list(range(len(event_names)))
 event = 0 # Current trigger in each MDP
 act_time = 0 # Execution time for current trigger
 for i in range(T):
-	if not event_active: # Trigger random event if current one not active
-		event = random.randint(0, 3)
+	if not event_active and act_time>0: # Trigger random event if current one not active
+		event = int(np.random.choice(event_list,replace=False))
 		act_time = 0
 		event_active = True
 	if act_time >= event_triggers[event_names[event]]: # If event is over, reset to nominal
@@ -100,9 +102,10 @@ for i in range(T):
 		next_s = a_m.sample(agent_state[a_i],event)
 		agent_tracks[a_i] += env_tracks[(agent_state[a_i],next_s)]
 		agent_state[a_i] = next_s
+	event_tracks += len(env_tracks[(agent_state[a_i],next_s)])*[event]
 	act_time += 1
 
 # Write outputs for plotting_belief.py
-agent_paths = json_writer.all_agent_tracks(list(range(6)), agent_tracks)
+agent_paths = json_writer.all_agent_tracks(list(range(6)), agent_tracks,event_tracks)
 json_writer.write_JSON('AgentPaths_MDP.json', agent_paths)
 
