@@ -15,6 +15,7 @@ from matplotlib.offsetbox import (DrawingArea, OffsetImage, AnnotationBbox)
 import numpy as np
 from gridworld import *
 import itertools
+# import darpa_sim
 
 # import texfig
 
@@ -48,6 +49,15 @@ categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
 # belief_y_bad = []
 belief_y_good = []
 frames = len(data)
+
+# image stuff
+triggers = ["nominal", "ice_cream_truck", "fire_alarm", "explosion"]
+trigger_image_paths = ['pictures/ice_cream.png', 'pictures/fire_alarm.png',
+                       'pictures/explosion.png']
+trigger_image_xy = (28,2)
+
+agent_image_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
+               'pictures/thor.png', 'pictures/thanos.png', 'pictures/ironman.png']
 
 
 def update_all(i):
@@ -88,12 +98,6 @@ def grid_init(nrows, ncols, obs_range):
     # names = ["Store A Owner: Andy", "Store B Owner: Barney", "Customer: Chloe", "Customer: Dora", "Customer: Edward",
     #          "Robot"]
 
-    tests = ["ice_cream_truck_test", "fire_alarm_test", "police_donut_test", "maintenance_crew_test"]
-    test_image_paths = ['pictures/ice_cream.png', 'pictures/fire_alarm.png',
-                        'pictures/police_badge.png', 'pictures/wrench.png']
-    actor_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
-                   'pictures/thor.png','pictures/thanos.png', 'pictures/ironman.png']
-
     # bad ppl: thanos
     # good ppl: Captain America, Iron man, spiderman, Hulk, Thor
     storeA_squares = [list(range(m,m+5)) for m in range(366,486,30)]
@@ -108,12 +112,22 @@ def grid_init(nrows, ncols, obs_range):
         # color = my_palette(i)
         init_loc = tuple(reversed(coords(df[str(0)][id_no]['AgentLoc'], ncols)))
         # c_i = plt.Circle(init_loc, 0.45, label=names[int(id_no)], color=color)
-        c_i = AnnotationBbox(OffsetImage(plt.imread(actor_paths[int(id_no)]), zoom=0.13), xy=init_loc, frameon=False)
+        c_i = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.13), xy=init_loc, frameon=False)
+        t_i = None
+
+        if int(id_no) < len(trigger_image_paths):
+            trigger_image_path_index = int(id_no) % len(trigger_image_paths)
+            t_i = AnnotationBbox(OffsetImage(plt.imread(trigger_image_paths[trigger_image_path_index]), zoom=0.08),
+                             xy=trigger_image_xy, frameon=False)
+            t_i.set_label(trigger_image_paths[trigger_image_path_index])
+            trigger_ax = ax.add_artist(t_i)
+            ag_array.append([trigger_ax])
 
         # route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
         cir_ax = ax.add_artist(c_i)
         ag_array.append([cir_ax])
         # legend = plt.legend(handles=cir_ax, loc=4, fontsize='small', fancybox=True)
+
 
         # fill in buildings
         # # store A
@@ -148,7 +162,6 @@ def grid_init(nrows, ncols, obs_range):
         ax.fill([-1.0 + 0.5, 29.5 + 0.5, 29.5 + 0.5, -1.0 + 0.5],
                 [17 + 0.5, 17 + 0.5, 24 + 0.5, 24 + 0.5], color=gray, alpha=0.9)
 
-
         # for k in p_t:
         # 	s_c = coords(k, ncols)
         # 	ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
@@ -169,16 +182,20 @@ def grid_update(i):
         # Use below line if you're working with circles
         # c_i.set_center(loc)
 
-        # Use this line if you're working with images
-        c_i.xy = loc
-        c_i.xyann = loc
-        c_i.xybox = loc
+        if c_i.get_label() is not None and c_i.get_label() in trigger_image_paths:
+            # TODO: not sure which trigger to show here in this case
+            dummy = 0
+        else:
+            # Use this line if you're working with images
+            c_i.xy = loc
+            c_i.xyann = loc
+            c_i.xybox = loc
+
 
         if df[str(i)][id_no]['AgentLoc'] in building_squares:
             c_i.offsetbox.image.set_alpha(0.35)
         else:
             c_i.offsetbox.image.set_alpha(1.0)
-
 
         # l_i.set_xy(np.array(loc)-obs_range-0.5)
         # route_x, route_y = zip(*[tuple(reversed(coords(df[str(i)][str(id_no)]['NominalTrace'][s][0], ncols))) for s in df[str(i)][str(id_no)]['NominalTrace']])
@@ -221,6 +238,6 @@ ax_ar,building_squares = grid_init(nrows, ncols, obs_range)
 # plt.show()
 # ani.save('6_agents_pink_bad.mp4', writer=writer)
 
-ani = FuncAnimation(fig, update_all, frames=frames, interval=1200, blit=True)
+ani = FuncAnimation(fig, update_all, frames=frames, interval=300, blit=True)
 # ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
 plt.show()
