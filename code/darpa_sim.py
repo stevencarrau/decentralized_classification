@@ -5,6 +5,11 @@ import itertools
 import random
 import json_writer
 
+def belief_update(belief,likelihood):
+	new_belief = np.multiply(belief,likelihood)
+	new_belief = new_belief/np.sum(new_belief)
+	return new_belief
+
 ## Action names and length of runtime
 event_triggers = {'nominal':1,'ice':6,'alarm':4,'bang':2} # {'Name':execution_time}
 event_names = {0:'nominal',1:'ice',2:'alarm',3:'bang'} # using numbers to label triggers
@@ -78,12 +83,20 @@ home_trans = [(3,0,3,0.9),(3,0,0,0.1),(0,0,3,0.9),(0,0,1,0.05),(0,0,4,0.05),(4,0
 		 (3,3,3,0.8),(3,3,0,0.2),(0,3,0,1.0),(1,3,0,1.0),(4,3,0,1.0) # bang
 		 ]
 home_mdp  = MDP(states=env_states,alphabet=event_space,transitions=home_trans)
+mdp_list =  [shop_a_mdp,shop_b_mdp,repair_mdp,shopper_mdp,home_mdp,threat_mdp]
+
+mc_dict = dict()
+for a in event_names.keys():
+	mc_dict.update({a:[m.construct_MC(dict([[s,[a]] for s in env_states])) for m in mdp_list]})
+
 
 ## Example run with random triggers
 agents = [shop_a_mdp,shop_b_mdp,repair_mdp,shopper_mdp,threat_mdp,home_mdp] # List of MDPs for each agent
+beliefs_agents = [np.ones((len(mdp_list),1))/len(mdp_list) for a_i in agents]
 agent_state = [1,0,2,0,4,3] # Initial states for models
 agent_tracks = [[] for a_i in agents] # List to store all the tracks for plotting
 event_tracks = [] # List to store active events
+belief_tracks = [list([b_i.tolist() for b_i in beliefs_agents])] # List to store beliefs
 T = 20 # Total execution time for the triggers
 event_active = False # flag to co-ordinate event execution
 event_list = list(range(len(event_names)))
@@ -101,11 +114,14 @@ for i in range(T):
 	for a_i,a_m in enumerate(agents):
 		next_s = a_m.sample(agent_state[a_i],event)
 		agent_tracks[a_i] += env_tracks[(agent_state[a_i],next_s)]
+		likelihoods = np.array([m_i[(agent_state[a_i],next_s)] for m_i in mc_dict[event]]).reshape((-1,1))
+		beliefs_agents[a_i] = belief_update(beliefs_agents[a_i],likelihoods)
 		agent_state[a_i] = next_s
 	event_tracks += len(env_tracks[(agent_state[a_i],next_s)])*[event]
+	belief_tracks += len(env_tracks[(agent_state[a_i],next_s)])*[list([b_i.tolist() for b_i in beliefs_agents])]
 	act_time += 1
 
 # Write outputs for plotting_belief.py
-agent_paths = json_writer.all_agent_tracks(list(range(6)), agent_tracks,event_tracks)
+agent_paths = json_writer.all_agent_tracks(list(range(6)), agent_tracks,event_tracks,belief_track=belief_tracks)
 json_writer.write_JSON('AgentPaths_MDP.json', agent_paths)
 

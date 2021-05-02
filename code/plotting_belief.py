@@ -176,7 +176,7 @@ def grid_init(nrows, ncols, obs_range):
 def grid_update(i):
     global ax_ar,tr_ar, df, ncols, obs_range,building_squares
     write_objects = []
-    active_event = df[str(i)][categories[0]]['Event']
+    active_event = df[str(i)]['Event']
     if active_event == 0:
         for t_i in tr_ar:
             t_i[0].set_visible(False)

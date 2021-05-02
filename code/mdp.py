@@ -153,7 +153,7 @@ class MDP(NFA):
         returntrans = dict([(s, t), 0.0] for s in self.states for t in self.states)
         self._prepare_post_cache()
         for s in self.states:
-            transdict = dict([(s, t), 0.0] for t in self.states for a in self.available(t))
+            transdict = dict([(s, t), 0.0] for t in self.states)
             for a in self.available(s):
                 if a in policy[s]:
                     w = 1.0 / len(policy[s]) - randomness / (len(self.states) - len(policy[s]))
@@ -284,6 +284,7 @@ class MDP(NFA):
             if ns == targ:
                 return trace
         return trace
+
 
 # def productMDP(mdp, dra):
 #     pmdp = MDP()
