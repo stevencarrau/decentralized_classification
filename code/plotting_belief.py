@@ -58,7 +58,12 @@ trigger_image_xy = (28,2)
 
 agent_image_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
                'pictures/thor.png', 'pictures/thanos.png', 'pictures/ironman.png']
+agents = []
 
+class Agent():
+    def __init__(self, c_i, label):
+        self.label = label
+        self.c_i = c_i
 
 def update_all(i):
     grid_obj = grid_update(i)
@@ -66,6 +71,7 @@ def update_all(i):
 
 
 def grid_init(nrows, ncols, obs_range):
+    global agents
     # fig_new = plt.figure(figsize=(1000/my_dpi,1000/my_dpi),dpi=my_dpi)
     ax = plt.subplot(111)
     t = 0
@@ -96,8 +102,9 @@ def grid_init(nrows, ncols, obs_range):
     # violet = (170.0 / 255.0, 0.0 / 255.0, 179.0 / 255.0)
     # lavender = (255.0 / 255.0, 123.0 / 255.0, 251.0 / 255.0)
     # colors = [orange, violet, dark_green, lavender, mustard, dark_blue]
-    # names = ["Store A Owner: Andy", "Store B Owner: Barney", "Customer: Chloe", "Customer: Dora", "Customer: Edward",
+    #names = ["Store A Owner: Andy", "Store B Owner: Barney", "Customer: Chloe", "Customer: Dora", "Customer: Edward",
     #          "Robot"]
+    names = ["A", "B", "C", "D", "E", "F"]
 
     # bad ppl: thanos
     # good ppl: Captain America, Iron man, spiderman, Hulk, Thor
@@ -107,17 +114,19 @@ def grid_init(nrows, ncols, obs_range):
     building_squares = list(itertools.chain(*home_squares))+list(itertools.chain(*storeA_squares))+list(itertools.chain(*storeB_squares))
     building_doors = [458,472,825]
 
-    for id_no in categories:
+    for idx, id_no in enumerate(categories):
         # p_t = df[str(0)][id_no]['PublicTargets']
         # color = colors[int(id_no)]
         # color = my_palette(i)
         init_loc = tuple(reversed(coords(df[str(0)][id_no]['AgentLoc'], ncols)))
         # c_i = plt.Circle(init_loc, 0.45, label=names[int(id_no)], color=color)
         c_i = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.13), xy=init_loc, frameon=False)
+        currAgent = Agent(c_i, names[idx])
+        agents.append(currAgent)
         t_i = None
 
         # route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
-        cir_ax = ax.add_artist(c_i)
+        cir_ax = ax.add_artist(currAgent.c_i)
         ag_array.append([cir_ax])
 
         if int(id_no) < len(trigger_image_paths):
@@ -199,7 +208,6 @@ def grid_update(i):
         # c_i.set_center(loc)
 
         if c_i.get_label() is not None and c_i.get_label() in trigger_image_paths:
-            # TODO: not sure which trigger to show here in this case
             dummy = 0
         else:
             # Use this line if you're working with images
