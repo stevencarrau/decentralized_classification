@@ -31,18 +31,20 @@ def stringify_keys(d):
     return d
 
 
-def all_agent_tracks(list_agent_names, list_tracks,event_track=None):
+def all_agent_tracks(list_agent_names, list_tracks,event_track=None,belief_track=None):
     dict_out = dict()
     tot_t = len(list_tracks[0])
     for i in range(tot_t):
         time_dict = dict()
         for a_i, t_i in zip(list_agent_names, list_tracks):
             agent_dict = dict({'AgentLoc': t_i[i]})
-            if event_track is not None:
-                agent_dict.update({'Event':event_track[i]})
             if i == 0:
                 agent_dict.update({'Id_no': list_agent_names})
             time_dict.update({a_i: agent_dict})
+            if event_track is not None:
+                time_dict.update({'Event':event_track[i]})
+            if belief_track is not None:
+                time_dict.update({'Belief':belief_track[i]})
         dict_out.update({i: time_dict})
     return dict_out
 

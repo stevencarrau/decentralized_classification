@@ -65,6 +65,8 @@ class Agent():
         self.label = label
         self.c_i = c_i
 
+    ## Belief update rule for each agent
+
 def update_all(i):
     grid_obj = grid_update(i)
     return grid_obj
@@ -220,6 +222,8 @@ def grid_update(i):
             c_i.offsetbox.image.set_alpha(0.35)
         else:
             c_i.offsetbox.image.set_alpha(1.0)
+
+        ## TODO -- Insert belief checking module here -- loop through each agent then check belief across possible models
 
         write_objects += [c_i]
     return write_objects
