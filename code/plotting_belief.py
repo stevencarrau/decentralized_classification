@@ -22,7 +22,7 @@ import itertools
 
 # ---------- PART 1: Globals
 
-with open('AgentPaths_MDP.json') as json_file:
+with open('AgentPaths_MDP_Fast.json') as json_file:
 # with open('AgentPaths_ice_cream_truck_test.json') as json_file:
     data = json.load(json_file)
 df = pd.DataFrame(data)
@@ -62,16 +62,17 @@ agents = []
 agent_indexes = []
 
 class Agent():
-    def __init__(self, c_i, label, belief=0):
+    def __init__(self, c_i, label,bad_i, belief=0):
         self.label = label
         self.c_i = c_i
+        self.b_i = bad_i
         self.belief = 0  # All agents presumed innocent to begin with
 
     ## Belief update rule for each agent
-    def update_belief(self):
+    def update_belief(self,belief,bad_idx):
         # TODO: self.belief = max(df[str(i)]['Belief'][agent_idx][)?
         # TODO: print to console or something if belief > 0.8? Or another arbitrary value?
-        pass
+        self.belief = belief[bad_idx][0]
 
 def update_all(i):
     grid_obj = grid_update(i)
@@ -129,7 +130,9 @@ def grid_init(nrows, ncols, obs_range):
         init_loc = tuple(reversed(coords(df[str(0)][id_no]['AgentLoc'], ncols)))
         # c_i = plt.Circle(init_loc, 0.45, label=names[int(id_no)], color=color)
         c_i = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.13), xy=init_loc, frameon=False)
-        currAgent = Agent(c_i, names[idx])
+        b_i = plt.Circle([init_loc[0]+1,init_loc[1]-1], 0.25, label=names[int(id_no)], color='r')
+        # b_i.set_visible(False)
+        currAgent = Agent(c_i, names[idx],b_i)
         agents.append(currAgent)
         agent_indexes.append(idx)
 
@@ -137,7 +140,8 @@ def grid_init(nrows, ncols, obs_range):
 
         # route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
         cir_ax = ax.add_artist(currAgent.c_i)
-        ag_array.append([cir_ax])
+        bad_ax = ax.add_artist(currAgent.b_i)
+        ag_array.append([cir_ax,bad_ax])
 
         if int(id_no) < len(trigger_image_paths):
             trigger_image_path_index = int(id_no) % len(trigger_image_paths)
@@ -174,7 +178,7 @@ def grid_init(nrows, ncols, obs_range):
         ax.fill([5 + 0.5, 9 + 0.5, 16 + 0.5, 16 + 0.5, 5 + 0.5],
                 [12 - 0.5, 3 + 0.5, 3 + 0.5, 12 - 0.5, 12 - 0.5], color=gray, alpha=0.9)
 
-        # Electric Utility Control Box
+        # Electric Utility Control Boxbad_i
         ax.fill([12 + 0.5, 14 + 0.5, 14 + 0.5, 12 + 0.5],
                 [5 + 0.5, 5 + 0.5, 7 + 0.5, 7 + 0.5], color=blue, alpha=0.9)
 
@@ -215,9 +219,10 @@ def grid_update(i):
     for agent_idx, agent in enumerate(agents):
         # c_i, l_i, p_i,p_2 = a_x
         c_i = agent.c_i
+        b_i = agent.b_i
         loc = tuple(reversed(coords(df[str(i)][str(agent_idx)]['AgentLoc']-30, ncols)))
         # Use below line if you're working with circles
-        # c_i.set_center(loc)
+        b_i.set_center([loc[0]+1,loc[1]-1])
 
         # Use this line if you're working with images
         c_i.xy = loc
@@ -231,9 +236,14 @@ def grid_update(i):
 
         ## TODO -- Insert belief checking module here -- loop through each agent then check belief across possible models
         agent.c_i = c_i
-        agent.update_belief()
+        agent.update_belief(df[str(i)]['Belief'][agent_idx],-1)
+        if agent.belief > 0.75:
+            print('Bad')
+            b_i.set_visible(True)
+        else:
+            b_i.set_visible(False)
 
-        write_objects += [c_i]
+        write_objects += [c_i,b_i]
     return write_objects
 
 
@@ -266,6 +276,6 @@ ax_ar,tr_ar,building_squares = grid_init(nrows, ncols, obs_range)
 # plt.show()
 # ani.save('6_agents_pink_bad.mp4', writer=writer)
 
-ani = FuncAnimation(fig, update_all, frames=frames, interval=300, blit=True)
+ani = FuncAnimation(fig, update_all, frames=frames, interval=150, blit=True)
 # ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
 plt.show()

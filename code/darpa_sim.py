@@ -104,7 +104,7 @@ event = 0 # Current trigger in each MDP
 act_time = 0 # Execution time for current trigger
 for i in range(T):
 	if not event_active and act_time>0: # Trigger random event if current one not active
-		event = int(np.random.choice(event_list,replace=False))
+		event = int(np.random.choice([2,3],replace=False))
 		act_time = 0
 		event_active = True
 	if act_time >= event_triggers[event_names[event]]: # If event is over, reset to nominal
@@ -123,5 +123,5 @@ for i in range(T):
 
 # Write outputs for plotting_belief.py
 agent_paths = json_writer.all_agent_tracks(list(range(6)), agent_tracks,event_tracks,belief_track=belief_tracks)
-json_writer.write_JSON('AgentPaths_MDP.json', agent_paths)
+json_writer.write_JSON('AgentPaths_MDP_Fast.json', agent_paths)
 
