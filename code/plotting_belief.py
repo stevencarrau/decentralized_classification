@@ -59,13 +59,19 @@ trigger_image_xy = (28,2)
 agent_image_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
                'pictures/thor.png', 'pictures/thanos.png', 'pictures/ironman.png']
 agents = []
+agent_indexes = []
 
 class Agent():
-    def __init__(self, c_i, label):
+    def __init__(self, c_i, label, belief=0):
         self.label = label
         self.c_i = c_i
+        self.belief = 0  # All agents presumed innocent to begin with
 
     ## Belief update rule for each agent
+    def update_belief(self):
+        # TODO: self.belief = max(df[str(i)]['Belief'][agent_idx][)?
+        # TODO: print to console or something if belief > 0.8? Or another arbitrary value?
+        pass
 
 def update_all(i):
     grid_obj = grid_update(i)
@@ -73,7 +79,7 @@ def update_all(i):
 
 
 def grid_init(nrows, ncols, obs_range):
-    global agents
+    global agents, agent_indexes
     # fig_new = plt.figure(figsize=(1000/my_dpi,1000/my_dpi),dpi=my_dpi)
     ax = plt.subplot(111)
     t = 0
@@ -125,6 +131,8 @@ def grid_init(nrows, ncols, obs_range):
         c_i = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.13), xy=init_loc, frameon=False)
         currAgent = Agent(c_i, names[idx])
         agents.append(currAgent)
+        agent_indexes.append(idx)
+
         t_i = None
 
         # route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
@@ -184,9 +192,11 @@ def grid_init(nrows, ncols, obs_range):
     return ag_array,tr_array,building_squares
 
 
+
 def grid_update(i):
-    global ax_ar,tr_ar, df, ncols, obs_range,building_squares
+    global ax_ar,tr_ar, df, ncols, obs_range,building_squares, agents
     write_objects = []
+
     active_event = df[str(i)]['Event']
     if active_event == 0:
         for t_i in tr_ar:
@@ -202,28 +212,26 @@ def grid_update(i):
                 write_objects += t_i
 
 
-    for a_x, id_no in zip(ax_ar, categories):
+    for agent_idx, agent in enumerate(agents):
         # c_i, l_i, p_i,p_2 = a_x
-        c_i = a_x[0]
-        loc = tuple(reversed(coords(df[str(i)][id_no]['AgentLoc']-30, ncols)))
+        c_i = agent.c_i
+        loc = tuple(reversed(coords(df[str(i)][str(agent_idx)]['AgentLoc']-30, ncols)))
         # Use below line if you're working with circles
         # c_i.set_center(loc)
 
-        if c_i.get_label() is not None and c_i.get_label() in trigger_image_paths:
-            dummy = 0
-        else:
-            # Use this line if you're working with images
-            c_i.xy = loc
-            c_i.xyann = loc
-            c_i.xybox = loc
+        # Use this line if you're working with images
+        c_i.xy = loc
+        c_i.xyann = loc
+        c_i.xybox = loc
 
-
-        if df[str(i)][id_no]['AgentLoc'] in building_squares:
+        if df[str(i)][str(agent_idx)]['AgentLoc'] in building_squares:
             c_i.offsetbox.image.set_alpha(0.35)
         else:
             c_i.offsetbox.image.set_alpha(1.0)
 
         ## TODO -- Insert belief checking module here -- loop through each agent then check belief across possible models
+        agent.c_i = c_i
+        agent.update_belief()
 
         write_objects += [c_i]
     return write_objects
