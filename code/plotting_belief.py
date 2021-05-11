@@ -21,32 +21,21 @@ import itertools
 
 
 # ---------- PART 1: Globals
-
+## Fast convergence
 with open('AgentPaths_MDP_Fast.json') as json_file:
-# with open('AgentPaths_ice_cream_truck_test.json') as json_file:
     data = json.load(json_file)
+# ## Original model -- lots of nominal paths
+# with open('AgentPaths_MDP.json') as json_file:
+#     data = json.load(json_file)
+
 df = pd.DataFrame(data)
 my_dpi = 150
 Writer = matplotlib.animation.writers['ffmpeg']
 writer = Writer(fps=2.0, metadata=dict(artist='Me'), bitrate=1800)
-# fig = texfig.figure(width=2000/my_dpi,dpi=my_dpi)
 fig = plt.figure(figsize=(3600 / my_dpi, 2000 / my_dpi), dpi=my_dpi)
-# fig = plt.figure(figsize=(2000/my_dpi, 1600/my_dpi), dpi=my_dpi)
 my_palette = plt.cm.get_cmap("tab10", len(df.index))
-# seed_iter = iter(range(0,5))
 categories = [str(d_i) for d_i in df['0'][0]['Id_no']]
 
-# belief_good = df['0'][0]['GoodBelief']
-# belief_bad = df['0'][0]['BadBelief']
-# N = len(categories)
-# angles = [n / float(N) * 2 * pi for n in range(N)]
-# angles += angles[:1]
-# axis_array = []
-# l_data = []
-# f_data = []
-# belief_x_good = []
-# belief_x_bad = []
-# belief_y_bad = []
 belief_y_good = []
 frames = len(data)
 
