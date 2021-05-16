@@ -24,7 +24,7 @@ import itertools
 ## Fast convergence
 with open('AgentPaths_MDP_Fast.json') as json_file:
     data = json.load(json_file)
-# ## Original model -- lots of nominal paths
+## Original model -- lots of nominal paths
 # with open('AgentPaths_MDP.json') as json_file:
 #     data = json.load(json_file)
 
@@ -265,6 +265,6 @@ ax_ar,tr_ar,building_squares = grid_init(nrows, ncols, obs_range)
 # plt.show()
 # ani.save('6_agents_pink_bad.mp4', writer=writer)
 
-ani = FuncAnimation(fig, update_all, frames=frames, interval=150, blit=True)
+ani = FuncAnimation(fig, update_all, frames=frames, interval=150, blit=True,repeat=False)
 # ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
 plt.show()
