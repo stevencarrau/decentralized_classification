@@ -19,6 +19,25 @@ import itertools
 
 # import texfig
 
+class Agent():
+    def __init__(self, c_i, label,bad_i, belief=0):
+        self.label = label
+        self.c_i = c_i
+        self.b_i = bad_i
+        self.belief = 0  # All agents presumed innocent to begin with
+
+    ## Belief update rule for each agent
+    def update_belief(self,belief,bad_idx):
+        # TODO: self.belief = max(df[str(i)]['Belief'][agent_idx][)?
+        # TODO: print to console or something if belief > 0.8? Or another arbitrary value?
+        self.belief = belief[bad_idx][0]
+
+
+class Simulation():
+    def __init__(self, ani):
+        self.ani = ani
+        self.ani.running = True
+        self.state = None  # TODO: maybe use this later?
 
 # ---------- PART 1: Globals
 ## Fast convergence
@@ -48,20 +67,30 @@ trigger_image_xy = (28,2)
 agent_image_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
                'pictures/thor.png', 'pictures/thanos.png', 'pictures/ironman.png']
 agents = []
-agent_indexes = []
+simulation = None
 
-class Agent():
-    def __init__(self, c_i, label,bad_i, belief=0):
-        self.label = label
-        self.c_i = c_i
-        self.b_i = bad_i
-        self.belief = 0  # All agents presumed innocent to begin with
+def on_press(event):
+    global simulation
+    ani = simulation.ani
 
-    ## Belief update rule for each agent
-    def update_belief(self,belief,bad_idx):
-        # TODO: self.belief = max(df[str(i)]['Belief'][agent_idx][)?
-        # TODO: print to console or something if belief > 0.8? Or another arbitrary value?
-        self.belief = belief[bad_idx][0]
+    if event.key.isspace():
+        if ani.running:
+            ani.event_source.stop()
+        else:
+            ani.event_source.start()
+        ani.running ^= True
+    # TODO: trigger change in states, this is just proof of concept
+    elif event.key.lower() == "b":  # trigger explosion
+        print("bomb")
+    elif event.key.lower() == "i":  # trigger ice cream truck
+        print("ice cream")
+    elif event.key.lower() == "k":  # trigger fire alarm
+        print("fire alarm")
+    elif event.key.lower() == "r":  # trigger nominal/normal state
+        print("normal state")
+
+    # update simulation animation
+    simulation.ani = ani
 
 def update_all(i):
     grid_obj = grid_update(i)
@@ -69,7 +98,7 @@ def update_all(i):
 
 
 def grid_init(nrows, ncols, obs_range):
-    global agents, agent_indexes
+    global agents
     # fig_new = plt.figure(figsize=(1000/my_dpi,1000/my_dpi),dpi=my_dpi)
     ax = plt.subplot(111)
     t = 0
@@ -123,7 +152,6 @@ def grid_init(nrows, ncols, obs_range):
         # b_i.set_visible(False)
         currAgent = Agent(c_i, names[idx],b_i)
         agents.append(currAgent)
-        agent_indexes.append(idx)
 
         t_i = None
 
@@ -185,10 +213,12 @@ def grid_init(nrows, ncols, obs_range):
     return ag_array,tr_array,building_squares
 
 
-
 def grid_update(i):
-    global ax_ar,tr_ar, df, ncols, obs_range,building_squares, agents
+    global ax_ar,tr_ar, df, ncols, obs_range,building_squares, agents, simulation
     write_objects = []
+
+    if not simulation.ani.running:
+        return write_objects
 
     active_event = df[str(i)]['Event']
     if active_event == 0:
@@ -264,7 +294,7 @@ ax_ar,tr_ar,building_squares = grid_init(nrows, ncols, obs_range)
 # ani = FuncAnimation(fig, update_all, frames=10, interval=1000, blit=True, repeat=False)
 # plt.show()
 # ani.save('6_agents_pink_bad.mp4', writer=writer)
-
-ani = FuncAnimation(fig, update_all, frames=frames, interval=150, blit=True,repeat=False)
+fig.canvas.mpl_connect('key_press_event', on_press)
 # ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
+simulation = Simulation(FuncAnimation(fig, update_all, frames=frames, interval=150, blit=True,repeat=False))
 plt.show()
