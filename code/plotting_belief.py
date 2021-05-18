@@ -28,9 +28,27 @@ class Agent():
 
     ## Belief update rule for each agent
     def update_belief(self,belief,bad_idx):
-        # TODO: self.belief = max(df[str(i)]['Belief'][agent_idx][)?
-        # TODO: print to console or something if belief > 0.8? Or another arbitrary value?
         self.belief = belief[bad_idx][0]
+        if self.belief_line:
+            val = [75 * b_i[0] + 25 for b_i in belief]
+            val += val[:1]
+            angles = [n / float(len(belief)) * 2 * pi for n in range(len(belief))]
+            angles += angles[:1]
+            self.belief_line.set_data(angles, val)
+            self.belief_line.set_zorder(3)
+            self.belief_fill.set_xy(np.array([angles, val]).T)
+            self.belief_line.set_zorder(2)
+            self.belief_artist.set_zorder(10)
+            if self.belief > 0.75:
+                self.belief_line.set_color('red')
+                self.belief_fill.set_color('red')
+            return [self.belief_line, self.belief_fill, self.belief_artist]
+        return None
+
+    def init_belief_plt(self, l_i, l_f, l_a):
+        self.belief_line = l_i
+        self.belief_fill = l_f
+        self.belief_artist = l_a
 
 
 class Simulation():
@@ -100,7 +118,7 @@ def update_all(i):
 def grid_init(nrows, ncols, obs_range):
     global agents
     # fig_new = plt.figure(figsize=(1000/my_dpi,1000/my_dpi),dpi=my_dpi)
-    ax = plt.subplot(111)
+    ax = plt.subplot2grid((len(categories), 5), (0, 1), rowspan=len(categories), colspan=4)
     t = 0
 
     row_labels = range(nrows)
@@ -208,13 +226,42 @@ def grid_init(nrows, ncols, obs_range):
         # 	ax.fill([s_c[1]+0.4, s_c[1]-0.4, s_c[1]-0.4, s_c[1]+0.4], [s_c[0]-0.4, s_c[0]-0.4, s_c[0]+0.4, s_c[0]+0.4], color=color, alpha=0.9)
         i += 1
 
-    # legend = plt.legend(handles=ag_array, loc=4, fontsize='small', fancybox=True)
-    # ax.legend()
-    return ag_array,tr_array,building_squares
+    ## Plot for belief charts
+    ax_list = []
+    angles = [n / float(len(categories)) * 2 * pi for n in range(len(categories))]
+    angles += angles[:1]
+    for idx, id_no in enumerate(categories):
+        ax_list.append(plt.subplot(len(categories), 5, idx * 5 + 1, polar=True))
+        ax_list[-1].set_theta_offset(pi / 2)
+        ax_list[-1].set_theta_direction(-1)
+        ax_list[-1].set_ylim(0, 100)
+        plt.xticks(angles[:-1], "", color='grey', size=8)
+        # for col, xtick in enumerate(ax_list[-1].get_xticklabels()):
+        # 	xtick.set(color=my_palette(col), fontweight='bold', fontsize=16)
+        ax_list[-1].set_rlabel_position(0)
+        ax_list[-1].tick_params(pad=-7.0)
+        ax_list[-1].set_rlabel_position(45)
+        plt.yticks([50, 100], ["", ""], color="grey", size=7)
+        # for j_z, a_i in enumerate(angles[:-1]):
+        # 	da = DrawingArea(20,20,10,10)
+        # 	p_c = patches.Circle((0,0), radius=12, color=my_palette(j_z), clip_on=False)
+        # 	da.add_artist(p_c)
+        # 	ab = AnnotationBbox(da,(0,101))
+        # 	ax.add_artist(ab)
+        l, = ax_list[-1].plot([], [], color='green', linewidth=2, linestyle='solid')
+        l_f, = ax_list[-1].fill([], [], color='green', alpha=0.4)
+        ax_list[-1].spines["bottom"] = ax_list[-1].spines["inner"]
+        l_a = ax_list[-1].add_artist(
+            AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.08), xy=(0, 0),
+                           frameon=False))
+        agents[idx].init_belief_plt(l, l_f, l_a)
+
+
+    return agents,tr_array,building_squares
 
 
 def grid_update(i):
-    global ax_ar,tr_ar, df, ncols, obs_range,building_squares, agents, simulation
+    global tr_ar, df, ncols, obs_range,building_squares, agents, simulation
     write_objects = []
 
     if not simulation.ani.running:
@@ -253,11 +300,9 @@ def grid_update(i):
         else:
             c_i.offsetbox.image.set_alpha(1.0)
 
-        ## TODO -- Insert belief checking module here -- loop through each agent then check belief across possible models
         agent.c_i = c_i
-        agent.update_belief(df[str(i)]['Belief'][agent_idx],-1)
+        write_objects += agent.update_belief(df[str(i)]['Belief'][agent_idx], -1)
         if agent.belief > 0.75:
-            print('Bad')
             b_i.set_visible(True)
         else:
             b_i.set_visible(False)
@@ -289,7 +334,7 @@ obs_range = 6
 
 # con_dict = con_ar = con_init()
 # bel_lines = belief_chart_init()
-ax_ar,tr_ar,building_squares = grid_init(nrows, ncols, obs_range)
+agents,tr_ar,building_squares = grid_init(nrows, ncols, obs_range)
 
 # ani = FuncAnimation(fig, update_all, frames=10, interval=1000, blit=True, repeat=False)
 # plt.show()
