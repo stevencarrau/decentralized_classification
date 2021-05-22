@@ -36,10 +36,11 @@ def belief_update(belief,likelihood):
 	return new_belief
 
 class Agent():
-	def __init__(self, c_i, label,bad_i,mdp,state, belief=0):
+	def __init__(self, c_i, label,bad_i,mdp,state, t_i, belief=0):
 		self.label = label
 		self.c_i = c_i
 		self.b_i = bad_i
+		self.t_i = t_i
 		self.belief_values = np.ones((len(init_states),1))/len(init_states)
 		self.belief = 0  # All agents presumed innocent to begin with
 		self.state = state
@@ -178,12 +179,12 @@ def grid_init(nrows, ncols):
 	# violet = (170.0 / 255.0, 0.0 / 255.0, 179.0 / 255.0)
 	# lavender = (255.0 / 255.0, 123.0 / 255.0, 251.0 / 255.0)
 	# colors = [orange, violet, dark_green, lavender, mustard, dark_blue]
-	#names = ["Store A Owner: Andy", "Store B Owner: Barney", "Customer: Chloe", "Customer: Dora", "Customer: Edward",
-	#          "Robot"]
-	names = ["A", "B", "C", "D", "E", "F"]
 
-	# bad ppl: thanos
-	# good ppl: Captain America, Iron man, spiderman, Hulk, Thor
+	# bad ppl: thanos (threat MDP)
+	# good ppl: Captain A (Store A MDP), Iron man (home MDP), black widow (store B MDP),
+	# Hulk (repairman MDP), Thor (shopper MDP)
+	names = ["Store A Owner", "Store B owner", "Repairman", "Shopper", "Suspicious", "Home Owner"]
+
 	storeA_squares = [list(range(m,m+5)) for m in range(366,486,30)]
 	home_squares = [list(range(m,m+5)) for m in range(380,500,30)]
 	storeB_squares = [list(range(m,m+5)) for m in range(823,890,30)]
@@ -198,10 +199,14 @@ def grid_init(nrows, ncols):
 		track_init = track_outs((init_states[idx],samp_out))
 		init_loc = tuple(reversed(coords(track_init[0]-30, ncols)))
 		# c_i = plt.Circle(init_loc, 0.45, label=names[int(id_no)], color=color)
-		c_i = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.13), xy=init_loc, frameon=False)
+		t_i = plt.text(x=init_loc[0],y=init_loc[1],s=names[idx], fontsize='xx-small')
+		c_i = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.13),
+							 xy=init_loc, frameon=False)
+		c_i.set_label(names[idx])
 		b_i = plt.Circle([init_loc[0]+1,init_loc[1]-1], 0.25, label=names[int(id_no)], color='r')
 		# b_i.set_visible(False)
-		currAgent = Agent(c_i, names[idx],b_i,mdp_list[idx],state=init_states[idx])
+
+		currAgent = Agent(c_i=c_i, label=names[idx], bad_i=b_i, mdp=mdp_list[idx], state=init_states[idx], t_i=t_i)
 		agents.append(currAgent)
 
 		t_i = None
@@ -218,7 +223,6 @@ def grid_init(nrows, ncols):
 		trigger_ax = ax.add_artist(t_i)
 		tr_array.append([trigger_ax])
 		# legend = plt.legend(handles=cir_ax, loc=4, fontsize='small', fancybox=True)
-
 
 	for h_s in building_squares:
 		h_loc = tuple(reversed(coords(h_s, ncols)))
@@ -311,6 +315,7 @@ def grid_update(i):
 			agent.state = next_s
 		c_i = agent.c_i
 		b_i = agent.b_i
+		text_i = agent.t_i
 		agent_pos = agent.track_queue.pop(0)
 		loc = tuple(reversed(coords(agent_pos-30, ncols)))
 		# Use below line if you're working with circles
@@ -320,6 +325,12 @@ def grid_update(i):
 		c_i.xy = loc
 		c_i.xyann = loc
 		c_i.xybox = loc
+
+		# update text positions
+		text_i.set_visible(False)   # remove old label
+		text_i.set_position((loc[0]-1.5, loc[1]+1.5))  # move label to new (x, y)
+		text_i.set_visible(True)
+		agent.t_i = text_i
 
 		if agent_pos in building_squares:
 			c_i.offsetbox.image.set_alpha(0.35)
@@ -333,7 +344,7 @@ def grid_update(i):
 		else:
 			b_i.set_visible(False)
 
-		write_objects += [c_i,b_i]
+		write_objects += [c_i,b_i,text_i]
 	return write_objects
 
 
