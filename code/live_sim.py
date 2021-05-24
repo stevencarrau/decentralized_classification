@@ -82,8 +82,8 @@ class Agent():
 		self.belief_artist = l_a
 
 
-class Singleton():
-	def __init__(self, ani, gwg, ax):
+class Simulation():
+	def __init__(self, ani, gwg, ax, agents, tr_ar, building_squares, nrows, ncols):
 		self.ani = ani
 		self.ani.running = True
 		self.ani.event = 0
@@ -102,59 +102,65 @@ class Singleton():
 
 		self.observers = []
 		self.observers_artists = []
+		self.agents = agents
+		self.tr_ar = tr_ar
+		self.building_squares = building_squares
+		self.nrows = nrows
+		self.ncols = ncols
 
 
-class Simulation():
-	instance = None
-
-	def __init__(self, ani, gwg, ax):
-		# make sure there's only one instance
-		if Simulation.instance is None:
-			Simulation.instance = Singleton(ani, gwg, ax)
-		else:
-			print("Already have one instance of the simulation running!")
-
-	def blit_viewable_states():
+	def blit_viewable_states(self):
 		write_objects = []
-		for o_s, o_a in zip(Simulation.instance.observable_set, Simulation.instance.observable_artists):
-			if o_s in Simulation.instance.observable_states:
+		for o_s, o_a in zip(self.observable_set, self.observable_artists):
+			if o_s in self.observable_states:
 				o_a.set_alpha(0.00)
 				write_objects += [o_a]
 			else:
 				o_a.set_alpha(0.25)
 				write_objects += [o_a]
-		for a_i in Simulation.instance.observers_artists:
+		for a_i in self.observers_artists:
 			a_i.set_zorder(10)
 			write_objects += [a_i]
 		return write_objects
 
-	def add_observer(obs_state):
-		Simulation.instance.observers.append(obs_state)
+	def add_observer(self, obs_state):
+		self.observers.append(obs_state)
 		new_observables = set()
-		for o_i in Simulation.instance.observers:
+		for o_i in self.observers:
 			[new_observables.add(s) for s in observable_regions[str(o_i)]]
-		Simulation.instance.observable_states = new_observables
-		write_objects = Simulation.instance.blit_viewable_states
+		self.observable_states = new_observables
+		write_objects = self.blit_viewable_states()
 		o_loc = tuple(reversed(coords(obs_state, ncols)))
-		o_x = Simulation.instance.ax.fill([o_loc[0] - 0.5, o_loc[0] + 0.5, o_loc[0] + 0.5, o_loc[0] - 0.5],
+		o_x = self.ax.fill([o_loc[0] - 0.5, o_loc[0] + 0.5, o_loc[0] + 0.5, o_loc[0] - 0.5],
 					 [o_loc[1] - 0.5, o_loc[1] - 0.5, o_loc[1] + 0.5, o_loc[1] + 0.5],
 					 color='green', alpha=0.50)[0]
-		Simulation.instance.observers_artists.append(o_x)
+		self.observers_artists.append(o_x)
 		write_objects += [o_x]
 		return write_objects
 
 
-	def remove_observer(obs_state):
-		if obs_state in Simulation.instance.observers:
-			o_x = Simulation.instance.observers_artists.pop(Simulation.instance.observers.index(obs_state))
+	def remove_observer(self, obs_state):
+		if obs_state in self.observers:
+			o_x = self.observers_artists.pop(self.observers.index(obs_state))
 			o_x.remove()
-			Simulation.instance.observers.remove(obs_state)
+			self.observers.remove(obs_state)
 		new_observables = set()
-		for o_i in Simulation.instance.observers:
+		for o_i in self.observers:
 			[new_observables.add(s) for s in observable_regions[str(o_i)]]
-		Simulation.instance.observable_states = new_observables
-		write_objects = Simulation.instance.blit_viewable_states
+		self.observable_states = new_observables
+		write_objects = self.blit_viewable_states()
 		return write_objects
+
+
+class Singleton():
+	instance = None
+
+	def __init__(self, ani, gwg, ax, agents, tr_ar, building_squares, nrows, ncols):
+		# make sure there's only one instance
+		if Singleton.instance is None:
+			Singleton.instance = Simulation(ani, gwg, ax, agents, tr_ar, building_squares, nrows, ncols)
+		else:
+			print("Already have one instance of the simulation running!")
 
 # ---------- PART 1: Globals
 
@@ -172,13 +178,10 @@ triggers = ["nominal", "ice_cream_truck", "fire_alarm", "explosion"]
 trigger_image_paths = 3*['pictures/ice_cream.png'] + 2*['pictures/fire_alarm.png']
 trigger_image_xy = [(8,19),(15,19),(22,19),(4.5,12),(13,27)]
 
-agent_image_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
-			   'pictures/thor.png', 'pictures/thanos.png', 'pictures/ironman.png']
-agents = []
 
 
 def on_press(event):
-	ani = Simulation.instance.ani
+	ani = Singleton.instance.ani
 
 	if event.key.isspace():
 		if ani.running:
@@ -186,7 +189,7 @@ def on_press(event):
 		else:
 			ani.event_source.start()
 		ani.running ^= True
-	# TODO: trigger change in states, this is just proof of concept
+
 	elif event.key.lower() == "j":  # trigger ice cream 1
 		ani.event = 0
 	elif event.key.lower() == "1":  # trigger ice cream 1
@@ -203,11 +206,11 @@ def on_press(event):
 		ani.event = 6
 
 	# update simulation animation
-	Simulation.instance.ani = ani
+	Singleton.instance.ani = ani
 
 
 def on_click(event):
-	ani = Simulation.instance.ani
+	ani = Singleton.instance.ani
 	if event.button == 1:
 		ani.observer_loc = tuple(reversed((floor(event.xdata),floor(event.ydata))))
 	elif event.button ==3:
@@ -215,7 +218,7 @@ def on_click(event):
 	# print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' % ('double' if event.dblclick else 'single', event.button, event.x, event.y, event.xdata, event.ydata))
 
 	# update simulation animation
-	Simulation.instance.ani = ani
+	Singleton.instance.ani = ani
 
 def update_all(i):
 	grid_obj = grid_update(i)
@@ -223,7 +226,15 @@ def update_all(i):
 
 
 def grid_init(nrows, ncols):
-	global agents
+	agents = []
+	agent_image_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
+						 'pictures/thor.png', 'pictures/thanos.png', 'pictures/ironman.png']
+
+	# bad ppl: thanos (threat MDP)
+	# good ppl: Captain A (Store A MDP), Iron man (home MDP), black widow (store B MDP),
+	# Hulk (repairman MDP), Thor (shopper MDP)
+	names = ["Store A Owner", "Store B owner", "Repairman", "Shopper", "Suspicious", "Home Owner"]
+
 	# fig_new = plt.figure(figsize=(1000/my_dpi,1000/my_dpi),dpi=my_dpi)
 	ax = plt.subplot2grid((len(categories), 5), (0, 1), rowspan=len(categories), colspan=4)
 	t = 0
@@ -254,11 +265,6 @@ def grid_init(nrows, ncols):
 	# violet = (170.0 / 255.0, 0.0 / 255.0, 179.0 / 255.0)
 	# lavender = (255.0 / 255.0, 123.0 / 255.0, 251.0 / 255.0)
 	# colors = [orange, violet, dark_green, lavender, mustard, dark_blue]
-
-	# bad ppl: thanos (threat MDP)
-	# good ppl: Captain A (Store A MDP), Iron man (home MDP), black widow (store B MDP),
-	# Hulk (repairman MDP), Thor (shopper MDP)
-	names = ["Store A Owner", "Store B owner", "Repairman", "Shopper", "Suspicious", "Home Owner"]
 
 	storeA_squares = [list(range(m,m+5)) for m in range(366,486,30)]
 	home_squares = [list(range(m,m+5)) for m in range(380,500,30)]
@@ -357,7 +363,12 @@ def grid_init(nrows, ncols):
 
 
 def grid_update(i):
-	global tr_ar, df, ncols, obs_range,building_squares, agents, simulation
+	# global df, obs_range
+	simulation = Singleton.instance
+	tr_ar = Singleton.instance.tr_ar
+	agents = Singleton.instance.agents
+	ncols = Singleton.instance.ncols
+	building_squares = Singleton.instance.building_squares
 	write_objects = []
 
 	if simulation.ani.observer_loc is not None or simulation.ani.remove_loc is not None:
@@ -368,7 +379,7 @@ def grid_update(i):
 			write_objects += simulation.remove_observer(coord2state(simulation.ani.remove_loc, ncols))
 			simulation.ani.remove_loc = None
 	else:
-		write_objects += simulation.blit_viewable_states
+		write_objects += simulation.blit_viewable_states()
 
 	if not simulation.ani.running:
 		return write_objects
@@ -431,6 +442,11 @@ def grid_update(i):
 			b_i.set_visible(False)
 
 		write_objects += [c_i,b_i,text_i]
+
+	# Update everything TODO: is this necessary?
+	Singleton.instance = simulation
+	Singleton.instance.tr_ar = tr_ar
+
 	return write_objects
 
 
@@ -452,10 +468,11 @@ regions['deterministic'] = range(nrows * ncols)
 moveobstacles = []
 obstacles = []
 
-agents,tr_ar,building_squares,ax = grid_init(nrows, ncols)
+agents, tr_ar, building_squares, ax = grid_init(nrows, ncols)
 gwg = Gridworld([0], nrows=nrows, ncols=ncols,regions=regions,obstacles=building_squares)
 fig.canvas.mpl_connect('key_press_event', on_press)
 fig.canvas.mpl_connect('button_press_event', on_click)
 # ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
-Simulation(FuncAnimation(fig, update_all, frames=frames, interval=150, blit=True,repeat=False),gwg,ax)
+anim = FuncAnimation(fig, update_all, frames=frames, interval=150, blit=True,repeat=False)
+Singleton(anim, gwg, ax, agents, tr_ar, building_squares, nrows, ncols)
 plt.show()
