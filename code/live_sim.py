@@ -5,7 +5,7 @@ matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pandas as pd
-from math import ceil
+from math import ceil,floor
 from math import pi
 import math
 from ast import literal_eval
@@ -15,6 +15,7 @@ import numpy as np
 from gridworld import *
 import itertools
 from darpa_model import ERSA_Env,track_outs
+import json
 
 event_names = {0: 'nominal', 1: 'iceA', 2: 'iceB', 3: 'iceC', 4: 'alarmA', 5: 'alarmB', 6: 'alarmG'}
 mc_dict = dict()
@@ -27,6 +28,9 @@ init_states = [0,1,2,3,4,5]
 mc_dict = dict()
 for a in event_names.keys():
 	mc_dict.update({a:[m.construct_MC(dict([[s,[a]] for s in env_states])) for m in mdp_list]})
+
+with open('VisibleStates.json') as json_file:
+	observable_regions = json.load(json_file)
 
 
 
@@ -79,21 +83,69 @@ class Agent():
 
 
 class Simulation():
-	def __init__(self, ani):
+	def __init__(self, ani, gwg, ax):
 		self.ani = ani
 		self.ani.running = True
 		self.ani.event = 0
-		self.state = None  # TODO: maybe use this later?
+		self.ani.observer_loc = None
+		self.ani.remove_loc = None
+		self.state = None
+		self.ax = ax
+		self.observable_states = set(gwg.states)-set(gwg.obstacles)
+		self.observable_set = set(gwg.states)-set(gwg.obstacles)
+		self.observable_artists = []
+		for h_s in self.observable_set:
+			h_loc = tuple(reversed(coords(h_s, ncols)))
+			self.observable_artists.append(ax.fill([h_loc[0] - 0.5, h_loc[0] + 0.5, h_loc[0] + 0.5, h_loc[0] - 0.5],
+					[h_loc[1] - 0.5, h_loc[1] - 0.5, h_loc[1] + 0.5, h_loc[1] + 0.5], color='gray', alpha=0.00)[0])
+
+		self.observers = []
+		self.observers_artists = []
+
+	def blit_viewable_states(self):
+		write_objects = []
+		for o_s, o_a in zip(self.observable_set, self.observable_artists):
+			if o_s in self.observable_states:
+				o_a.set_alpha(0.00)
+				write_objects += [o_a]
+			else:
+				o_a.set_alpha(0.25)
+				write_objects += [o_a]
+		for a_i in self.observers_artists:
+			a_i.set_zorder(10)
+			write_objects += [a_i]
+		return write_objects
+
+	def add_observer(self,obs_state):
+		self.observers.append(obs_state)
+		new_observables = set()
+		for o_i in self.observers:
+			[new_observables.add(s) for s in observable_regions[str(o_i)]]
+		self.observable_states = new_observables
+		write_objects = self.blit_viewable_states()
+		o_loc = tuple(reversed(coords(obs_state, ncols)))
+		o_x = self.ax.fill([o_loc[0] - 0.5, o_loc[0] + 0.5, o_loc[0] + 0.5, o_loc[0] - 0.5],
+					 [o_loc[1] - 0.5, o_loc[1] - 0.5, o_loc[1] + 0.5, o_loc[1] + 0.5],
+					 color='green', alpha=0.50)[0]
+		self.observers_artists.append(o_x)
+		write_objects += [o_x]
+		return write_objects
+
+
+	def remove_observer(self,obs_state):
+		if obs_state in self.observers:
+			o_x = self.observers_artists.pop(self.observers.index(obs_state))
+			o_x.remove()
+			self.observers.remove(obs_state)
+		new_observables = set()
+		for o_i in self.observers:
+			[new_observables.add(s) for s in observable_regions[str(o_i)]]
+		self.observable_states = new_observables
+		write_objects = self.blit_viewable_states()
+		return write_objects
 
 # ---------- PART 1: Globals
-## Fast convergence
-# with open('AgentPaths_MDP_Fast.json') as json_file:
-# 	data = json.load(json_file)
-# Original model -- lots of nominal paths
-# with open('AgentPaths_MDP.json') as json_file:
-# 	data = json.load(json_file)
-#
-# df = pd.DataFrame(data)
+
 my_dpi = 150
 Writer = matplotlib.animation.writers['ffmpeg']
 writer = Writer(fps=2.0, metadata=dict(artist='Me'), bitrate=1800)
@@ -138,6 +190,19 @@ def on_press(event):
 		ani.event = 5
 	elif event.key.lower() == "c":  # trigger both alarms A and B
 		ani.event = 6
+
+	# update simulation animation
+	simulation.ani = ani
+
+
+def on_click(event):
+	global simulation
+	ani = simulation.ani
+	if event.button == 1:
+		ani.observer_loc = tuple(reversed((floor(event.xdata),floor(event.ydata))))
+	elif event.button ==3:
+		ani.remove_loc = tuple(reversed((floor(event.xdata),floor(event.ydata))))
+	# print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' % ('double' if event.dblclick else 'single', event.button, event.x, event.y, event.xdata, event.ydata))
 
 	# update simulation animation
 	simulation.ani = ani
@@ -243,7 +308,7 @@ def grid_init(nrows, ncols):
 
 	# Street
 	ax.fill([-1.0 + 0.5, 29.5 + 0.5, 29.5 + 0.5, -1.0 + 0.5],
-			[17 + 0.5, 17 + 0.5, 24 + 0.5, 24 + 0.5], color=gray, alpha=0.9)
+			[18 + 0.5, 18 + 0.5, 24 + 0.5, 24 + 0.5], color=gray, alpha=0.9)
 
 
 
@@ -278,12 +343,22 @@ def grid_init(nrows, ncols):
 		agents[idx].init_belief_plt(l, l_f, l_a)
 
 
-	return agents,tr_array,building_squares
+	return agents,tr_array,building_squares,ax
 
 
 def grid_update(i):
 	global tr_ar, df, ncols, obs_range,building_squares, agents, simulation
 	write_objects = []
+
+	if simulation.ani.observer_loc is not None or simulation.ani.remove_loc is not None:
+		if simulation.ani.observer_loc is not None:
+			write_objects += simulation.add_observer(coord2state(simulation.ani.observer_loc,ncols))
+			simulation.ani.observer_loc = None
+		if simulation.ani.remove_loc is not None:
+			write_objects += simulation.remove_observer(coord2state(simulation.ani.remove_loc, ncols))
+			simulation.ani.remove_loc = None
+	else:
+		write_objects += simulation.blit_viewable_states()
 
 	if not simulation.ani.running:
 		return write_objects
@@ -308,10 +383,11 @@ def grid_update(i):
 
 
 	for agent_idx, agent in enumerate(agents):
-		if len(agent.track_queue) ==0:
+		if len(agent.track_queue) == 0:
 			next_s = agent.mdp.sample(agent.state,simulation.ani.event)
 			agent.track_queue += track_outs((agent.state,next_s))
-			agent.update_value(simulation.ani.event,next_s)
+			if next_s in simulation.observable_states:
+				agent.update_value(simulation.ani.event,next_s)
 			agent.state = next_s
 		c_i = agent.c_i
 		b_i = agent.b_i
@@ -351,6 +427,9 @@ def grid_update(i):
 def coords(s, ncols):
 	return (int(s / ncols), int(s % ncols))
 
+def coord2state(coords,ncols):
+	return int(coords[0]*ncols)+int(coords[1])
+
 
 nrows = 30
 ncols = 30
@@ -363,8 +442,10 @@ regions['deterministic'] = range(nrows * ncols)
 moveobstacles = []
 obstacles = []
 
-agents,tr_ar,building_squares = grid_init(nrows, ncols)
+agents,tr_ar,building_squares,ax = grid_init(nrows, ncols)
+gwg = Gridworld([0], nrows=nrows, ncols=ncols,regions=regions,obstacles=building_squares)
 fig.canvas.mpl_connect('key_press_event', on_press)
+fig.canvas.mpl_connect('button_press_event', on_click)
 # ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
-simulation = Simulation(FuncAnimation(fig, update_all, frames=frames, interval=150, blit=True,repeat=False))
+simulation = Simulation(FuncAnimation(fig, update_all, frames=frames, interval=150, blit=True,repeat=False),gwg,ax)
 plt.show()
