@@ -82,7 +82,7 @@ class Agent():
 		self.belief_artist = l_a
 
 
-class Simulation():
+class Singleton():
 	def __init__(self, ani, gwg, ax):
 		self.ani = ani
 		self.ani.running = True
@@ -91,57 +91,69 @@ class Simulation():
 		self.ani.remove_loc = None
 		self.state = None
 		self.ax = ax
-		self.observable_states = set(gwg.states)-set(gwg.obstacles)
-		self.observable_set = set(gwg.states)-set(gwg.obstacles)
+		self.observable_states = set(gwg.states) - set(gwg.obstacles)
+		self.observable_set = set(gwg.states) - set(gwg.obstacles)
 		self.observable_artists = []
 		for h_s in self.observable_set:
 			h_loc = tuple(reversed(coords(h_s, ncols)))
 			self.observable_artists.append(ax.fill([h_loc[0] - 0.5, h_loc[0] + 0.5, h_loc[0] + 0.5, h_loc[0] - 0.5],
-					[h_loc[1] - 0.5, h_loc[1] - 0.5, h_loc[1] + 0.5, h_loc[1] + 0.5], color='gray', alpha=0.00)[0])
+												   [h_loc[1] - 0.5, h_loc[1] - 0.5, h_loc[1] + 0.5, h_loc[1] + 0.5],
+												   color='gray', alpha=0.00)[0])
 
 		self.observers = []
 		self.observers_artists = []
 
-	def blit_viewable_states(self):
+
+class Simulation():
+	instance = None
+
+	def __init__(self, ani, gwg, ax):
+		# make sure there's only one instance
+		if Simulation.instance is None:
+			Simulation.instance = Singleton(ani, gwg, ax)
+		else:
+			print("Already have one instance of the simulation running!")
+
+	def blit_viewable_states():
 		write_objects = []
-		for o_s, o_a in zip(self.observable_set, self.observable_artists):
-			if o_s in self.observable_states:
+		for o_s, o_a in zip(Simulation.instance.observable_set, Simulation.instance.observable_artists):
+			if o_s in Simulation.instance.observable_states:
 				o_a.set_alpha(0.00)
 				write_objects += [o_a]
 			else:
 				o_a.set_alpha(0.25)
 				write_objects += [o_a]
-		for a_i in self.observers_artists:
+		for a_i in Simulation.instance.observers_artists:
 			a_i.set_zorder(10)
 			write_objects += [a_i]
 		return write_objects
 
-	def add_observer(self,obs_state):
-		self.observers.append(obs_state)
+	def add_observer(obs_state):
+		Simulation.instance.observers.append(obs_state)
 		new_observables = set()
-		for o_i in self.observers:
+		for o_i in Simulation.instance.observers:
 			[new_observables.add(s) for s in observable_regions[str(o_i)]]
-		self.observable_states = new_observables
-		write_objects = self.blit_viewable_states()
+		Simulation.instance.observable_states = new_observables
+		write_objects = Simulation.instance.blit_viewable_states
 		o_loc = tuple(reversed(coords(obs_state, ncols)))
-		o_x = self.ax.fill([o_loc[0] - 0.5, o_loc[0] + 0.5, o_loc[0] + 0.5, o_loc[0] - 0.5],
+		o_x = Simulation.instance.ax.fill([o_loc[0] - 0.5, o_loc[0] + 0.5, o_loc[0] + 0.5, o_loc[0] - 0.5],
 					 [o_loc[1] - 0.5, o_loc[1] - 0.5, o_loc[1] + 0.5, o_loc[1] + 0.5],
 					 color='green', alpha=0.50)[0]
-		self.observers_artists.append(o_x)
+		Simulation.instance.observers_artists.append(o_x)
 		write_objects += [o_x]
 		return write_objects
 
 
-	def remove_observer(self,obs_state):
-		if obs_state in self.observers:
-			o_x = self.observers_artists.pop(self.observers.index(obs_state))
+	def remove_observer(obs_state):
+		if obs_state in Simulation.instance.observers:
+			o_x = Simulation.instance.observers_artists.pop(Simulation.instance.observers.index(obs_state))
 			o_x.remove()
-			self.observers.remove(obs_state)
+			Simulation.instance.observers.remove(obs_state)
 		new_observables = set()
-		for o_i in self.observers:
+		for o_i in Simulation.instance.observers:
 			[new_observables.add(s) for s in observable_regions[str(o_i)]]
-		self.observable_states = new_observables
-		write_objects = self.blit_viewable_states()
+		Simulation.instance.observable_states = new_observables
+		write_objects = Simulation.instance.blit_viewable_states
 		return write_objects
 
 # ---------- PART 1: Globals
@@ -163,11 +175,10 @@ trigger_image_xy = [(8,19),(15,19),(22,19),(4.5,12),(13,27)]
 agent_image_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
 			   'pictures/thor.png', 'pictures/thanos.png', 'pictures/ironman.png']
 agents = []
-simulation = None
+
 
 def on_press(event):
-	global simulation
-	ani = simulation.ani
+	ani = Simulation.instance.ani
 
 	if event.key.isspace():
 		if ani.running:
@@ -192,12 +203,11 @@ def on_press(event):
 		ani.event = 6
 
 	# update simulation animation
-	simulation.ani = ani
+	Simulation.instance.ani = ani
 
 
 def on_click(event):
-	global simulation
-	ani = simulation.ani
+	ani = Simulation.instance.ani
 	if event.button == 1:
 		ani.observer_loc = tuple(reversed((floor(event.xdata),floor(event.ydata))))
 	elif event.button ==3:
@@ -205,7 +215,7 @@ def on_click(event):
 	# print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' % ('double' if event.dblclick else 'single', event.button, event.x, event.y, event.xdata, event.ydata))
 
 	# update simulation animation
-	simulation.ani = ani
+	Simulation.instance.ani = ani
 
 def update_all(i):
 	grid_obj = grid_update(i)
@@ -358,7 +368,7 @@ def grid_update(i):
 			write_objects += simulation.remove_observer(coord2state(simulation.ani.remove_loc, ncols))
 			simulation.ani.remove_loc = None
 	else:
-		write_objects += simulation.blit_viewable_states()
+		write_objects += simulation.blit_viewable_states
 
 	if not simulation.ani.running:
 		return write_objects
@@ -447,5 +457,5 @@ gwg = Gridworld([0], nrows=nrows, ncols=ncols,regions=regions,obstacles=building
 fig.canvas.mpl_connect('key_press_event', on_press)
 fig.canvas.mpl_connect('button_press_event', on_click)
 # ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
-simulation = Simulation(FuncAnimation(fig, update_all, frames=frames, interval=150, blit=True,repeat=False),gwg,ax)
+Simulation(FuncAnimation(fig, update_all, frames=frames, interval=150, blit=True,repeat=False),gwg,ax)
 plt.show()
