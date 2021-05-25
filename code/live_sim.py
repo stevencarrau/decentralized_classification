@@ -73,6 +73,9 @@ class Agent():
 			if self.belief > 0.75:
 				self.belief_line.set_color('red')
 				self.belief_fill.set_color('red')
+			else:
+				self.belief_line.set_color('green')
+				self.belief_fill.set_color('green')
 			return [self.belief_line, self.belief_fill, self.belief_artist]
 		return None
 
