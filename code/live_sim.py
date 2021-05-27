@@ -17,35 +17,14 @@ import itertools
 from darpa_model import ERSA_Env,track_outs
 import json
 
-event_names = {0: 'nominal', 1: 'iceA', 2: 'iceB', 3: 'iceC', 4: 'alarmA', 5: 'alarmB', 6: 'alarmG'}
-mc_dict = dict()
-env_states = [0, 1, 2, 3, 4, 5, 6, 7]
-mdp_list = ERSA_Env()
-for a in event_names.keys():
-	mc_dict.update({a:[m.construct_MC(dict([[s,[a]] for s in env_states])) for m in mdp_list]})
-
-init_states = [0,1,2,3,4,5]
-mc_dict = dict()
-for a in event_names.keys():
-	mc_dict.update({a:[m.construct_MC(dict([[s,[a]] for s in env_states])) for m in mdp_list]})
-
-with open('VisibleStates.json') as json_file:
-	observable_regions = json.load(json_file)
-
-
-
-def belief_update(belief,likelihood):
-	new_belief = np.multiply(belief,likelihood)
-	new_belief = new_belief/np.sum(new_belief)
-	return new_belief
 
 class Agent():
-	def __init__(self, c_i, label,bad_i,mdp,state, t_i, belief=0):
+	def __init__(self, c_i, label,bad_i,mdp, state, t_i, belief=0):
 		self.label = label
 		self.c_i = c_i
 		self.b_i = bad_i
 		self.t_i = t_i
-		self.belief_values = np.ones((len(init_states),1))/len(init_states)
+		self.belief_values = np.ones((len(Simulation.init_states),1))/len(Simulation.init_states)
 		self.belief = 0  # All agents presumed innocent to begin with
 		self.state = state
 		self.mdp = mdp
@@ -55,7 +34,7 @@ class Agent():
 		return np.array([m_i[(self.state, next_s)] for m_i in mc_dict[a]]).reshape((-1, 1))
 
 	def update_value(self,a,next_s):
-		self.belief_values = belief_update(self.belief_values,self.likelihood(a,next_s,mc_dict))
+		self.belief_values = belief_update(self.belief_values,self.likelihood(a,next_s,Simulation.mc_dict))
 
 	## Belief update rule for each agent
 	def update_belief(self,belief,bad_idx):
@@ -83,7 +62,53 @@ class Agent():
 
 
 class Simulation():
-	def __init__(self, ani, gwg, ax, agents, tr_ar, building_squares, nrows, ncols):
+	init_states = [0,1,2,3,4,5]
+	mc_dict = None
+
+	def on_press(event):
+		ani = Singleton.instance.ani
+
+		if event.key.isspace():
+			if ani.running:
+				ani.event_source.stop()
+			else:
+				ani.event_source.start()
+			ani.running ^= True
+
+		elif event.key.lower() == "j":  # trigger ice cream 1
+			ani.event = 0
+		elif event.key.lower() == "1":  # trigger ice cream 1
+			ani.event = 1
+		elif event.key.lower() == "2":  # trigger ice cream 2
+			ani.event = 2
+		elif event.key.lower() == "3":  # trigger ice cream 3
+			ani.event = 3
+		elif event.key.lower() == "z":  # trigger alarm A
+			ani.event = 4
+		elif event.key.lower() == "x":  # trigger alarm B
+			ani.event = 5
+		elif event.key.lower() == "c":  # trigger both alarms A and B
+			ani.event = 6
+		elif event.key.lower() == "+":  # add agent
+			Singleton.instance.add_agent()
+		elif event.key.lower() == "-":  # remove agent
+			Singleton.instance.remove_agent()
+
+		# update simulation animation
+		Singleton.instance.ani = ani
+
+	def on_click(event):
+		ani = Singleton.instance.ani
+		if event.button == 1:
+			ani.observer_loc = tuple(reversed((floor(event.xdata), floor(event.ydata))))
+		elif event.button == 3:
+			ani.remove_loc = tuple(reversed((floor(event.xdata), floor(event.ydata))))
+		# print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' % ('double' if event.dblclick else 'single', event.button, event.x, event.y, event.xdata, event.ydata))
+
+		# update simulation animation
+		Singleton.instance.ani = ani
+
+	def __init__(self, ani, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols):
 		self.ani = ani
 		self.ani.running = True
 		self.ani.event = 0
@@ -91,6 +116,7 @@ class Simulation():
 		self.ani.remove_loc = None
 		self.state = None
 		self.ax = ax
+		self.observable_regions = observable_regions
 		self.observable_states = set(gwg.states) - set(gwg.obstacles)
 		self.observable_set = set(gwg.states) - set(gwg.obstacles)
 		self.observable_artists = []
@@ -107,6 +133,9 @@ class Simulation():
 		self.building_squares = building_squares
 		self.nrows = nrows
 		self.ncols = ncols
+		self.active_agents = 0    # initialize simulation to not have any agents active
+		self.num_agents = len(self.agents)
+		self.categories = range(self.num_agents)
 
 
 	def blit_viewable_states(self):
@@ -127,10 +156,10 @@ class Simulation():
 		self.observers.append(obs_state)
 		new_observables = set()
 		for o_i in self.observers:
-			[new_observables.add(s) for s in observable_regions[str(o_i)]]
+			[new_observables.add(s) for s in self.observable_regions[str(o_i)]]
 		self.observable_states = new_observables
 		write_objects = self.blit_viewable_states()
-		o_loc = tuple(reversed(coords(obs_state, ncols)))
+		o_loc = tuple(reversed(coords(obs_state, self.ncols)))
 		o_x = self.ax.fill([o_loc[0] - 0.5, o_loc[0] + 0.5, o_loc[0] + 0.5, o_loc[0] - 0.5],
 					 [o_loc[1] - 0.5, o_loc[1] - 0.5, o_loc[1] + 0.5, o_loc[1] + 0.5],
 					 color='green', alpha=0.50)[0]
@@ -146,95 +175,60 @@ class Simulation():
 			self.observers.remove(obs_state)
 		new_observables = set()
 		for o_i in self.observers:
-			[new_observables.add(s) for s in observable_regions[str(o_i)]]
+			[new_observables.add(s) for s in self.observable_regions[str(o_i)]]
 		self.observable_states = new_observables
 		write_objects = self.blit_viewable_states()
 		return write_objects
+
+	def add_agent(self):
+		if 0 <= self.active_agents < self.num_agents:
+			self.active_agents += 1
+
+	def remove_agent(self):
+		if 0 < self.active_agents <= self.num_agents:
+			self.active_agents -= 1
 
 
 class Singleton():
 	instance = None
 
-	def __init__(self, ani, gwg, ax, agents, tr_ar, building_squares, nrows, ncols):
+	def __init__(self, ani, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols):
 		# make sure there's only one instance
 		if Singleton.instance is None:
-			Singleton.instance = Simulation(ani, gwg, ax, agents, tr_ar, building_squares, nrows, ncols)
+			Singleton.instance = Simulation(ani, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols)
 		else:
 			print("Already have one instance of the simulation running!")
 
-# ---------- PART 1: Globals
 
-my_dpi = 150
-Writer = matplotlib.animation.writers['ffmpeg']
-writer = Writer(fps=2.0, metadata=dict(artist='Me'), bitrate=1800)
-fig = plt.figure(figsize=(3600 / my_dpi, 2000 / my_dpi), dpi=my_dpi)
-categories = range(6) #[str(d_i) for d_i in df['0'][0]['Id_no']]
-
-belief_y_good = []
-frames = 500
-
-# image stuff
-triggers = ["nominal", "ice_cream_truck", "fire_alarm", "explosion"]
-trigger_image_paths = 3*['pictures/ice_cream.png'] + 2*['pictures/fire_alarm.png']
-trigger_image_xy = [(8,19),(15,19),(22,19),(4.5,12),(13,27)]
-
-
-
-def on_press(event):
-	ani = Singleton.instance.ani
-
-	if event.key.isspace():
-		if ani.running:
-			ani.event_source.stop()
-		else:
-			ani.event_source.start()
-		ani.running ^= True
-
-	elif event.key.lower() == "j":  # trigger ice cream 1
-		ani.event = 0
-	elif event.key.lower() == "1":  # trigger ice cream 1
-		ani.event = 1
-	elif event.key.lower() == "2":  # trigger ice cream 2
-		ani.event = 2
-	elif event.key.lower() == "3":  # trigger ice cream 3
-		ani.event = 3
-	elif event.key.lower() == "z":  # trigger alarm A
-		ani.event = 4
-	elif event.key.lower() == "x":  # trigger alarm B
-		ani.event = 5
-	elif event.key.lower() == "c":  # trigger both alarms A and B
-		ani.event = 6
-
-	# update simulation animation
-	Singleton.instance.ani = ani
-
-
-def on_click(event):
-	ani = Singleton.instance.ani
-	if event.button == 1:
-		ani.observer_loc = tuple(reversed((floor(event.xdata),floor(event.ydata))))
-	elif event.button ==3:
-		ani.remove_loc = tuple(reversed((floor(event.xdata),floor(event.ydata))))
-	# print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' % ('double' if event.dblclick else 'single', event.button, event.x, event.y, event.xdata, event.ydata))
-
-	# update simulation animation
-	Singleton.instance.ani = ani
 
 def update_all(i):
 	grid_obj = grid_update(i)
 	return grid_obj
 
 
-def grid_init(nrows, ncols):
-	agents = []
-	agent_image_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
-						 'pictures/thor.png', 'pictures/thanos.png', 'pictures/ironman.png']
+def belief_update(belief,likelihood):
+	new_belief = np.multiply(belief,likelihood)
+	new_belief = new_belief/np.sum(new_belief)
+	return new_belief
 
+
+def grid_init(nrows, ncols):
 	# bad ppl: thanos (threat MDP)
 	# good ppl: Captain A (Store A MDP), Iron man (home MDP), black widow (store B MDP),
 	# Hulk (repairman MDP), Thor (shopper MDP)
+	agents = []
+	agent_image_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
+						 'pictures/thor.png', 'pictures/thanos.png', 'pictures/ironman.png']
 	names = ["Store A Owner", "Store B owner", "Repairman", "Shopper", "Suspicious", "Home Owner"]
 
+	mdp_list = ERSA_Env()
+
+	# image stuff
+	triggers = ["nominal", "ice_cream_truck", "fire_alarm", "explosion"]
+	trigger_image_paths = 3 * ['pictures/ice_cream.png'] + 2 * ['pictures/fire_alarm.png']
+	trigger_image_xy = [(8, 19), (15, 19), (22, 19), (4.5, 12), (13, 27)]
+
+	categories = range(6)  # [str(d_i) for d_i in df['0'][0]['Id_no']]
 	# fig_new = plt.figure(figsize=(1000/my_dpi,1000/my_dpi),dpi=my_dpi)
 	ax = plt.subplot2grid((len(categories), 5), (0, 1), rowspan=len(categories), colspan=4)
 	t = 0
@@ -276,18 +270,20 @@ def grid_init(nrows, ncols):
 		# p_t = df[str(0)][id_no]['PublicTargets']
 		# color = colors[int(id_no)]
 		# color = my_palette(i)
-		samp_out = mdp_list[idx].sample(init_states[idx],0)
-		track_init = track_outs((init_states[idx],samp_out))
+		samp_out = mdp_list[idx].sample(Simulation.init_states[idx],0)
+		track_init = track_outs((Simulation.init_states[idx],samp_out))
 		init_loc = tuple(reversed(coords(track_init[0]-30, ncols)))
 		# c_i = plt.Circle(init_loc, 0.45, label=names[int(id_no)], color=color)
 		t_i = plt.text(x=init_loc[0],y=init_loc[1],s=names[idx], fontsize='xx-small')
+		t_i.set_visible(False)   # don't show the labels until the agent is added
 		c_i = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.13),
 							 xy=init_loc, frameon=False)
 		c_i.set_label(names[idx])
+		c_i.set_visible(False)
 		b_i = plt.Circle([init_loc[0]+1,init_loc[1]-1], 0.25, label=names[int(id_no)], color='r')
-		# b_i.set_visible(False)
+		b_i.set_visible(False)
 
-		currAgent = Agent(c_i=c_i, label=names[idx], bad_i=b_i, mdp=mdp_list[idx], state=init_states[idx], t_i=t_i)
+		currAgent = Agent(c_i=c_i, label=names[idx], bad_i=b_i, mdp=mdp_list[idx], state=Simulation.init_states[idx], t_i=t_i)
 		agents.append(currAgent)
 
 		t_i = None
@@ -295,12 +291,12 @@ def grid_init(nrows, ncols):
 		# route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
 		cir_ax = ax.add_artist(currAgent.c_i)
 		bad_ax = ax.add_artist(currAgent.b_i)
-		ag_array.append([cir_ax,bad_ax])
+		ag_array.append([cir_ax, bad_ax])
 
 	for t_p,t_l in zip(trigger_image_paths,trigger_image_xy):
 		t_i = AnnotationBbox(OffsetImage(plt.imread(t_p), zoom=0.04),
 						 xy=t_l, frameon=False)
-		# t_i.set_label(trigger_image_paths[trigger_image_path_index])
+		t_i.set_visible(False)
 		trigger_ax = ax.add_artist(t_i)
 		tr_array.append([trigger_ax])
 		# legend = plt.legend(handles=cir_ax, loc=4, fontsize='small', fancybox=True)
@@ -318,7 +314,7 @@ def grid_init(nrows, ncols):
 	ax.fill([5 + 0.5, 9 + 0.5, 16 + 0.5, 16 + 0.5, 5 + 0.5],
 			[12 - 0.5, 3 + 0.5, 3 + 0.5, 12 - 0.5, 12 - 0.5], color=gray, alpha=0.9)
 
-	# Electric Utility Control Boxbad_i
+	# Electric Utility Control Box
 	ax.fill([12 + 0.5, 14 + 0.5, 14 + 0.5, 12 + 0.5],
 			[5 + 0.5, 5 + 0.5, 7 + 0.5, 7 + 0.5], color=blue, alpha=0.9)
 
@@ -365,10 +361,10 @@ def grid_init(nrows, ncols):
 def grid_update(i):
 	# global df, obs_range
 	simulation = Singleton.instance
-	tr_ar = Singleton.instance.tr_ar
-	agents = Singleton.instance.agents
-	ncols = Singleton.instance.ncols
-	building_squares = Singleton.instance.building_squares
+	tr_ar = simulation.tr_ar
+	agents = simulation.agents[:simulation.active_agents]
+	ncols = simulation.ncols
+	building_squares = simulation.building_squares
 	write_objects = []
 
 	if simulation.ani.observer_loc is not None or simulation.ani.remove_loc is not None:
@@ -411,7 +407,9 @@ def grid_update(i):
 				agent.update_value(simulation.ani.event,next_s)
 			agent.state = next_s
 		c_i = agent.c_i
+		c_i.set_visible(True)
 		b_i = agent.b_i
+		b_i.set_visible(True)
 		text_i = agent.t_i
 		agent_pos = agent.track_queue.pop(0)
 		loc = tuple(reversed(coords(agent_pos-30, ncols)))
@@ -442,6 +440,7 @@ def grid_update(i):
 			b_i.set_visible(False)
 
 		write_objects += [c_i,b_i,text_i]
+		# write_objects += [c_i, b_i]
 
 	# Update everything TODO: is this necessary?
 	Singleton.instance = simulation
@@ -453,26 +452,56 @@ def grid_update(i):
 def coords(s, ncols):
 	return (int(s / ncols), int(s % ncols))
 
+
 def coord2state(coords,ncols):
 	return int(coords[0]*ncols)+int(coords[1])
 
 
-nrows = 30
-ncols = 30
+def main():
+	# ---------- PART 1:
+	event_names = {0: 'nominal', 1: 'iceA', 2: 'iceB', 3: 'iceC', 4: 'alarmA', 5: 'alarmB', 6: 'alarmG'}
+	mdp_list = ERSA_Env()
+	mc_dict = dict()
+	env_states = [0, 1, 2, 3, 4, 5, 6, 7]
+	for a in event_names.keys():
+		mc_dict.update({a:[m.construct_MC(dict([[s,[a]] for s in env_states])) for m in mdp_list]})
 
-# ---------- PART 2:
-regionkeys = {'pavement', 'gravel', 'grass', 'sand', 'deterministic'}
-regions = dict.fromkeys(regionkeys, {-1})
-regions['deterministic'] = range(nrows * ncols)
+	mc_dict = dict()
+	for a in event_names.keys():
+		mc_dict.update({a:[m.construct_MC(dict([[s,[a]] for s in env_states])) for m in mdp_list]})
 
-moveobstacles = []
-obstacles = []
+	Simulation.mc_dict = mc_dict
 
-agents, tr_ar, building_squares, ax = grid_init(nrows, ncols)
-gwg = Gridworld([0], nrows=nrows, ncols=ncols,regions=regions,obstacles=building_squares)
-fig.canvas.mpl_connect('key_press_event', on_press)
-fig.canvas.mpl_connect('button_press_event', on_click)
-# ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
-anim = FuncAnimation(fig, update_all, frames=frames, interval=150, blit=True,repeat=False)
-Singleton(anim, gwg, ax, agents, tr_ar, building_squares, nrows, ncols)
-plt.show()
+	with open('VisibleStates.json') as json_file:
+		observable_regions = json.load(json_file)
+
+
+	my_dpi = 150
+	Writer = matplotlib.animation.writers['ffmpeg']
+	writer = Writer(fps=2.0, metadata=dict(artist='Me'), bitrate=1800)
+	fig = plt.figure(figsize=(3600 / my_dpi, 2000 / my_dpi), dpi=my_dpi)
+
+	belief_y_good = []
+	frames = 500
+
+	# ---------- PART 2:
+	nrows = 30
+	ncols = 30
+	regionkeys = {'pavement', 'gravel', 'grass', 'sand', 'deterministic'}
+	regions = dict.fromkeys(regionkeys, {-1})
+	regions['deterministic'] = range(nrows * ncols)
+
+	moveobstacles = []
+	obstacles = []
+
+	agents, tr_ar, building_squares, ax = grid_init(nrows, ncols)
+	gwg = Gridworld([0], nrows=nrows, ncols=ncols,regions=regions,obstacles=building_squares)
+	fig.canvas.mpl_connect('key_press_event', Simulation.on_press)
+	fig.canvas.mpl_connect('button_press_event', Simulation.on_click)
+	# ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
+	anim = FuncAnimation(fig, update_all, frames=frames, interval=150, blit=True,repeat=False)
+	Singleton(anim, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols)
+	plt.show()
+
+if __name__ == '__main__':
+    main()
