@@ -60,8 +60,18 @@ class Agent():
 
 	def init_belief_plt(self, l_i, l_f, l_a):
 		self.belief_line = l_i
+		self.belief_line.set_visible(False)
 		self.belief_fill = l_f
+		self.belief_fill.set_visible(False)
 		self.belief_artist = l_a
+		self.belief_artist.set_visible(False)
+
+	def activate_belief_plt(self):
+		self.belief_line.axes.set_visible(True)
+		self.belief_line.set_visible(True)
+		self.belief_fill.set_visible(True)
+		self.belief_artist.set_visible(True)
+
 
 
 class Simulation():
@@ -78,7 +88,7 @@ class Simulation():
 				ani.event_source.start()
 			ani.running ^= True
 
-		elif event.key.lower() == "j":  # trigger ice cream 1
+		elif event.key.lower() == "j":  # trigger nominal
 			ani.event = 0
 		elif event.key.lower() == "1":  # trigger ice cream 1
 			ani.event = 1
@@ -352,8 +362,9 @@ def grid_init(nrows, ncols):
 		l, = ax_list[-1].plot([], [], color='green', linewidth=2, linestyle='solid')
 		l_f, = ax_list[-1].fill([], [], color='green', alpha=0.4)
 		ax_list[-1].spines["bottom"] = ax_list[-1].spines["inner"]
-		l_a = ax_list[-1].add_artist(
-			AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.08), xy=(0, 0),
+		l.axes.set_visible(False)
+		# l.axes.set_animated(True)
+		l_a = ax_list[-1].add_artist(AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.08), xy=(0, 0),
 						   frameon=False))
 		agents[idx].init_belief_plt(l, l_f, l_a)
 
@@ -412,6 +423,7 @@ def grid_update(i):
 		c_i = agent.c_i
 		c_i.set_visible(True)
 		b_i = agent.b_i
+		agent.activate_belief_plt()
 		b_i.set_visible(True)
 		text_i = agent.t_i
 		agent_pos = agent.track_queue.pop(0)
@@ -443,7 +455,7 @@ def grid_update(i):
 			b_i.set_visible(False)
 
 		write_objects += [c_i,b_i,text_i]
-		# write_objects += [c_i, b_i]
+
 
 	# Update everything TODO: is this necessary?
 	Singleton.instance = simulation
@@ -502,7 +514,7 @@ def main():
 	fig.canvas.mpl_connect('key_press_event', Simulation.on_press)
 	fig.canvas.mpl_connect('button_press_event', Simulation.on_click)
 	# ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
-	anim = FuncAnimation(fig, update_all, frames=frames, interval=150, blit=True,repeat=False)
+	anim = FuncAnimation(fig, update_all, frames=frames, interval=150, blit=False,repeat=False)
 	Singleton(anim, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols)
 	plt.show()
 
