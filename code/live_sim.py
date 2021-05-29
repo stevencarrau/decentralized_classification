@@ -72,6 +72,12 @@ class Agent():
 		self.belief_fill.set_visible(True)
 		self.belief_artist.set_visible(True)
 
+	def deactivate_belief_plt(self):
+		self.belief_line.axes.set_visible(False)
+		self.belief_line.set_visible(False)
+		self.belief_fill.set_visible(False)
+		self.belief_artist.set_visible(False)
+
 
 
 class Simulation():
@@ -106,6 +112,8 @@ class Simulation():
 			Singleton.instance.add_agent()
 		elif event.key.lower() == "-":  # remove agent
 			Singleton.instance.remove_agent()
+		elif event.key.lower() == "m":
+			ani.moving ^= True
 
 		# update simulation animation
 		Singleton.instance.ani = ani
@@ -124,6 +132,7 @@ class Simulation():
 	def __init__(self, ani, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols):
 		self.ani = ani
 		self.ani.running = True
+		self.ani.moving = False
 		self.ani.event = 0
 		self.ani.observer_loc = None
 		self.ani.remove_loc = None
@@ -346,24 +355,20 @@ def grid_init(nrows, ncols):
 		ax_list[-1].set_theta_offset(pi / 2)
 		ax_list[-1].set_theta_direction(-1)
 		ax_list[-1].set_ylim(0, 100)
-		plt.xticks(angles[:-1], "", color='grey', size=8)
+		if idx ==0:
+			plt.xticks(angles[:-1],['A','B','C','D','E','F'], color='grey', size=8)
+		else:
+			plt.xticks(angles[:-1], "", color='grey', size=8)
 		# for col, xtick in enumerate(ax_list[-1].get_xticklabels()):
 		# 	xtick.set(color=my_palette(col), fontweight='bold', fontsize=16)
 		ax_list[-1].set_rlabel_position(0)
 		ax_list[-1].tick_params(pad=-7.0)
 		ax_list[-1].set_rlabel_position(45)
 		plt.yticks([50, 100], ["", ""], color="grey", size=7)
-		# for j_z, a_i in enumerate(angles[:-1]):
-		# 	da = DrawingArea(20,20,10,10)
-		# 	p_c = patches.Circle((0,0), radius=12, color=my_palette(j_z), clip_on=False)
-		# 	da.add_artist(p_c)
-		# 	ab = AnnotationBbox(da,(0,101))
-		# 	ax.add_artist(ab)
 		l, = ax_list[-1].plot([], [], color='green', linewidth=2, linestyle='solid')
 		l_f, = ax_list[-1].fill([], [], color='green', alpha=0.4)
 		ax_list[-1].spines["bottom"] = ax_list[-1].spines["inner"]
 		l.axes.set_visible(False)
-		# l.axes.set_animated(True)
 		l_a = ax_list[-1].add_artist(AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.08), xy=(0, 0),
 						   frameon=False))
 		agents[idx].init_belief_plt(l, l_f, l_a)
@@ -377,6 +382,7 @@ def grid_update(i):
 	simulation = Singleton.instance
 	tr_ar = simulation.tr_ar
 	agents = simulation.agents[:simulation.active_agents]
+	leftover_agents = simulation.agents[simulation.active_agents:]
 	ncols = simulation.ncols
 	building_squares = simulation.building_squares
 	write_objects = []
@@ -426,7 +432,10 @@ def grid_update(i):
 		agent.activate_belief_plt()
 		b_i.set_visible(True)
 		text_i = agent.t_i
-		agent_pos = agent.track_queue.pop(0)
+		if simulation.ani.moving:
+			agent_pos = agent.track_queue.pop(0)
+		else:
+			agent_pos = agent.track_queue[0]
 		loc = tuple(reversed(coords(agent_pos-30, ncols)))
 		# Use below line if you're working with circles
 		b_i.set_center([loc[0]+1,loc[1]-1])
@@ -455,6 +464,21 @@ def grid_update(i):
 			b_i.set_visible(False)
 
 		write_objects += [c_i,b_i,text_i]
+
+	for agent_idx, agent in enumerate(leftover_agents):
+		c_i = agent.c_i
+		c_i.set_visible(False)
+		b_i = agent.b_i
+		b_i.set_visible(False)
+		text_i = agent.t_i
+		text_i.set_visible(False)
+		agent.deactivate_belief_plt()
+		agent.c_i = c_i
+		agent.t_i = text_i
+		write_objects += [c_i,b_i,text_i]
+
+
+
 
 
 	# Update everything TODO: is this necessary?
