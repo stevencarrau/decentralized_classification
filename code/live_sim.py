@@ -258,8 +258,8 @@ def grid_init(nrows, ncols):
 	t = 0
 
 	# legend stuff
-	legend_text = ""
-
+	# legend_text = "A: {:<20} Store A Owner \t B: {:<20}Store B Owner\tC: {:<20}Repairman \n D: {:<20}Shopper\t E: {:<20}Suscipious \t F: {:<20}Home Owner".format()
+	legend_text = "A: {:<25} B: {:<25} C: {} \nD: {:<25} E: {:<25} F: {}".format('Store A Owner','Store B Owner','Repairman','Shopper','Suscipious','Home Owner')
 	row_labels = range(nrows)
 	col_labels = range(ncols)
 	plt.xticks(range(ncols), '')
@@ -315,8 +315,6 @@ def grid_init(nrows, ncols):
 		agents.append(currAgent)
 
 
-		legend_text += '{0:<18}'.format(agent_character_names[idx] + '{0:>30}\n'.format(names[idx]))
-
 		t_i = None
 
 		# route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
@@ -356,7 +354,7 @@ def grid_init(nrows, ncols):
 
 	# make the legend
 	legend_dict = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-	ax.text(0.59, 0.95, legend_text, transform=ax.transAxes, fontsize=6,
+	ax.text(0.15, 1.08, legend_text, transform=ax.transAxes, fontsize=8,
 			verticalalignment='top', bbox=legend_dict)
 
 
