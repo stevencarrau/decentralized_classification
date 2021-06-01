@@ -19,8 +19,9 @@ import json
 
 
 class Agent():
-	def __init__(self, c_i, label,bad_i,mdp, state, t_i, belief=0):
+	def __init__(self, c_i, label, char_name, bad_i,mdp, state, t_i, belief=0):
 		self.label = label
+		self.char_name = char_name
 		self.c_i = c_i
 		self.b_i = bad_i
 		self.t_i = t_i
@@ -232,7 +233,8 @@ def grid_init(nrows, ncols):
 	agents = []
 	agent_image_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
 						 'pictures/thor.png', 'pictures/thanos.png', 'pictures/ironman.png']
-	names = ["Store A Owner", "Store B owner", "Repairman", "Shopper", "Suspicious", "Home Owner"]
+	agent_character_names = ['Captain America', 'Black Widow', 'Hulk', 'Thor', 'Thanos', 'Ironman']
+	names = ["Store A Owner", "Store B Owner", "Repairman", "Shopper", "Suspicious", "Home Owner"]
 
 	mdp_list = ERSA_Env()
 
@@ -245,6 +247,9 @@ def grid_init(nrows, ncols):
 	# fig_new = plt.figure(figsize=(1000/my_dpi,1000/my_dpi),dpi=my_dpi)
 	ax = plt.subplot2grid((len(categories), 5), (0, 1), rowspan=len(categories), colspan=4)
 	t = 0
+
+	# legend stuff
+	legend_text = ""
 
 	row_labels = range(nrows)
 	col_labels = range(ncols)
@@ -296,8 +301,12 @@ def grid_init(nrows, ncols):
 		b_i = plt.Circle([init_loc[0]+1,init_loc[1]-1], 0.25, label=names[int(id_no)], color='r')
 		b_i.set_visible(False)
 
-		currAgent = Agent(c_i=c_i, label=names[idx], bad_i=b_i, mdp=mdp_list[idx], state=Simulation.init_states[idx], t_i=t_i)
+		currAgent = Agent(c_i=c_i, label=names[idx], char_name=agent_character_names[idx], \
+						  bad_i=b_i, mdp=mdp_list[idx], state=Simulation.init_states[idx], t_i=t_i)
 		agents.append(currAgent)
+
+
+		legend_text += '{0:<18}'.format(agent_character_names[idx] + '{0:>30}\n'.format(names[idx]))
 
 		t_i = None
 
@@ -335,6 +344,11 @@ def grid_init(nrows, ncols):
 	ax.fill([-1.0 + 0.5, 29.5 + 0.5, 29.5 + 0.5, -1.0 + 0.5],
 			[18 + 0.5, 18 + 0.5, 24 + 0.5, 24 + 0.5], color=gray, alpha=0.9)
 
+
+	# make the legend
+	legend_dict = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+	ax.text(0.59, 0.95, legend_text, transform=ax.transAxes, fontsize=6,
+			verticalalignment='top', bbox=legend_dict)
 
 
 	## Plot for belief charts
@@ -381,6 +395,7 @@ def grid_update(i):
 	building_squares = simulation.building_squares
 	write_objects = []
 
+
 	if simulation.ani.observer_loc is not None or simulation.ani.remove_loc is not None:
 		if simulation.ani.observer_loc is not None:
 			write_objects += simulation.add_observer(coord2state(simulation.ani.observer_loc,ncols))
@@ -425,7 +440,7 @@ def grid_update(i):
 		b_i = agent.b_i
 		agent.activate_belief_plt()
 		b_i.set_visible(True)
-		text_i = agent.t_i
+		# text_i = agent.t_i
 		agent_pos = agent.track_queue.pop(0)
 		loc = tuple(reversed(coords(agent_pos-30, ncols)))
 		# Use below line if you're working with circles
@@ -437,10 +452,10 @@ def grid_update(i):
 		c_i.xybox = loc
 
 		# update text positions
-		text_i.set_visible(False)   # remove old label
-		text_i.set_position((loc[0]-1.5, loc[1]+1.5))  # move label to new (x, y)
-		text_i.set_visible(True)
-		agent.t_i = text_i
+		# text_i.set_visible(False)   # remove old label
+		# text_i.set_position((loc[0]-1.5, loc[1]+1.5))  # move label to new (x, y)
+		# text_i.set_visible(True)
+		# agent.t_i = text_i
 
 		if agent_pos in building_squares:
 			c_i.offsetbox.image.set_alpha(0.35)
@@ -454,8 +469,8 @@ def grid_update(i):
 		else:
 			b_i.set_visible(False)
 
-		write_objects += [c_i,b_i,text_i]
-
+		# write_objects += [c_i,b_i,text_i]
+		write_objects += [c_i, b_i]
 
 	# Update everything TODO: is this necessary?
 	Singleton.instance = simulation
