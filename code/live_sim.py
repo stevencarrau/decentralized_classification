@@ -438,6 +438,7 @@ def grid_update(i):
 			agent.track_queue += track_outs((agent.state,next_s))
 			if next_s in simulation.observable_states:
 				agent.update_value(simulation.ani.event,next_s)
+				write_objects += agent.update_belief(agent.belief_values, -2)
 			agent.state = next_s
 		c_i = agent.c_i
 		c_i.set_visible(True)
@@ -472,7 +473,6 @@ def grid_update(i):
 			c_i.offsetbox.image.set_alpha(1.0)
 
 		agent.c_i = c_i
-		write_objects += agent.update_belief(agent.belief_values, -2)
 		if agent.belief > 0.75:
 			b_i.set_visible(True)
 		else:
