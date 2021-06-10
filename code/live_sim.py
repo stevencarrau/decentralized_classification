@@ -17,9 +17,8 @@ import itertools
 from darpa_model import ERSA_Env,track_outs
 import json
 
-
 class Agent():
-	def __init__(self, c_i, label, char_name, bad_i,mdp, state, t_i, belief=0):
+	def __init__(self, c_i, label, char_name, bad_i,mdp, state, t_i, agent_idx=0):
 		self.label = label
 		self.char_name = char_name
 		self.c_i = c_i
@@ -27,6 +26,7 @@ class Agent():
 		self.t_i = t_i
 		self.belief_values = np.ones((len(Simulation.init_states),1))/len(Simulation.init_states)
 		self.belief = 0  # All agents presumed innocent to begin with
+		self.agent_idx = agent_idx
 		self.state = state
 		self.mdp = mdp
 		self.track_queue = []
@@ -50,21 +50,33 @@ class Agent():
 			self.belief_fill.set_xy(np.array([angles, val]).T)
 			self.belief_line.set_zorder(2)
 			self.belief_artist.set_zorder(10)
-			if self.belief > 0.75:
-				self.belief_line.set_color('red')
-				self.belief_fill.set_color('red')
+			f = lambda i: belief[i]
+			if max(belief)> 0.75:
+				if max(range(len(belief)), key=f) == self.agent_idx:
+					self.belief_text.set_color('green')
+				else:
+					self.belief_text.set_color('red')
+				if self.belief > 0.75:
+					self.belief_line.set_color('red')
+					self.belief_fill.set_color('red')
+				else:
+					self.belief_line.set_color('green')
+					self.belief_fill.set_color('green')
 			else:
-				self.belief_line.set_color('green')
-				self.belief_fill.set_color('green')
-			return [self.belief_line, self.belief_fill, self.belief_artist]
+				self.belief_line.set_color('yellow')
+				self.belief_fill.set_color('yellow')
+				self.belief_text.set_color('black')
+			return [self.belief_line, self.belief_fill, self.belief_artist,self.belief_text]
 		return None
 
-	def init_belief_plt(self, l_i, l_f, l_a):
+	def init_belief_plt(self, l_i, l_f, l_a,l_t):
 		self.belief_line = l_i
 		self.belief_line.set_visible(False)
 		self.belief_fill = l_f
 		self.belief_fill.set_visible(False)
 		self.belief_artist = l_a
+		self.belief_artist.set_visible(False)
+		self.belief_text = l_t
 		self.belief_artist.set_visible(False)
 
 	def activate_belief_plt(self):
@@ -240,6 +252,7 @@ def grid_init(nrows, ncols):
 	# good ppl: Captain A (Store A MDP), Iron man (home MDP), black widow (store B MDP),
 	# Hulk (repairman MDP), Thor (shopper MDP)
 	agents = []
+	agent_types = {0:'A',1:'B',2:'C',3:'D',4:'E',5:'F'}
 	agent_image_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
 						 'pictures/thor.png', 'pictures/thanos.png', 'pictures/ironman.png']
 	agent_character_names = ['Captain America', 'Black Widow', 'Hulk', 'Thor', 'Thanos', 'Ironman']
@@ -254,7 +267,7 @@ def grid_init(nrows, ncols):
 
 	categories = range(6)  # [str(d_i) for d_i in df['0'][0]['Id_no']]
 	# fig_new = plt.figure(figsize=(1000/my_dpi,1000/my_dpi),dpi=my_dpi)
-	ax = plt.subplot2grid((len(categories), 5), (0, 1), rowspan=len(categories), colspan=4)
+	ax = plt.subplot2grid((len(categories), 7), (0, 3), rowspan=len(categories), colspan=4)
 	t = 0
 
 	# legend stuff
@@ -311,7 +324,7 @@ def grid_init(nrows, ncols):
 		b_i.set_visible(False)
 
 		currAgent = Agent(c_i=c_i, label=names[idx], char_name=agent_character_names[idx], \
-						  bad_i=b_i, mdp=mdp_list[idx], state=Simulation.init_states[idx], t_i=t_i)
+						  bad_i=b_i, mdp=mdp_list[idx], state=Simulation.init_states[idx], t_i=t_i,agent_idx=idx)
 		agents.append(currAgent)
 
 
@@ -354,7 +367,7 @@ def grid_init(nrows, ncols):
 
 	# make the legend
 	legend_dict = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-	ax.text(0.15, 1.08, legend_text, transform=ax.transAxes, fontsize=8,
+	ax.text(0.00, 1.08, legend_text, transform=ax.transAxes, fontsize=8,
 			verticalalignment='top', bbox=legend_dict)
 
 
@@ -363,12 +376,15 @@ def grid_init(nrows, ncols):
 	angles = [n / float(len(categories)) * 2 * pi for n in range(len(categories))]
 	angles += angles[:1]
 	for idx, id_no in enumerate(categories):
-		ax_list.append(plt.subplot(len(categories), 5, idx * 5 + 1, polar=True))
+		belief = np.zeros((len(categories),)).tolist()
+		belief[id_no] = 1
+		ax_list.append(plt.subplot2grid((len(categories), 7), (2*int(idx/2), idx % 2+1*(idx%2)), rowspan=2, colspan=1, polar=True))
 		ax_list[-1].set_theta_offset(pi / 2)
 		ax_list[-1].set_theta_direction(-1)
 		ax_list[-1].set_ylim(0, 100)
 		if idx ==0:
-			plt.xticks(angles[:-1],['A','B','C','D','E','F'], color='grey', size=8)
+			# plt.xticks(angles[:-1],['A','B','C','D','E','F'], color='grey', size=8)
+			plt.xticks(angles[:-1], "", color='grey', size=8)
 		else:
 			plt.xticks(angles[:-1], "", color='grey', size=8)
 		# for col, xtick in enumerate(ax_list[-1].get_xticklabels()):
@@ -379,11 +395,17 @@ def grid_init(nrows, ncols):
 		plt.yticks([50, 100], ["", ""], color="grey", size=7)
 		l, = ax_list[-1].plot([], [], color='green', linewidth=2, linestyle='solid')
 		l_f, = ax_list[-1].fill([], [], color='green', alpha=0.4)
+		val = [75 * b_i + 25 for b_i in belief]
+		val += val[:1]
+		ax_list[-1].fill(angles,val, color='grey', alpha=0.4)
 		ax_list[-1].spines["bottom"] = ax_list[-1].spines["inner"]
-		l.axes.set_visible(False)
-		l_a = ax_list[-1].add_artist(AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.08), xy=(0, 0),
-						   frameon=False))
-		agents[idx].init_belief_plt(l, l_f, l_a)
+		# l.axes.set_visible(False)
+		agent_pic = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.20), xy=(0, 0),frameon=False)
+		agent_pic.xyann = (5.0,135)
+		agent_pic.xybox = (5.0,135)
+		agent_txt = plt.text(x=4.25,y=175,s=agent_types[idx], fontsize=18)
+		l_a = ax_list[-1].add_artist(agent_pic)
+		agents[idx].init_belief_plt(l, l_f, l_a,agent_txt)
 
 
 	return agents,tr_array,building_squares,ax
@@ -494,12 +516,6 @@ def grid_update(i):
 
 
 
-#
-# =======
-# 		# write_objects += [c_i,b_i,text_i]
-# 		write_objects += [c_i, b_i]
-# >>>>>>> 4eba46548f865e8ed2034075f1f7dba314262a1a
-
 	# Update everything TODO: is this necessary?
 	Singleton.instance = simulation
 	Singleton.instance.tr_ar = tr_ar
@@ -518,6 +534,7 @@ def coord2state(coords,ncols):
 def main():
 	# ---------- PART 1:
 	event_names = {0: 'nominal', 1: 'iceA', 2: 'iceB', 3: 'iceC', 4: 'alarmA', 5: 'alarmB', 6: 'alarmG'}
+
 	mdp_list = ERSA_Env()
 	mc_dict = dict()
 	env_states = [0, 1, 2, 3, 4, 5, 6, 7]
@@ -560,6 +577,7 @@ def main():
 	anim = FuncAnimation(fig, update_all, frames=frames, interval=150, blit=False,repeat=False)
 	Singleton(anim, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols)
 	plt.show()
+
 
 if __name__ == '__main__':
 	main()
