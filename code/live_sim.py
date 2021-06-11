@@ -16,6 +16,7 @@ from gridworld import *
 import itertools
 from darpa_model import ERSA_Env,track_outs
 import json
+import argparse
 
 class Agent():
 	def __init__(self, c_i, label, char_name, bad_i,mdp, state, t_i, agent_idx=0):
@@ -247,12 +248,12 @@ def belief_update(belief,likelihood):
 	return new_belief
 
 
-def grid_init(nrows, ncols):
+def grid_init(nrows, ncols, desiredIndices):
 	# bad ppl: thanos (threat MDP)
 	# good ppl: Captain A (Store A MDP), Iron man (home MDP), black widow (store B MDP),
 	# Hulk (repairman MDP), Thor (shopper MDP)
-	agents = []
 	agent_types = {0:'A',1:'B',2:'C',3:'D',4:'E',5:'F'}
+	agents = [None for i in range(len(Simulation.init_states))]   # use "None"s as placeholders
 	agent_image_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
 						 'pictures/thor.png', 'pictures/thanos.png', 'pictures/ironman.png']
 	agent_character_names = ['Captain America', 'Black Widow', 'Hulk', 'Thor', 'Thanos', 'Ironman']
@@ -265,7 +266,7 @@ def grid_init(nrows, ncols):
 	trigger_image_paths = 3 * ['pictures/ice_cream.png'] + 2 * ['pictures/fire_alarm.png']
 	trigger_image_xy = [(8, 19), (15, 19), (22, 19), (4.5, 12), (13, 27)]
 
-	categories = range(6)  # [str(d_i) for d_i in df['0'][0]['Id_no']]
+	categories = range(len(Simulation.init_states))  # [str(d_i) for d_i in df['0'][0]['Id_no']]
 	# fig_new = plt.figure(figsize=(1000/my_dpi,1000/my_dpi),dpi=my_dpi)
 	ax = plt.subplot2grid((len(categories), 7), (0, 3), rowspan=len(categories), colspan=4)
 	t = 0
@@ -306,30 +307,31 @@ def grid_init(nrows, ncols):
 	building_squares = list(itertools.chain(*home_squares))+list(itertools.chain(*storeA_squares))+list(itertools.chain(*storeB_squares))
 	building_doors = [458,472,825]
 
+	# set up agents
 	for idx, id_no in enumerate(categories):
 		# p_t = df[str(0)][id_no]['PublicTargets']
 		# color = colors[int(id_no)]
 		# color = my_palette(i)
-		samp_out = mdp_list[idx].sample(Simulation.init_states[idx],0)
-		track_init = track_outs((Simulation.init_states[idx],samp_out))
-		init_loc = tuple(reversed(coords(track_init[0]-30, ncols)))
+		samp_out = mdp_list[idx].sample(Simulation.init_states[idx], 0)
+		track_init = track_outs((Simulation.init_states[idx], samp_out))
+		init_loc = tuple(reversed(coords(track_init[0] - 30, ncols)))
 		# c_i = plt.Circle(init_loc, 0.45, label=names[int(id_no)], color=color)
-		t_i = plt.text(x=init_loc[0],y=init_loc[1],s=names[idx], fontsize='xx-small')
-		t_i.set_visible(False)   # don't show the labels until the agent is added
+		t_i = plt.text(x=init_loc[0], y=init_loc[1], s=names[idx], fontsize='xx-small')
+		t_i.set_visible(False)  # don't show the labels until the agent is added
 		c_i = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.13),
 							 xy=init_loc, frameon=False)
 		c_i.set_label(names[idx])
 		c_i.set_visible(False)
-		b_i = plt.Circle([init_loc[0]+1,init_loc[1]-1], 0.25, label=names[int(id_no)], color='r')
+		b_i = plt.Circle([init_loc[0] + 1, init_loc[1] - 1], 0.25, label=names[int(id_no)], color='r')
 		b_i.set_visible(False)
-
 		currAgent = Agent(c_i=c_i, label=names[idx], char_name=agent_character_names[idx], \
 						  bad_i=b_i, mdp=mdp_list[idx], state=Simulation.init_states[idx], t_i=t_i,agent_idx=idx)
-		agents.append(currAgent)
+		currAgentIndex = desiredIndices[idx][1]
+		agents.insert(currAgentIndex, currAgent)
+		agents.pop(currAgentIndex-1)   # remove each "None" as we insert a new agent
 
-
-		t_i = None
-
+	for idx, id_no in enumerate(categories):
+		currAgent = agents[idx]
 		# route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
 		cir_ax = ax.add_artist(currAgent.c_i)
 		bad_ax = ax.add_artist(currAgent.b_i)
@@ -530,9 +532,47 @@ def coords(s, ncols):
 def coord2state(coords,ncols):
 	return int(coords[0]*ncols)+int(coords[1])
 
+def get_agent_indices(args):
+	names = ["Store A Owner", "Store B Owner", "Repairman", "Shopper", "Suspicious", "Home Owner"]
+	numAgents = len(names)
+	inputs = []
+
+	# form of each input: ({agent type},{desired index in agents list})
+	for agentIdx, arg in enumerate(args):
+		if agentIdx == 0:
+			continue
+
+		currInput = []
+		for num in arg.split(","):
+			currNum = ""
+			for char in num:
+				if char != ")" and char != "(":
+					currNum += char
+			currInput.append(int(currNum))
+		inputs.append(tuple(currInput))
+
+
+	# verify arguments
+	reqIndices = [i for i in range(numAgents)]
+
+	for input in inputs:
+		agentIdx = input[0]
+		if 0 <= agentIdx < numAgents and agentIdx in range(numAgents):
+			reqIndices.remove(agentIdx)
+		else:
+			print("Invalid arguments")
+			sys.exit(1)
+
+	if len(reqIndices) != 0:
+		print("Invalid arguments")
+		sys.exit(1)
+
+	return sorted(inputs)
 
 def main():
 	# ---------- PART 1:
+	# grab arguments of format: 'Store A Owner','Store B Owner','Repairman','Shopper','Suscipious','Home Owner'
+	agent_indices = get_agent_indices(sys.argv)
 	event_names = {0: 'nominal', 1: 'iceA', 2: 'iceB', 3: 'iceC', 4: 'alarmA', 5: 'alarmB', 6: 'alarmG'}
 
 	mdp_list = ERSA_Env()
@@ -569,7 +609,7 @@ def main():
 	moveobstacles = []
 	obstacles = []
 
-	agents, tr_ar, building_squares, ax = grid_init(nrows, ncols)
+	agents, tr_ar, building_squares, ax = grid_init(nrows, ncols, agent_indices)
 	gwg = Gridworld([0], nrows=nrows, ncols=ncols,regions=regions,obstacles=building_squares)
 	fig.canvas.mpl_connect('key_press_event', Simulation.on_press)
 	fig.canvas.mpl_connect('button_press_event', Simulation.on_click)
