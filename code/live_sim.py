@@ -460,7 +460,7 @@ def grid_update(i):
 		if len(agent.track_queue) == 0:
 			next_s = agent.mdp.sample(agent.state,simulation.ani.event)
 			agent.track_queue += track_outs((agent.state,next_s))
-			if next_s in simulation.observable_states:
+			if agent.track_queue[0] in simulation.observable_states:
 				agent.update_value(simulation.ani.event,next_s)
 				write_objects += agent.update_belief(agent.belief_values, -2)
 			agent.state = next_s
