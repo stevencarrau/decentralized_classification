@@ -253,7 +253,9 @@ def grid_init(nrows, ncols, desiredIndices):
 	# good ppl: Captain A (Store A MDP), Iron man (home MDP), black widow (store B MDP),
 	# Hulk (repairman MDP), Thor (shopper MDP)
 	agent_types = {0:'A',1:'B',2:'C',3:'D',4:'E',5:'F'}
-	agents = [None for i in range(len(Simulation.init_states))]   # use "None"s as placeholders
+
+	init_states = [ind[1] for ind in desiredIndices]
+	agents = []   # use "None"s as placeholders
 	agent_image_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
 						 'pictures/thor.png', 'pictures/thanos.png', 'pictures/ironman.png']
 	agent_character_names = ['Captain America', 'Black Widow', 'Hulk', 'Thor', 'Thanos', 'Ironman']
@@ -266,7 +268,7 @@ def grid_init(nrows, ncols, desiredIndices):
 	trigger_image_paths = 3 * ['pictures/ice_cream.png'] + 2 * ['pictures/fire_alarm.png']
 	trigger_image_xy = [(8, 19), (15, 19), (22, 19), (4.5, 12), (13, 27)]
 
-	categories = range(len(Simulation.init_states))  # [str(d_i) for d_i in df['0'][0]['Id_no']]
+	categories = range(len(init_states))  # [str(d_i) for d_i in df['0'][0]['Id_no']]
 	# fig_new = plt.figure(figsize=(1000/my_dpi,1000/my_dpi),dpi=my_dpi)
 	ax = plt.subplot2grid((len(categories), 7), (0, 3), rowspan=len(categories), colspan=4)
 	t = 0
@@ -308,29 +310,30 @@ def grid_init(nrows, ncols, desiredIndices):
 	building_doors = [458,472,825]
 
 	# set up agents
-	for idx, id_no in enumerate(categories):
+	for idx, id_no in enumerate(desiredIndices):
 		# p_t = df[str(0)][id_no]['PublicTargets']
 		# color = colors[int(id_no)]
 		# color = my_palette(i)
-		samp_out = mdp_list[idx].sample(Simulation.init_states[idx], 0)
-		track_init = track_outs((Simulation.init_states[idx], samp_out))
+		samp_out = mdp_list[idx].sample(id_no[1], 0)
+		track_init = track_outs((id_no[1], samp_out))
 		init_loc = tuple(reversed(coords(track_init[0] - 30, ncols)))
 		# c_i = plt.Circle(init_loc, 0.45, label=names[int(id_no)], color=color)
-		t_i = plt.text(x=init_loc[0], y=init_loc[1], s=names[idx], fontsize='xx-small')
+		t_i = plt.text(x=init_loc[0], y=init_loc[1], s=names[int(id_no[0])], fontsize='xx-small')
 		t_i.set_visible(False)  # don't show the labels until the agent is added
-		c_i = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.13),
+		c_i = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no[0])]), zoom=0.13),
 							 xy=init_loc, frameon=False)
 		c_i.set_label(names[idx])
 		c_i.set_visible(False)
-		b_i = plt.Circle([init_loc[0] + 1, init_loc[1] - 1], 0.25, label=names[int(id_no)], color='r')
+		b_i = plt.Circle([init_loc[0] + 1, init_loc[1] - 1], 0.25, label=names[int(id_no[0])], color='r')
 		b_i.set_visible(False)
-		currAgent = Agent(c_i=c_i, label=names[idx], char_name=agent_character_names[idx], \
-						  bad_i=b_i, mdp=mdp_list[idx], state=Simulation.init_states[idx], t_i=t_i,agent_idx=idx)
-		currAgentIndex = desiredIndices[idx][1]
-		agents.insert(currAgentIndex, currAgent)
-		agents.pop(currAgentIndex-1)   # remove each "None" as we insert a new agent
+		currAgent = Agent(c_i=c_i, label=names[int(id_no[0])], char_name=id_no[0], \
+						  bad_i=b_i, mdp=mdp_list[int(id_no[0])], state=id_no[1], t_i=t_i,agent_idx=id_no[0])
+		agents.append(currAgent)
+		# currAgentIndex = desiredIndices[idx][1]
+		# agents.insert(currAgentIndex, currAgent)
+		# agents.pop(currAgentIndex-1)   # remove each "None" as we insert a new agent
 
-	for idx, id_no in enumerate(categories):
+	for idx, id_no in enumerate(agents):
 		currAgent = agents[idx]
 		# route_x, route_y = zip(*[tuple(reversed(coords(df[str(t)][str(id_no)]['NominalTrace'][s][0],ncols))) for s in df[str(t)][str(id_no)]['NominalTrace']])
 		cir_ax = ax.add_artist(currAgent.c_i)
@@ -375,12 +378,12 @@ def grid_init(nrows, ncols, desiredIndices):
 
 	## Plot for belief charts
 	ax_list = []
-	angles = [n / float(len(categories)) * 2 * pi for n in range(len(categories))]
+	angles = [n / float(len(agent_types)) * 2 * pi for n in range(len(agent_types))]
 	angles += angles[:1]
-	for idx, id_no in enumerate(categories):
-		belief = np.zeros((len(categories),)).tolist()
-		belief[id_no] = 1
-		ax_list.append(plt.subplot2grid((len(categories), 7), (2*int(idx/2), idx % 2+1*(idx%2)), rowspan=2, colspan=1, polar=True))
+	for idx, id_no in enumerate(desiredIndices):
+		belief = np.zeros((len(agent_types),)).tolist()
+		belief[id_no[0]] = 1
+		ax_list.append(plt.subplot2grid((len(desiredIndices), 7), (2*int(idx/2), idx % 2+1*(idx%2)), rowspan=2, colspan=1, polar=True))
 		ax_list[-1].set_theta_offset(pi / 2)
 		ax_list[-1].set_theta_direction(-1)
 		ax_list[-1].set_ylim(0, 100)
@@ -402,10 +405,10 @@ def grid_init(nrows, ncols, desiredIndices):
 		ax_list[-1].fill(angles,val, color='grey', alpha=0.4)
 		ax_list[-1].spines["bottom"] = ax_list[-1].spines["inner"]
 		# l.axes.set_visible(False)
-		agent_pic = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no)]), zoom=0.20), xy=(0, 0),frameon=False)
-		agent_pic.xyann = (5.0,135)
-		agent_pic.xybox = (5.0,135)
-		agent_txt = plt.text(x=4.25,y=175,s=agent_types[idx], fontsize=18)
+		agent_pic = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no[0])]), zoom=0.20), xy=(0, 0),frameon=False)
+		agent_pic.xyann = (5.0,175)
+		agent_pic.xybox = (5.0,175)
+		agent_txt = plt.text(x=4.25,y=215,s=agent_types[id_no[0]], fontsize=18)
 		l_a = ax_list[-1].add_artist(agent_pic)
 		agents[idx].init_belief_plt(l, l_f, l_a,agent_txt)
 
@@ -534,7 +537,7 @@ def coord2state(coords,ncols):
 
 def get_agent_indices(args):
 	names = ["Store A Owner", "Store B Owner", "Repairman", "Shopper", "Suspicious", "Home Owner"]
-	numAgents = len(names)
+	numAgents = len(args)-1
 	inputs = []
 
 	# form of each input: ({agent type},{desired index in agents list})
@@ -555,17 +558,17 @@ def get_agent_indices(args):
 	# verify arguments
 	reqIndices = [i for i in range(numAgents)]
 
-	for input in inputs:
-		agentIdx = input[0]
-		if 0 <= agentIdx < numAgents and agentIdx in range(numAgents):
-			reqIndices.remove(agentIdx)
-		else:
-			print("Invalid arguments")
-			sys.exit(1)
-
-	if len(reqIndices) != 0:
-		print("Invalid arguments")
-		sys.exit(1)
+	# for input in inputs:
+	# 	agentIdx = input[0]
+	# 	if 0 <= agentIdx < numAgents and agentIdx in range(numAgents):
+	# 		reqIndices.remove(agentIdx)
+	# 	else:
+	# 		print("Invalid arguments")
+	# 		sys.exit(1)
+	#
+	# if len(reqIndices) != 0:
+	# 	print("Invalid arguments")
+	# 	sys.exit(1)
 
 	return sorted(inputs)
 
