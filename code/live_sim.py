@@ -145,7 +145,7 @@ class Simulation():
 		# update simulation animation
 		Singleton.instance.ani = ani
 
-	def __init__(self, ani, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols):
+	def __init__(self, ani, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols,counter_text):
 		self.ani = ani
 		self.ani.running = True
 		self.ani.moving = False
@@ -171,9 +171,11 @@ class Simulation():
 		self.building_squares = building_squares
 		self.nrows = nrows
 		self.ncols = ncols
-		self.active_agents = 0    # initialize simulation to not have any agents active
 		self.num_agents = len(self.agents)
+		self.active_agents = self.num_agents #0    # initialize simulation to not have any agents active
 		self.categories = range(self.num_agents)
+		self.time_step = 0
+		self.counter_text = counter_text
 
 
 	def blit_viewable_states(self):
@@ -230,10 +232,10 @@ class Simulation():
 class Singleton():
 	instance = None
 
-	def __init__(self, ani, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols):
+	def __init__(self, ani, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols,counter_text):
 		# make sure there's only one instance
 		if Singleton.instance is None:
-			Singleton.instance = Simulation(ani, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols)
+			Singleton.instance = Simulation(ani, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols,counter_text)
 		else:
 			print("Already have one instance of the simulation running!")
 
@@ -377,7 +379,7 @@ def grid_init(nrows, ncols, desiredIndices):
 	ax.text(0.00, 1.08, legend_text, transform=ax.transAxes, fontsize=8,
 			verticalalignment='top', bbox=legend_dict)
 
-
+	counter_text = plt.text(1.00, -0.08, '{}'.format(0), transform=ax.transAxes, fontsize=18)
 	## Plot for belief charts
 	ax_list = []
 	angles = [n / float(len(agent_types)) * 2 * pi for n in range(len(agent_types))]
@@ -415,7 +417,8 @@ def grid_init(nrows, ncols, desiredIndices):
 		agents[idx].init_belief_plt(l, l_f, l_a,agent_txt)
 
 
-	return agents,tr_array,building_squares,ax
+
+	return agents,tr_array,building_squares,ax,counter_text
 
 
 def grid_update(i):
@@ -440,6 +443,8 @@ def grid_update(i):
 		write_objects += simulation.blit_viewable_states()
 
 	if not simulation.ani.running:
+		simulation.counter_text.set_text('{}'.format(simulation.time_step - 1))
+		write_objects += [simulation.counter_text]
 		return write_objects
 
 	active_event = simulation.ani.event
@@ -465,7 +470,11 @@ def grid_update(i):
 		if len(agent.track_queue) == 0:
 			next_s = agent.mdp.sample(agent.state,simulation.ani.event)
 			agent.track_queue += track_outs((agent.state,next_s))
-			time.sleep(0.05)
+			if agent_idx ==0:
+				simulation.time_step += 1
+				simulation.counter_text.set_text('{}'.format(simulation.time_step - 1))
+				print(simulation.time_step)
+				write_objects += [simulation.counter_text]
 			if agent.track_queue[0] in simulation.observable_states:
 				agent.update_value(simulation.ani.event,next_s)
 				write_objects += agent.update_belief(agent.belief_values, -2)
@@ -521,6 +530,7 @@ def grid_update(i):
 		agent.b_i = b_i
 		# agent.t_i = text_i
 		write_objects += [c_i,b_i]
+
 
 
 
@@ -615,13 +625,13 @@ def main():
 	moveobstacles = []
 	obstacles = []
 
-	agents, tr_ar, building_squares, ax = grid_init(nrows, ncols, agent_indices)
+	agents, tr_ar, building_squares, ax,counter_text = grid_init(nrows, ncols, agent_indices)
 	gwg = Gridworld([0], nrows=nrows, ncols=ncols,regions=regions,obstacles=building_squares)
 	fig.canvas.mpl_connect('key_press_event', Simulation.on_press)
 	fig.canvas.mpl_connect('button_press_event', Simulation.on_click)
 	# ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
 	anim = FuncAnimation(fig, update_all, frames=frames, interval=10, blit=False,repeat=False)
-	Singleton(anim, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols)
+	Singleton(anim, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols,counter_text)
 	plt.show()
 
 
