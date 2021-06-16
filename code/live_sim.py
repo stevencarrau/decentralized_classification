@@ -1,4 +1,6 @@
 import json
+import time
+
 import matplotlib
 
 matplotlib.use('Qt5Agg')
@@ -463,6 +465,7 @@ def grid_update(i):
 		if len(agent.track_queue) == 0:
 			next_s = agent.mdp.sample(agent.state,simulation.ani.event)
 			agent.track_queue += track_outs((agent.state,next_s))
+			time.sleep(0.05)
 			if agent.track_queue[0] in simulation.observable_states:
 				agent.update_value(simulation.ani.event,next_s)
 				write_objects += agent.update_belief(agent.belief_values, -2)
@@ -617,7 +620,7 @@ def main():
 	fig.canvas.mpl_connect('key_press_event', Simulation.on_press)
 	fig.canvas.mpl_connect('button_press_event', Simulation.on_click)
 	# ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
-	anim = FuncAnimation(fig, update_all, frames=frames, interval=150, blit=False,repeat=False)
+	anim = FuncAnimation(fig, update_all, frames=frames, interval=10, blit=False,repeat=False)
 	Singleton(anim, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols)
 	plt.show()
 
