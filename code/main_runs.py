@@ -13,6 +13,7 @@ import numpy as np
 
 def play_runs(runs, agent_array=None,grid=None,tot_t=100):
 	avg_beliefs = np.zeros(shape=(tot_t+1,runs))
+	local_beliefs = np.zeros(shape=(tot_t+1,runs))
 	avg_belief_calls = np.zeros(shape=(tot_t+1,runs))
 	for r_i in range(runs):
 		print("Run {}".format(r_i))
@@ -23,8 +24,9 @@ def play_runs(runs, agent_array=None,grid=None,tot_t=100):
 		## Labels for output plots
 		time_p = {}
 		time_t = 0
-		avg_beliefs[time_t, r_i] = np.average([a_i.actual_belief[(0, 1, 1)] for a_i in agent_array if not a_i.evil])
-		avg_belief_calls[time_t,r_i] = np.average([a_i.belief_calls for a_i in agent_array if not a_i.evil])
+		avg_beliefs[time_t, r_i] = np.average([a_i.actual_belief[(0, 1, 1)] for a_i in agent_array if a_i.evil == False])
+		avg_belief_calls[time_t,r_i] = np.average([a_i.belief_calls for a_i in agent_array if a_i.evil == False])
+		local_beliefs[time_t, r_i] = np.average([a_i.local_belief[(0, 1, 1)] for a_i in agent_array if a_i.evil == False])
 		for a_a in agent_array:
 			time_p.update({a_a.id_no: a_a.writeOutputTimeStamp(agent_loc.keys())})
 
@@ -50,11 +52,13 @@ def play_runs(runs, agent_array=None,grid=None,tot_t=100):
 				belief_packet,info_packet = packet_dict[p_i]
 				p_i.ADHT(belief_packet, info_packet)
 				time_p.update({p_i.id_no: p_i.writeOutputTimeStamp()})
-			avg_beliefs[time_t,r_i] = np.average([a_i.actual_belief[(0,1,1)] for a_i in agent_array if not a_i.evil])
+			avg_beliefs[time_t,r_i] = np.average([a_i.actual_belief[(0,1,1)] for a_i in agent_array if a_i.evil == False])
 			avg_belief_calls[time_t, r_i] = np.average([a_i.belief_calls for a_i in agent_array])
+			local_beliefs[time_t, r_i] = np.min([a_i.local_belief[(0, 1, 1)] for a_i in agent_array if a_i.evil == False])
+
 				# current_env[a_i] = tuple(p_i.comms_env)
 	# Writing outputs
-	run_output = np.vstack([np.max(avg_beliefs,axis=1),np.min(avg_beliefs,axis=1),np.average(avg_beliefs,axis=1)])
+	run_output = np.vstack([np.arange(tot_t+1),np.max(avg_beliefs,axis=1),np.min(avg_beliefs,axis=1),np.average(avg_beliefs,axis=1),np.std(avg_beliefs,axis=1),np.max(local_beliefs,axis=1),np.min(local_beliefs,axis=1),np.average(local_beliefs,axis=1),np.std(local_beliefs,axis=1)])
 	run_bcalls = np.vstack([np.arange(0,tot_t+1),np.max(avg_belief_calls,axis=1),np.min(avg_belief_calls,axis=1),np.average(avg_belief_calls,axis=1)])
 	print("Writing to "+fname)
 	# write_JSON(fname+'.json', stringify_keys(plotting_dictionary))
@@ -128,7 +132,6 @@ targets = [dict([[24,1-target_prob],[1249,target_prob],[2474,target_prob]])]*no_
 # targets = [dict([[1614,1-target_prob],[884,target_prob]])]*no_agents
 no_targets = len(targets[0])
 obs_range = 1
-# np.random.seed(1)
 
 evil_switch = True
 
@@ -164,8 +167,6 @@ for i in range(len(initial)):
 	bad_b += (0,)
 belief_tracks = [str((1,1,1)), str((0,1,1))] # For output plots
 # belief_tracks = [str((1,1)), str((0,1))] # For output plots
-seed_iter = iter(range(0,5+len(initial)))
-
 
 ## Initialize Agents -- JESSE HERE
 print("Computing policies")
@@ -174,16 +175,7 @@ print("Computing policies")
 agent_array = []
 c_i = 0
 for i, j in zip(initial, targets):
-	# np.random.seed(next(seed_iter))
-	# file_in = open(data_source+run_type+'platform{}_sTraj'.format(c_i),'r')
-	# trace_in = file_in.read().split()
-	# trace_san = [int(trace_in[0])]
-	# trace_san = trace_in if len(trace_in)<1000 else trace_in[0:-1:416]
-	# for t_i in trace_in[1:]:
-	# 	if int(t_i) != trace_san[-1]:
-	# 		trace_san.append(int(t_i))
-	# trace_san = [t_i if t_i!=trace_san[-1] for t_i in trace_in]
-	if c_i ==3:
+	if c_i in [3]:
 		agent_array.append(Agent(init=i, target_list=j,meeting_state=meeting_state, gw_env=gwg, belief_tracks=belief_tracks, id_no=c_i,
 								 policy_load=False, slugs_location=slugs_location, evil=(1,1,1),trace_load=None))
 	else:
@@ -203,16 +195,20 @@ fname = str('Hallway_Sim_{}_Agents_{}').format(len(agent_array),'NoMeet')
 x_states = 500
 output_nomeet = play_runs(100,agent_array,gwg,x_states)
 
+[a_i.reset() for a_i in agent_array]
 for a_i in agent_array:
 	a_i.initBelief([a_l.id_no for a_l in agent_array],1,no_targets)
 	a_i.initPolicy(pre_load=False,meeting=True)
 	a_i.initInfo(agent_loc)
 fname = str('Hallway_Sim_{}_Agents_{}').format(len(agent_array),'Meet')
 output_meet = play_runs(100,agent_array,gwg,x_states)
-
-x = range(0,x_states+1)
-plt.fill_between(x,output_nomeet[0],output_nomeet[1],color='b',alpha=0.25)
-plt.fill_between(x,output_meet[0],output_meet[1],color='r',alpha=0.25)
-plt.show()
+#
+# x = range(0,x_states+1)
+# plt.fill_between(x,output_nomeet[0],output_nomeet[1],color='b',alpha=0.25)
+# plt.fill_between(x,output_meet[0],output_meet[1],color='r',alpha=0.25)
+# plt.fill_between(x,output_nomeet[3],output_nomeet[4],color='g',alpha=0.25)
+# plt.fill_between(x,output_meet[3],output_meet[4],color='p',alpha=0.25)
+#
+# plt.show()
 
 

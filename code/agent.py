@@ -14,6 +14,7 @@ import pickle
 import policy_reactive
 import simplejson as json
 import operator
+import  random
 
 
 class ProbablilityNotOne(Exception):
@@ -406,11 +407,7 @@ class Agent():
 		# for b_i in self.local_belief:
 		# 	tot_b += self.likelihood(b_i, viewable_agents,target)*self.local_belief[b_i]
 		for b_i in self.local_belief:
-			self.local_belief[b_i] = (1 - self.alpha) * self.local_belief[b_i] + self.alpha * self.likelihood(b_i,
-																											  viewable_agents,
-																											  target[
-																												  0]) * \
-									 self.local_belief[b_i]
+			self.local_belief[b_i] = (1 - self.alpha) * self.local_belief[b_i] + self.alpha * self.likelihood(b_i,target[0]) *self.local_belief[b_i]
 			for b_z in self.local_belief:
 				if b_i[target[1]] != b_z[target[1]]:
 					self.diff_belief[b_i].add(b_z)
@@ -582,20 +579,24 @@ class Agent():
 				self.neighbor_set[k] = set([self.id_no])
 		self.resetFlags[belief] = False
 
-	def likelihood(self, sys_status, viewable_agents, target):
+	def likelihood(self, sys_status, target):
 		# Work through each element of the tuple, if is likely then good if its unlikely then bad.
 		target_ind = self.targets.index(self.current)
 		if sys_status[target_ind] == target:
-			return self.target_dict[self.current] if target == 1 else 1 - self.target_dict[self.current]
+			return max(self.target_dict.values())
 		else:
-			return 1 - self.target_dict[self.current] if target == 1 else self.target_dict[self.current]
+			return min(self.target_dict.values())
 
 	def observation(self, rtn_target=False):
 		if self.current in self.targets:
 			if rtn_target:
-				return (
-				np.random.choice([0, 1], 1, p=[1 - self.target_dict[self.current], self.target_dict[self.current]])[0],
-				self.targets.index(self.current))
+				if random.random() < self.target_dict[self.current]:
+					return (1,self.targets.index(self.current))
+				else:
+					return (0,self.targets.index(self.current))
+				# return (
+				# np.random.choice([0, 1], 1, p=[1 - self.target_dict[self.current], self.target_dict[self.current]])[0],
+				# self.targets.index(self.current))
 			else:
 				return np.random.choice([0, 1], 1,
 										p=[1 - self.target_dict[self.current], self.target_dict[self.current]])

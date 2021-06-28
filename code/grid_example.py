@@ -125,19 +125,20 @@ np.random.seed(1)
 evil_switch = True
 
 obstacles = []
-obstacles += list(itertools.chain(*[list(range(i,2500,50)) for i in range(70,74)]))
-obstacles += list(range(1000,1450))
-obstacles += list(range(20,50))
-obstacles += list(range(2470,2500))
-obstacles += list(range(49,2500,50))
-obstacles = list(set(list(range(2500)))-set(obstacles))
+# obstacles += list(itertools.chain(*[list(range(i,2500,50)) for i in range(70,74)]))
+# obstacles += list(range(1000,1450))
+# obstacles += list(range(20,50))
+# obstacles += list(range(2470,2500))
+# obstacles += list(range(49,2500,50))
+# obstacles = list(set(list(range(2500)))-set(obstacles))
 slugs_location = '~/slugs/'
 filename = [None]
-gwg = Gridworld(initial,nrows=50, ncols=50, nagents=len(initial), targets=targets,regions=None,obs_range=obs_range,meeting_states=meeting_state,obstacles=list(set(obstacles)),filename=filename)
+gwg = Gridworld(initial,nrows=30, ncols=30, nagents=len(initial), targets=targets,regions=None,obs_range=obs_range,meeting_states=meeting_state,obstacles=list(set(obstacles)),filename=filename)
 
 # Create MDP model
-# gwg.render()
-# gwg.save('Hallways.png')
+gwg.render()
+gwg.draw_state_labels()
+gwg.save('Env_small.png')
 states = range(gwg.nstates)
 alphabet = [0,1,2,3] # North, south, west, east
 transitions = []
@@ -187,11 +188,11 @@ agent_loc = dict([[a.id_no, a.current] for a in agent_array]) # Dictionary {agen
 # Initialize agent belief and information-sharing structures
 for a_i in agent_array:
 	a_i.initBelief([a_l.id_no for a_l in agent_array],1,no_targets)
-	a_i.initPolicy(pre_load=False,meeting=True)
+	a_i.initPolicy(pre_load=False,meeting=False)
 	a_i.initInfo(agent_loc)
 
 # Run simulation
-fname = str('Hallway_Sim_{}_Agents_{}').format(len(agent_array),'Meet')
-play_sim(True,agent_array,gwg,300)
+fname = str('Hallway_Sim_{}_Agents_{}').format(len(agent_array),'NoMeet')
+play_sim(True,agent_array,gwg,500)
 
 

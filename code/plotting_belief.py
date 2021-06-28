@@ -53,7 +53,7 @@ belief_x_bad = []
 belief_y_bad = []
 belief_y_good = []
 # plt.show()
-frames = 300
+frames = 500
 
 for row in range(0, N_a):
 	ax = plt.subplot(4, N_a+1, row+1+int(1+(N_a+1)/2)*int(row/((N_a)/2)), polar=True)
