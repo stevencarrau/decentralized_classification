@@ -20,6 +20,9 @@ from darpa_model import ERSA_Env,track_outs
 import json
 import argparse
 
+frames = 500
+np.random.seed(0)
+
 class Agent():
 	def __init__(self, c_i, label, char_name, bad_i,mdp, state, t_i, agent_idx=0):
 		self.label = label
@@ -174,8 +177,10 @@ class Simulation():
 		self.num_agents = len(self.agents)
 		self.active_agents = self.num_agents #0    # initialize simulation to not have any agents active
 		self.categories = range(self.num_agents)
-		self.time_step = 0
+		self.time_step = -1
 		self.counter_text = counter_text
+		self.pause_counter = 0
+		self.pause_flag = False
 
 
 	def blit_viewable_states(self):
@@ -422,7 +427,10 @@ def grid_init(nrows, ncols, desiredIndices):
 
 
 def grid_update(i):
-	# global df, obs_range
+	global frames
+	if i== frames-1:
+		plt.close()
+	plt.savefig('video_data/{:04d}.png'.format(i), bbox_inches='tight')
 	simulation = Singleton.instance
 	tr_ar = simulation.tr_ar
 	agents = simulation.agents[:simulation.active_agents]
@@ -442,10 +450,26 @@ def grid_update(i):
 	else:
 		write_objects += simulation.blit_viewable_states()
 
+	# If not running don't update agents
 	if not simulation.ani.running:
 		simulation.counter_text.set_text('{}'.format(simulation.time_step - 1))
 		write_objects += [simulation.counter_text]
 		return write_objects
+
+	# If system paused for actions, don't update agents
+	# if simulation.pause_flag:
+	# 	simulation.pause_counter +=1
+	# 	if simulation.pause_counter > 20:
+	# 		simulation.pause_flag = False
+	# 		simulation.pause_counter = 0
+	# 	Singleton.instance = simulation
+	# 	Singleton.instance.tr_ar = tr_ar
+	# 	return write_objects
+	#
+	# if simulation.time_step >= 15 and simulation.time_step < 30:
+	# 	simulation.ani.event = 1
+	# else:
+	# 	simulation.ani.event = 0
 
 	active_event = simulation.ani.event
 	if active_event == 0:
@@ -466,17 +490,19 @@ def grid_update(i):
 			write_objects += [tr_ar[-2][0],tr_ar[-1][0]]
 
 
+
 	for agent_idx, agent in enumerate(agents):
 		if len(agent.track_queue) == 0:
 			next_s = agent.mdp.sample(agent.state,simulation.ani.event)
 			agent.track_queue += track_outs((agent.state,next_s))
 			if agent_idx ==0:
+				simulation.pause_flag = True
 				simulation.time_step += 1
-				simulation.counter_text.set_text('{}'.format(simulation.time_step - 1))
-				print(simulation.time_step)
+				simulation.counter_text.set_text('{}'.format(simulation.time_step))
 				write_objects += [simulation.counter_text]
 			if agent.track_queue[0] in simulation.observable_states:
 				agent.update_value(simulation.ani.event,next_s)
+				agent.belief_values = np.array([[0,0,0,0.24,0.76,0]]).T
 				write_objects += agent.update_belief(agent.belief_values, -2)
 			agent.state = next_s
 		c_i = agent.c_i
@@ -613,7 +639,6 @@ def main():
 	fig = plt.figure(figsize=(3600 / my_dpi, 2000 / my_dpi), dpi=my_dpi)
 
 	belief_y_good = []
-	frames = 500
 
 	# ---------- PART 2:
 	nrows = 30
@@ -630,9 +655,11 @@ def main():
 	fig.canvas.mpl_connect('key_press_event', Simulation.on_press)
 	fig.canvas.mpl_connect('button_press_event', Simulation.on_click)
 	# ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
-	anim = FuncAnimation(fig, update_all, frames=frames, interval=10, blit=False,repeat=False)
+	anim = FuncAnimation(fig, update_all, frames=frames, interval=1, blit=False,repeat=False)
 	Singleton(anim, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols,counter_text)
+	# anim.save('Environment-Slide3_Video.mp4',fps=24, extra_args=['-vcodec', 'libx264'])
 	plt.show()
+	# anim.save('Environment-Slide3_Video.mp4',writer=writer)
 
 
 if __name__ == '__main__':
