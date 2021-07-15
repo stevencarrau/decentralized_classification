@@ -430,7 +430,7 @@ def grid_update(i):
 	global frames
 	if i== frames-1:
 		plt.close()
-	plt.savefig('video_data/{:04d}.png'.format(i), bbox_inches='tight')
+	# plt.savefig('video_data/{:04d}.png'.format(i), bbox_inches='tight')
 	simulation = Singleton.instance
 	tr_ar = simulation.tr_ar
 	agents = simulation.agents[:simulation.active_agents]
@@ -502,7 +502,6 @@ def grid_update(i):
 				write_objects += [simulation.counter_text]
 			if agent.track_queue[0] in simulation.observable_states:
 				agent.update_value(simulation.ani.event,next_s)
-				agent.belief_values = np.array([[0,0,0,0.24,0.76,0]]).T
 				write_objects += agent.update_belief(agent.belief_values, -2)
 			agent.state = next_s
 		c_i = agent.c_i
