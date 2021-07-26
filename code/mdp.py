@@ -41,6 +41,7 @@ class MDP(NFA):
         for t in self.post(state, action):
             prob.append(self.prob_delta(state, action, t))
 
+        prob = list(np.array(prob)/sum(prob)) if sum(prob) !=1 else prob ## TODO: short-term fix here, fix the input models
         next_state = list(self.post(state, action))[np.random.choice(range(len(self.post(state, action))),1,p=prob)[0]]
         # Note that only one element is chosen from the array, which is the
         # output by random.choice

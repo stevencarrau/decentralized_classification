@@ -24,7 +24,7 @@ frames = 500
 np.random.seed(0)
 
 class Agent():
-	def __init__(self, c_i, label, char_name, bad_i,mdp, state, t_i, agent_idx=0):
+	def __init__(self, c_i, label, char_name, bad_i,mdp, state, t_i, states,state_keys,agent_idx=0):
 		self.label = label
 		self.char_name = char_name
 		self.c_i = c_i
@@ -36,6 +36,8 @@ class Agent():
 		self.state = state
 		self.mdp = mdp
 		self.track_queue = []
+		self.states = states
+		self.state_keys = state_keys
 
 	def likelihood(self,a,next_s,mc_dict):
 		return np.array([m_i[(self.state, next_s)] for m_i in mc_dict[a]]).reshape((-1, 1))
@@ -148,7 +150,7 @@ class Simulation():
 		# update simulation animation
 		Singleton.instance.ani = ani
 
-	def __init__(self, ani, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols,counter_text):
+	def __init__(self, ani, gwg, ax, agents, tr_ar,rl_ar, observable_regions, building_squares, nrows, ncols,counter_text):
 		self.ani = ani
 		self.ani.running = True
 		self.ani.moving = False
@@ -171,6 +173,7 @@ class Simulation():
 		self.observers_artists = []
 		self.agents = agents
 		self.tr_ar = tr_ar
+		self.rl_ar = rl_ar
 		self.building_squares = building_squares
 		self.nrows = nrows
 		self.ncols = ncols
@@ -237,10 +240,10 @@ class Simulation():
 class Singleton():
 	instance = None
 
-	def __init__(self, ani, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols,counter_text):
+	def __init__(self, ani, gwg, ax, agents, tr_ar,rl_ar, observable_regions, building_squares, nrows, ncols,counter_text):
 		# make sure there's only one instance
 		if Singleton.instance is None:
-			Singleton.instance = Simulation(ani, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols,counter_text)
+			Singleton.instance = Simulation(ani, gwg, ax, agents, tr_ar,rl_ar, observable_regions, building_squares, nrows, ncols,counter_text)
 		else:
 			print("Already have one instance of the simulation running!")
 
@@ -267,10 +270,11 @@ def grid_init(nrows, ncols, desiredIndices):
 	agents = []   # use "None"s as placeholders
 	agent_image_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
 						 'pictures/thor.png', 'pictures/thanos.png', 'pictures/ironman.png']
+	random_image_paths = ['pictures/rnd_level1.png','pictures/rnd_level2.png','pictures/rnd_level3.png']
 	agent_character_names = ['Captain America', 'Black Widow', 'Hulk', 'Thor', 'Thanos', 'Ironman']
 	names = ["Store A Owner", "Store B Owner", "Repairman", "Shopper", "Suspicious", "Home Owner"]
 
-	mdp_list = ERSA_Env()
+	mdp_list,state_list,state_keys = ERSA_Env()
 
 	# image stuff
 	triggers = ["nominal", "ice_cream_truck", "fire_alarm", "explosion"]
@@ -296,6 +300,8 @@ def grid_init(nrows, ncols, desiredIndices):
 	ax.invert_yaxis()
 	ag_array = []
 	tr_array = []
+	rl_array = []
+	rl_indicator_loc = (28,2.5)# Indicator of random location
 	plt.grid(which="minor", ls="-", lw=1)
 	i = 0
 
@@ -320,10 +326,7 @@ def grid_init(nrows, ncols, desiredIndices):
 
 	# set up agents
 	for idx, id_no in enumerate(desiredIndices):
-		# p_t = df[str(0)][id_no]['PublicTargets']
-		# color = colors[int(id_no)]
-		# color = my_palette(i)
-		samp_out = mdp_list[idx].sample(id_no[1], 0)
+		samp_out = prod2state(mdp_list[idx].sample(state2prod(id_no[1],0,state_keys), 0),state_list)
 		track_init = track_outs((id_no[1], samp_out))
 		init_loc = tuple(reversed(coords(track_init[0] - 30, ncols)))
 		# c_i = plt.Circle(init_loc, 0.45, label=names[int(id_no)], color=color)
@@ -336,7 +339,7 @@ def grid_init(nrows, ncols, desiredIndices):
 		b_i = plt.Circle([init_loc[0] + 1, init_loc[1] - 1], 0.25, label=names[int(id_no[0])], color='r')
 		b_i.set_visible(False)
 		currAgent = Agent(c_i=c_i, label=names[int(id_no[0])], char_name=id_no[0], \
-						  bad_i=b_i, mdp=mdp_list[int(id_no[0])], state=id_no[1], t_i=t_i,agent_idx=id_no[0])
+						  bad_i=b_i, mdp=mdp_list[int(id_no[0])], state=state2prod(id_no[1],0,state_keys), t_i=t_i,agent_idx=id_no[0],states=state_list,state_keys=state_keys)
 		agents.append(currAgent)
 		# currAgentIndex = desiredIndices[idx][1]
 		# agents.insert(currAgentIndex, currAgent)
@@ -355,6 +358,14 @@ def grid_init(nrows, ncols, desiredIndices):
 		t_i.set_visible(False)
 		trigger_ax = ax.add_artist(t_i)
 		tr_array.append([trigger_ax])
+
+	for r_p in random_image_paths:
+		r_i = AnnotationBbox(OffsetImage(plt.imread(r_p), zoom=0.1),
+						 xy=rl_indicator_loc, frameon=False,annotation_clip=False)
+		r_i.set_visible(False)
+		rand_ax = ax.add_artist(r_i)
+		rl_array.append([rand_ax])
+
 		# legend = plt.legend(handles=cir_ax, loc=4, fontsize='small', fancybox=True)
 
 	for h_s in building_squares:
@@ -423,7 +434,7 @@ def grid_init(nrows, ncols, desiredIndices):
 
 
 
-	return agents,tr_array,building_squares,ax,counter_text
+	return agents,tr_array,rl_array,building_squares,ax,counter_text
 
 
 def grid_update(i):
@@ -433,6 +444,7 @@ def grid_update(i):
 	# plt.savefig('video_data/{:04d}.png'.format(i), bbox_inches='tight')
 	simulation = Singleton.instance
 	tr_ar = simulation.tr_ar
+	rl_ar = simulation.rl_ar
 	agents = simulation.agents[:simulation.active_agents]
 	leftover_agents = simulation.agents[simulation.active_agents:]
 	ncols = simulation.ncols
@@ -494,7 +506,7 @@ def grid_update(i):
 	for agent_idx, agent in enumerate(agents):
 		if len(agent.track_queue) == 0:
 			next_s = agent.mdp.sample(agent.state,simulation.ani.event)
-			agent.track_queue += track_outs((agent.state,next_s))
+			agent.track_queue += track_outs((prod2state(agent.state,agent.states),prod2state(next_s,agent.states)))
 			if agent_idx ==0:
 				simulation.pause_flag = True
 				simulation.time_step += 1
@@ -543,6 +555,12 @@ def grid_update(i):
 			b_i.set_visible(False)
 		write_objects += [c_i,b_i]
 
+	for r_i in rl_ar:
+		r_i[0].set_visible(False)
+	print([prod2dis(i.state,i.states) for i in agents])
+	rl_ar[prod2dis(agents[0].state,agents[0].states)][0].set_visible(True)
+	write_objects += rl_ar
+
 	for agent_idx, agent in enumerate(leftover_agents):
 		c_i = agent.c_i
 		c_i.set_visible(False)
@@ -565,6 +583,14 @@ def grid_update(i):
 
 	return write_objects
 
+def prod2state(s_in,prod_keys):
+	return prod_keys[s_in][0]
+
+def prod2dis(s_in,prod_keys):
+	return prod_keys[s_in][1]
+
+def state2prod(s_in,dis_in,states):
+	return states[(s_in,dis_in)]
 
 def coords(s, ncols):
 	return (int(s / ncols), int(s % ncols))
@@ -616,9 +642,9 @@ def main():
 	agent_indices = get_agent_indices(sys.argv)
 	event_names = {0: 'nominal', 1: 'iceA', 2: 'iceB', 3: 'iceC', 4: 'alarmA', 5: 'alarmB', 6: 'alarmG'}
 
-	mdp_list = ERSA_Env()
+	mdp_list,mdp_states,mdp_keys = ERSA_Env()
 	mc_dict = dict()
-	env_states = [0, 1, 2, 3, 4, 5, 6, 7]
+	env_states = list(mdp_states.keys())
 	for a in event_names.keys():
 		mc_dict.update({a:[m.construct_MC(dict([[s,[a]] for s in env_states])) for m in mdp_list]})
 
@@ -649,13 +675,13 @@ def main():
 	moveobstacles = []
 	obstacles = []
 
-	agents, tr_ar, building_squares, ax,counter_text = grid_init(nrows, ncols, agent_indices)
+	agents, tr_ar,rl_ar, building_squares, ax,counter_text = grid_init(nrows, ncols, agent_indices)
 	gwg = Gridworld([0], nrows=nrows, ncols=ncols,regions=regions,obstacles=building_squares)
 	fig.canvas.mpl_connect('key_press_event', Simulation.on_press)
 	fig.canvas.mpl_connect('button_press_event', Simulation.on_click)
 	# ani = FuncAnimation(fig, update_all, frames=10, interval=1250, blit=True, repeat=True)
 	anim = FuncAnimation(fig, update_all, frames=frames, interval=1, blit=False,repeat=False)
-	Singleton(anim, gwg, ax, agents, tr_ar, observable_regions, building_squares, nrows, ncols,counter_text)
+	Singleton(anim, gwg, ax, agents, tr_ar,rl_ar, observable_regions, building_squares, nrows, ncols,counter_text)
 	# anim.save('Environment-Slide3_Video.mp4',fps=24, extra_args=['-vcodec', 'libx264'])
 	plt.show()
 	# anim.save('Environment-Slide3_Video.mp4',writer=writer)
