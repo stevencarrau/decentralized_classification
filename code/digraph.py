@@ -1,4 +1,3 @@
-
 class DIGRAPH(object):
     def __init__(self, vertices, edges):
         # we need at least one vertex and one edge

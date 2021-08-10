@@ -1,4 +1,5 @@
 import copy
+
 from digraph import DIGRAPH
 
 
@@ -9,10 +10,10 @@ class NFA(object):
         # assert accepting_states
         assert alphabet
         self.states = set(states)
-        #self.accepting_states = set(accepting_states)
+        # self.accepting_states = set(accepting_states)
         # print "states {}".format(self.states)
         # print "accepting states {}".format(self.accepting_states)
-        #assert self.accepting_states <= self.states
+        # assert self.accepting_states <= self.states
         self.alphabet = set(alphabet)
         self.transitions = set()
         self._post_cache = dict()
@@ -211,8 +212,8 @@ class NFA(object):
                 break
         return prob_min_1_states
 
-    def prob_max_1(self,target = None):
-        if target  is None:
+    def prob_max_1(self, target=None):
+        if target is None:
             target = self.accepting_states
         sub_NFA = copy.deepcopy(self)
         # U = sub_NFA.states - target
