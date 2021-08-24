@@ -11,6 +11,9 @@ from matplotlib.offsetbox import (OffsetImage, AnnotationBbox)
 
 from darpa_model import ERSA_Env, track_outs
 from gridworld import *
+from agent import Agent
+from sensor import Sensor
+from util import Util
 
 matplotlib.use('Qt5Agg')
 
@@ -24,122 +27,6 @@ class SensorState(Enum):
     DO_NOTHING = 3
 
 
-class Sensor:
-    observers = []
-
-    def __init__(self, observer_loc):
-        self.loc = Util.coord2state(observer_loc, SimulationRunner.instance.ncols)
-
-    @staticmethod
-    def update_observable_states():
-        new_observables = set()
-        for o_i in Sensor.observers:
-            [new_observables.add(s) for s in SimulationRunner.instance.observable_regions[str(o_i)]]
-        SimulationRunner.instance.observable_states = new_observables
-
-    @staticmethod
-    def add_observer(obs_state):
-        Sensor.observers.append(obs_state)
-        Sensor.update_observable_states()
-        write_objects = SimulationRunner.instance.blit_viewable_states()
-        o_loc = tuple(reversed(Util.coords(obs_state, SimulationRunner.instance.ncols)))
-        o_x = SimulationRunner.instance.ax.fill([o_loc[0] - 0.5, o_loc[0] + 0.5, o_loc[0] + 0.5, o_loc[0] - 0.5],
-                                                [o_loc[1] - 0.5, o_loc[1] - 0.5, o_loc[1] + 0.5, o_loc[1] + 0.5],
-                                                color='green', alpha=0.50)[0]
-        SimulationRunner.instance.observers_artists.append(o_x)
-        write_objects += [o_x]
-        return write_objects
-
-    @staticmethod
-    def remove_observer(obs_state):
-        if obs_state in Sensor.observers:
-            o_x = SimulationRunner.instance.observers_artists.pop(Sensor.observers.index(obs_state))
-            o_x.remove()
-            Sensor.observers.remove(obs_state)
-        Sensor.update_observable_states()
-        write_objects = SimulationRunner.instance.blit_viewable_states()
-        return write_objects
-
-
-class Agent:
-    def __init__(self, c_i, label, char_name, bad_i, mdp, state, t_i, states, state_keys, agent_idx=0):
-        self.label = label
-        self.char_name = char_name
-        self.c_i = c_i
-        self.b_i = bad_i
-        self.t_i = t_i
-        self.belief_values = np.ones((len(Simulation.init_states), 1)) / len(Simulation.init_states)
-        self.belief = 0  # All agents presumed innocent to begin with
-        self.agent_idx = agent_idx
-        self.state = state
-        self.mdp = mdp
-        self.track_queue = []
-        self.states = states
-        self.state_keys = state_keys
-
-    def likelihood(self, a, next_s, mc_dict):
-        return np.array([m_i[(self.state, next_s)] for m_i in mc_dict[a]]).reshape((-1, 1))
-
-    def update_value(self, a, next_s):
-        belief = self.belief_values
-        likelihood = self.likelihood(a, next_s, Simulation.mc_dict)
-        new_belief = np.multiply(belief, likelihood)
-        new_belief = new_belief / np.sum(new_belief)
-        self.belief_values = new_belief
-
-    ## Belief update rule for each agent
-    def update_belief(self, belief, bad_idx):
-        self.belief = belief[bad_idx][0]
-        if self.belief_line:
-            val = [75 * b_i[0] + 25 for b_i in belief]
-            val += val[:1]
-            angles = [n / float(len(belief)) * 2 * pi for n in range(len(belief))]
-            angles += angles[:1]
-            self.belief_line.set_data(angles, val)
-            self.belief_line.set_zorder(3)
-            self.belief_fill.set_xy(np.array([angles, val]).T)
-            self.belief_line.set_zorder(2)
-            self.belief_artist.set_zorder(10)
-            f = lambda i: belief[i]
-            if max(belief) > 0.75:
-                if max(range(len(belief)), key=f) == self.agent_idx:
-                    self.belief_text.set_color('green')
-                else:
-                    self.belief_text.set_color('red')
-                if self.belief > 0.75:
-                    self.belief_line.set_color('red')
-                    self.belief_fill.set_color('red')
-                else:
-                    self.belief_line.set_color('green')
-                    self.belief_fill.set_color('green')
-            else:
-                self.belief_line.set_color('yellow')
-                self.belief_fill.set_color('yellow')
-                self.belief_text.set_color('black')
-            return [self.belief_line, self.belief_fill, self.belief_artist, self.belief_text]
-        return None
-
-    def init_belief_plt(self, l_i, l_f, l_a, l_t):
-        self.belief_line = l_i
-        self.belief_line.set_visible(False)
-        self.belief_fill = l_f
-        self.belief_fill.set_visible(False)
-        self.belief_artist = l_a
-        self.belief_artist.set_visible(False)
-        self.belief_text = l_t
-        self.belief_artist.set_visible(False)
-
-    def activate_belief_plt(self):
-        self.belief_line.axes.set_visible(True)
-        self.belief_line.set_visible(True)
-        self.belief_fill.set_visible(True)
-        self.belief_artist.set_visible(True)
-
-    def deactivate_belief_plt(self):
-        self.belief_line.axes.set_visible(False)
-        self.belief_line.set_visible(False)
-        self.belief_fill.set_visible(False)
-        self.belief_artist.set_visible(False)
 
 
 class Simulation:
@@ -180,6 +67,7 @@ class Simulation:
         self.counter_text = counter_text
         self.pause_counter = 0
         self.pause_flag = False
+        self.gwg = gwg
 
     def blit_viewable_states(self):
         write_objects = []
@@ -204,17 +92,21 @@ class Simulation:
             self.active_agents -= 1
 
     def update_sensor_locations(self):
-        write_objects = []
-
+        write_objects=[]
+        if len(self.sensors) != 0:
+            obs_states = set()
+            for s_i in self.sensors:
+                write_objects += [s_i.update_sensor()]
+                obs_states.update(s_i.observable_states)
+            self.observable_states = obs_states
         if self.sensors is not None and self.ani.sensor_state != SensorState.DO_NOTHING:
-            curr_sensor_loc = self.sensors[-1].loc
-            if self.ani.sensor_state == SensorState.ADD_SENSOR:
-                write_objects += Sensor.add_observer(curr_sensor_loc)
-            else:  # self.ani.sensor_state == SensorState.REMOVE_SENSOR:
-                write_objects += Sensor.remove_observer(curr_sensor_loc)
+            if len(self.sensors) !=0 and self.ani.sensor_state == SensorState.ADD_SENSOR:
+                write_objects += [self.sensors[-1].sensor_artist]
+            # else:
+            #     write_objects += Sensor.remove_observer(curr_sensor_loc)
             self.ani.sensor_state = SensorState.DO_NOTHING
-        else:
-            write_objects += self.blit_viewable_states()
+
+        write_objects += self.blit_viewable_states()
         return write_objects
 
 
@@ -245,8 +137,9 @@ class SimulationRunner:
 
         init_states = [ind[1] for ind in desiredIndices]
         agents = []  # use "None"s as placeholders
-        agent_image_paths = ['pictures/captain_america.png', 'pictures/black_widow.png', 'pictures/hulk.png',
-                             'pictures/thor.png', 'pictures/thanos.png', 'pictures/ironman.png']
+        agent_image_paths = ['pictures/captain_america', 'pictures/black_widow', 'pictures/hulk',
+                             'pictures/thor', 'pictures/thanos', 'pictures/ironman']
+        path_augments = ['.png','-uncertain.png','-random.png']
         random_image_paths = ['pictures/rnd_level1.png', 'pictures/rnd_level2.png', 'pictures/rnd_level3.png']
         agent_character_names = ['Captain America', 'Black Widow', 'Hulk', 'Thor', 'Thanos', 'Ironman']
         names = ["Store A Owner", "Store B Owner", "Repairman", "Shopper", "Suspicious", "Home Owner"]
@@ -302,23 +195,28 @@ class SimulationRunner:
             # c_i = plt.Circle(init_loc, 0.45, label=names[int(id_no)], color=color)
             t_i = plt.text(x=init_loc[0], y=init_loc[1], s=names[int(id_no[0])], fontsize='xx-small')
             t_i.set_visible(False)  # don't show the labels until the agent is added
-            c_i = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no[0])]), zoom=0.13),
+            c_set = []
+            for r_j in range(3):
+                c_i = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no[0])]+path_augments[r_j]), zoom=0.13),
                                  xy=init_loc, frameon=False)
-            c_i.set_label(names[idx])
-            c_i.set_visible(False)
+                c_i.set_label(names[idx])
+                c_i.set_visible(False)
+                c_set.append(c_i)
             b_i = plt.Circle([init_loc[0] + 1, init_loc[1] - 1], 0.25, label=names[int(id_no[0])], color='r')
             b_i.set_visible(False)
-            currAgent = Agent(c_i=c_i, label=names[int(id_no[0])], char_name=id_no[0],
+            currAgent = Agent(c_set=c_set, label=names[int(id_no[0])], char_name=id_no[0],
                               bad_i=b_i, mdp=mdp_list[int(id_no[0])], state=Util.state2prod(id_no[1], 0, state_keys),
                               t_i=t_i,
-                              agent_idx=id_no[0], states=state_list, state_keys=state_keys)
+                              agent_idx=id_no[0], states=state_list,mc_dict=Simulation.mc_dict,state_keys=state_keys)
             agents.append(currAgent)
 
         for idx, id_no in enumerate(agents):
             currAgent = agents[idx]
-            cir_ax = ax.add_artist(currAgent.c_i)
-            bad_ax = ax.add_artist(currAgent.b_i)
-            ag_array.append([cir_ax, bad_ax])
+            ag_elem = []
+            for c_j in currAgent.c_set:
+                ag_elem += [ax.add_artist(c_j)]
+            ag_elem += [ax.add_artist(currAgent.b_i)]
+            ag_array.append(ag_elem)
 
         for t_p, t_l in zip(trigger_image_paths, trigger_image_xy):
             t_i = AnnotationBbox(OffsetImage(plt.imread(t_p), zoom=0.04),
@@ -393,13 +291,15 @@ class SimulationRunner:
             ax_list[-1].fill(angles, val, color='grey', alpha=0.4)
             ax_list[-1].spines["bottom"] = ax_list[-1].spines["inner"]
             # l.axes.set_visible(False)
-            agent_pic = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no[0])]), zoom=0.20), xy=(0, 0),
+            l_set = []
+            for c_j in range(3):
+                agent_pic = AnnotationBbox(OffsetImage(plt.imread(agent_image_paths[int(id_no[0])]+path_augments[c_j]), zoom=0.20), xy=(0, 0),
                                        frameon=False)
-            agent_pic.xyann = (5.0, 175)
-            agent_pic.xybox = (5.0, 175)
+                agent_pic.xyann = (5.0, 175)
+                agent_pic.xybox = (5.0, 175)
+                l_set += [ax_list[-1].add_artist(agent_pic)]
             agent_txt = plt.text(x=4.25, y=215, s=agent_types[id_no[0]], fontsize=18)
-            l_a = ax_list[-1].add_artist(agent_pic)
-            agents[idx].init_belief_plt(l, l_f, l_a, agent_txt)
+            agents[idx].init_belief_plt(l, l_f, l_set, agent_txt)
 
         return agents, tr_array, rl_array, building_squares, ax, counter_text
 
@@ -457,7 +357,11 @@ class SimulationRunner:
                     agent.update_value(simulation.ani.event, next_s)
                     write_objects += agent.update_belief(agent.belief_values, -2)
                 agent.state = next_s
-            c_i = agent.c_i
+                agent.dis  = Util.prod2dis(agent.state,agent.states)
+            non_write_dis = [0,1,2]
+            non_write_dis.pop(Util.prod2dis(agent.state, agent.states))
+            write_objects += [agent.c_set[c_j].set_visible(False) for c_j in non_write_dis]
+            c_i = agent.c_set[Util.prod2dis(agent.state, agent.states)]
             c_i.set_visible(True)
             b_i = agent.b_i
             agent.activate_belief_plt()
@@ -481,7 +385,7 @@ class SimulationRunner:
             else:
                 c_i.offsetbox.image.set_alpha(1.0)
 
-            agent.c_i = c_i
+            agent.c_set[Util.prod2dis(agent.state, agent.states)] = c_i
             if agent.belief > 0.75:
                 b_i.set_visible(True)
             else:
@@ -490,7 +394,7 @@ class SimulationRunner:
 
         for r_i in rl_ar:
             r_i[0].set_visible(False)
-        print([Util.prod2dis(i.state, i.states) for i in agents])
+        # print([Util.prod2dis(i.state, i.states) for i in agents])
         rl_ar[Util.prod2dis(agents[0].state, agents[0].states)][0].set_visible(True)
         write_objects += rl_ar
 
@@ -547,63 +451,29 @@ class SimulationRunner:
         SimulationRunner.instance.ani = ani
 
     def on_click(event):
-        ani = SimulationRunner.instance.ani
+        sim_inst = SimulationRunner.instance
         if event.button == 1:
-            ani.sensor_state = SensorState.ADD_SENSOR
+            sim_inst.ani.sensor_state = SensorState.ADD_SENSOR
+            sim_inst.sensors.append(Sensor(tuple(reversed((floor(event.xdata), floor(event.ydata)))),
+                                                            observable_regions=SimulationRunner.instance.observable_regions,
+                                                            ncols=SimulationRunner.instance.ncols,ax=SimulationRunner.instance.ax,gwg=SimulationRunner.instance.gwg))
+        if event.button == 2:
+            sim_inst.ani.sensor_state = SensorState.ADD_SENSOR
+            sim_inst.sensors.append(Sensor(tuple(reversed((floor(event.xdata), floor(event.ydata)))),
+                                                            observable_regions=SimulationRunner.instance.observable_regions,
+                                                            ncols=SimulationRunner.instance.ncols,ax=SimulationRunner.instance.ax,moving=True,gwg=SimulationRunner.instance.gwg))
         elif event.button == 3:
-            ani.sensor_state = SensorState.REMOVE_SENSOR
-        SimulationRunner.instance.sensors.append(Sensor(tuple(reversed((floor(event.xdata), floor(event.ydata))))))
-        # print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' % ('double' if event.dblclick else 'single', event.button, event.x, event.y, event.xdata, event.ydata))
+            sim_inst.ani.sensor_state = SensorState.REMOVE_SENSOR
+            sense_dists = [s_i.dist_to_sense(tuple((floor(event.xdata), floor(event.ydata)))) for s_i in sim_inst.sensors]
+            del_ind = np.argmin(sense_dists)
+            del_sen = sim_inst.sensors.pop(del_ind)
+            del del_sen
+
+
+            # print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' % ('double' if event.dblclick else 'single', event.button, event.x, event.y, event.xdata, event.ydata))
 
         # update simulation animation
-        SimulationRunner.instance.ani = ani
-
-
-class Util:
-    @staticmethod
-    def prod2state(s_in, prod_keys):
-        return prod_keys[s_in][0]
-
-    @staticmethod
-    def prod2dis(s_in, prod_keys):
-        return prod_keys[s_in][1]
-
-    @staticmethod
-    def state2prod(s_in, dis_in, states):
-        return states[(s_in, dis_in)]
-
-    @staticmethod
-    def coords(s, ncols):
-        return int(s / ncols), int(s % ncols)
-
-    @staticmethod
-    def coord2state(coords, ncols):
-        return int(coords[0] * ncols) + int(coords[1])
-
-    @staticmethod
-    def get_agent_indices(args):
-        numAgents = len(args) - 1
-        inputs = []
-
-        # form of each input: ({agent type},{desired index in agents list})
-        for agentIdx, arg in enumerate(args):
-            if agentIdx == 0:
-                continue
-
-            currInput = []
-            for num in arg.split(","):
-                currNum = ""
-                for char in num:
-                    if char != ")" and char != "(":
-                        currNum += char
-                currInput.append(int(currNum))
-            inputs.append(tuple(currInput))
-
-        # verify arguments
-        reqIndices = [i for i in range(numAgents)]
-
-        return sorted(inputs)
-
+        SimulationRunner.instance = sim_inst
 
 def main():
     # ---------- PART 1:
