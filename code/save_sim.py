@@ -309,7 +309,7 @@ class SimulationRunner:
         global frames
         if i == frames - 1:
             plt.close()
-        # plt.savefig('video_data/{:04d}.png'.format(i), bbox_inches='tight')
+        plt.savefig('video_data/{:04d}.png'.format(i), bbox_inches='tight')
         simulation = SimulationRunner.instance
         tr_ar = simulation.tr_ar
         rl_ar = simulation.rl_ar
@@ -372,7 +372,6 @@ class SimulationRunner:
                     write_objects += [simulation.counter_text]
                 if agent.track_queue[0] in simulation.observable_states:
                     agent.update_value(simulation.ani.event, next_s)
-                    print('{} at {}: {}'.format(agent_idx,simulation.time_step,agent.max_delta))
                     write_objects += agent.update_belief(agent.belief_values, -2)
                 agent.state = next_s
                 agent.dis  = Util.prod2dis(agent.state,agent.states)
@@ -413,6 +412,7 @@ class SimulationRunner:
         for r_i in rl_ar:
             r_i[0].set_visible(False)
         # print([Util.prod2dis(i.state, i.states) for i in agents])
+        # rl_ar[Util.prod2dis(agents[0].state, agents[0].states)][0].set_visible(True)
         rl_ar[Util.prod2dis(agents[0].state, agents[0].states)][0].set_visible(False)
         write_objects += rl_ar
 

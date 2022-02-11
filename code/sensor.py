@@ -20,10 +20,19 @@ class Sensor:
 
     def update_sensor(self):
         if self.moving:
-            possible_states = set([np.argmax(self.gwg.prob[i][self.loc]) for i in self.gwg.prob]) - set(self.gwg.obstacles)
-            self.loc = int(np.random.choice(list(possible_states)))
-            loc = tuple(reversed(Util.coords(self.loc, self.ncols)))
-            self.sensor_artist.set_xy(np.array([[loc[0]-0.5,loc[1]-0.5],[loc[0]+0.5,loc[1]-0.5],[loc[0]+0.5,loc[1]+0.5],[loc[0]-0.5,loc[1]+0.5],[loc[0]-0.5,loc[1]-0.5]]))
+            if isinstance(self.moving,bool):
+                possible_states = set([np.argmax(self.gwg.prob[i][self.loc]) for i in self.gwg.prob]) - set(self.gwg.obstacles)
+                self.loc = int(np.random.choice(list(possible_states)))
+                loc = tuple(reversed(Util.coords(self.loc, self.ncols)))
+                self.sensor_artist.set_xy(np.array([[loc[0]-0.5,loc[1]-0.5],[loc[0]+0.5,loc[1]-0.5],[loc[0]+0.5,loc[1]+0.5],[loc[0]-0.5,loc[1]+0.5],[loc[0]-0.5,loc[1]-0.5]]))
+            else:
+                value = self.moving.popleft()
+                self.moving.append(value)
+                self.loc = value
+                loc = tuple(reversed(Util.coords(self.loc, self.ncols)))
+                self.sensor_artist.set_xy(np.array(
+                    [[loc[0] - 0.5, loc[1] - 0.5], [loc[0] + 0.5, loc[1] - 0.5], [loc[0] + 0.5, loc[1] + 0.5],
+                     [loc[0] - 0.5, loc[1] + 0.5], [loc[0] - 0.5, loc[1] - 0.5]]))
         self.update_observable_states()
         return self.sensor_artist
 

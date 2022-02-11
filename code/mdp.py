@@ -41,6 +41,8 @@ class MDP(NFA):
         for t in self.post(state, action):
             prob.append(self.prob_delta(state, action, t))
 
+        prob = np.ones_like(prob) if sum(prob) ==0 else prob
+
         prob = list(np.array(prob) / sum(prob)) if sum(
             prob) != 1 else prob  ## TODO: short-term fix here, fix the input models
         next_state = list(self.post(state, action))[

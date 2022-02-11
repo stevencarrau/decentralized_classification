@@ -1,7 +1,17 @@
 import numpy as np
-from math import floor
+from math import floor,log
 from math import pi
 from util import Util
+
+def entropy(dist_in):
+    H = 0
+    for i in dist_in:
+        if i==0:
+            h = 0
+        else:
+            h = i*log(i,len(dist_in))
+        H -= h
+    return H
 
 class Agent:
     def __init__(self, c_set, label, char_name, bad_i, mdp, state, t_i, states, state_keys,mc_dict, agent_idx=0):
@@ -12,7 +22,9 @@ class Agent:
         self.b_i = bad_i
         self.t_i = t_i
         self.belief_values = np.ones((len(mc_dict[0]), 1)) / len(mc_dict[0])
+        self.belief_ent = entropy(self.belief_values)
         self.belief = 0  # All agents presumed innocent to begin with
+        self.max_delta = 0
         self.agent_idx = agent_idx
         self.state = state
         self.mdp = mdp
@@ -21,6 +33,7 @@ class Agent:
         self.states = states
         self.state_keys = state_keys
         self.dis = Util.prod2dis(state,states)
+        self.alpha = 1.0
 
     def likelihood(self, a, next_s, mc_dict):
         return np.array([m_i[(self.state, next_s)] for m_i in mc_dict[a]]).reshape((-1, 1))
@@ -28,9 +41,12 @@ class Agent:
     def update_value(self, a, next_s):
         belief = self.belief_values
         likelihood = self.likelihood(a, next_s, self.mc_dict)
-        new_belief = np.multiply(belief, likelihood)
+        new_belief = (1-self.alpha)*belief + self.alpha*np.multiply(belief, likelihood)
         new_belief = new_belief / np.sum(new_belief)
+        self.max_delta = np.max(np.abs(new_belief - self.belief_values))
         self.belief_values = new_belief
+        self.belief_ent = entropy(self.belief_values)
+
 
     ## Belief update rule for each agent
     def update_belief(self, belief, bad_idx):
