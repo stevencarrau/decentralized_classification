@@ -1,0 +1,5 @@
+# pycharm metadata
+.idea/
+
+# build data
+__pycache__/
