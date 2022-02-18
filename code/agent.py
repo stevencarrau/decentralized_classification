@@ -113,46 +113,52 @@ class HighlightReel:
     where the change in beliefs was the highest over the episode.
     """
 
-    # the reel is a 2D array, so this tells us what each column is mapped as
-    REEL_ITEM_LABELS_TO_IDX = {"timestep": 0, "max_delta": 1, "prev_step": 2, "next_step": 3, "trigger": 4}
+    # dictates what column indices map to in the 2D reel np array
+    ITEM_LABELS_TO_IDX = {"time_step": 0, "max_delta": 1, "prev_state": 2, "next_state": 3, "trigger": 4}
+    NUM_ITEM_LABELS = len(ITEM_LABELS_TO_IDX)
+    EMPTY_ITEM = np.full((NUM_ITEM_LABELS), -1, dtype=float)
 
     def __init__(self, num_items=10):
         self.reel_length = num_items
-        # initialize it to be full of -1's
-        self.reel = np.full((self.reel_length, len(self.REEL_ITEM_LABELS_TO_IDX)), -1)
+        self.reel = np.full((self.reel_length, self.NUM_ITEM_LABELS), self.EMPTY_ITEM, dtype=float)
+
+    def __str__(self):
+        return self.reel.__str__()
 
     def sort(self):
-        # sort based off of the max delta
-        column_idx = self.REEL_ITEM_LABELS_TO_IDX["max_delta"]
+        """
+        sort self.reel based off of criteria.
+        currently, reel is sorted on the max_delta column
+        """
+        column_idx = self.ITEM_LABELS_TO_IDX["max_delta"]
         self.reel = self.reel[self.reel[:, column_idx].argsort()]
 
-    def add_item(self, reel_item):
-        # subarrays must fit exact length
-        assert(len(reel_item) == len(self.REEL_ITEM_LABELS_TO_IDX))
+    def add_item(self, **item_args):
+        """
+        Given some arguments, generates a new np array to insert into self.reel.
+        item_args should be a dict of form {"time_step": 15, "max_delta": 0.23, ...} following
+        the labels in ITEM_LABELS_TO_IDX
+        """
+        assert item_args.keys() == self.ITEM_LABELS_TO_IDX.keys(), "Labels must exactly match to those in " \
+                                                              "ITEM_LABELS_TO_IDX"
 
-        empty_arr = np.full((1, len(self.REEL_ITEM_LABELS_TO_IDX)), -1)
-        empty_idxs = np.where(self.reel == empty_arr)[0]
-        # if there are still empty spots, fill it since nothing need be replaced
+        # prepare 1D numpy array from dict in parameters using ITEM_LABELS_TO_IDX as an indexing guide
+        reel_item = self.EMPTY_ITEM.copy()
+        for label in item_args:
+            label_idx = self.ITEM_LABELS_TO_IDX[label]
+            value_of_label = item_args[label]
+            reel_item[label_idx] = value_of_label
+
+        empty_idxs = np.where(self.reel == self.EMPTY_ITEM)[0]
+        # if there are still empty spots, fill the first one since nothing need be replaced
         if len(empty_idxs) != 0:
             empty_idx = empty_idxs[0]
-            self.reel[empty_idx] = reel_item.copy()
+            self.reel[empty_idx] = reel_item
         else:
             # otherwise, replace item 0 as it will always be the item in
             # the list with the smallest max delta due to sorting
-            self.reel[0] = reel_item.copy()
+            self.reel[0] = reel_item
 
-        # sort always as a new item populates -- shouldn't be too time inefficient since only 50 entries
+        # sort always as a new item populates -- shouldn't be too time inefficient since
+        # only `num_item` subarrays which should be <= 10 (?)
         self.sort()
-
-# the following is just testing and should be deleted once highlight reel code is verified
-# uncomment to run
-# def main():
-#     reel = HighlightReel()
-#     import random
-#     for t in range(15):
-#         delta = random.uniform(5, 10)
-#         reel.add_item(np.array([t, delta, 0, 1, 2]))
-#         print(reel.reel)
-#
-# if __name__ == '__main__':
-#     main()

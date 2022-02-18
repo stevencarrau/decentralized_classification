@@ -327,22 +327,22 @@ class SimulationRunner:
             return write_objects
 
         active_event = simulation.ani.event
-        if simulation.time_step > 5 and simulation.time_step - 1 < 15:
-            active_event = 2
-        elif simulation.time_step > 14 and simulation.time_step - 1 < 21:
-            active_event = 6
-        elif simulation.time_step > 20 and simulation.time_step - 1 < 31:
-            active_event = 4
-        elif simulation.time_step > 30 and simulation.time_step - 1 < 36:
-            active_event = 1
-        elif simulation.time_step > 35 and simulation.time_step - 1 < 41:
-            active_event = 2
-            for a_i in agents:
-                a_i.alpha=1
-        elif simulation.time_step > 41 and simulation.time_step - 1 < 48:
-            active_event = 4
-        else:
-            active_event = 0
+        # if simulation.time_step > 5 and simulation.time_step - 1 < 15:
+        #     active_event = 2
+        # elif simulation.time_step > 14 and simulation.time_step - 1 < 21:
+        #     active_event = 6
+        # elif simulation.time_step > 20 and simulation.time_step - 1 < 31:
+        #     active_event = 4
+        # elif simulation.time_step > 30 and simulation.time_step - 1 < 36:
+        #     active_event = 1
+        # elif simulation.time_step > 35 and simulation.time_step - 1 < 41:
+        #     active_event = 2
+        #     for a_i in agents:
+        #         a_i.alpha=1
+        # elif simulation.time_step > 41 and simulation.time_step - 1 < 48:
+        #     active_event = 4
+        # else:
+        #     active_event = 0
         if active_event == 0:
             for t_i in tr_ar:
                 t_i[0].set_visible(False)
@@ -374,6 +374,9 @@ class SimulationRunner:
                     agent.update_value(simulation.ani.event, next_s)
                     print('{} at {}: {}'.format(agent_idx,simulation.time_step,agent.max_delta))
                     write_objects += agent.update_belief(agent.belief_values, -2)
+                    agent.highlight_reel.add_item(time_step=simulation.time_step, max_delta=agent.max_delta,
+                                                  prev_state=agent.state, next_state=next_s, trigger=simulation.ani.event)
+                    print(agent.highlight_reel)
                 agent.state = next_s
                 agent.dis  = Util.prod2dis(agent.state,agent.states)
             non_write_dis = [0,1,2]
