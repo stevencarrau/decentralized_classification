@@ -376,7 +376,6 @@ class SimulationRunner:
                     write_objects += agent.update_belief(agent.belief_values, -2)
                     agent.highlight_reel.add_item(time_step=simulation.time_step, max_delta=agent.max_delta,
                                                   prev_state=agent.state, next_state=next_s, trigger=simulation.ani.event)
-                    print(agent.highlight_reel)
                 agent.state = next_s
                 agent.dis  = Util.prod2dis(agent.state,agent.states)
             non_write_dis = [0,1,2]
