@@ -149,16 +149,10 @@ class HighlightReel:
             value_of_label = item_args[label]
             reel_item[label_idx] = value_of_label
 
-        empty_idxs = np.where(self.reel == self.EMPTY_ITEM)[0]
-        # if there are still empty spots, fill the first one since nothing need be replaced
-        if len(empty_idxs) != 0:
-            empty_idx = empty_idxs[0]
-            self.reel[empty_idx] = reel_item
-        else:
-            # otherwise, replace item 0 as it will always be the item in
-            # the list with the smallest max delta due to sorting
-            self.reel[0] = reel_item
+        # replace item 0: is either EMPTY_ITEM or the item in
+        # the list with the smallest max delta due to sorting invariant
+        self.reel[0] = reel_item
 
-        # sort always as a new item populates -- shouldn't be too time inefficient since
-        # only `num_item` subarrays which should be <= 10 (?)
+        # sort always as a new item populates -- shouldn't be too time
+        # inefficient since self.reel only has `num_item` subarrays which should be <= 10 (?)
         self.sort()
