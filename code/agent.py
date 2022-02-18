@@ -127,6 +127,9 @@ class HighlightReel:
         self.reel = self.reel[self.reel[:, column_idx].argsort()]
 
     def add_item(self, reel_item):
+        # subarrays must fit exact length
+        assert(len(reel_item) == len(self.REEL_ITEM_LABELS_TO_IDX))
+
         empty_arr = np.full((1, len(self.REEL_ITEM_LABELS_TO_IDX)), -1)
         empty_idxs = np.where(self.reel == empty_arr)[0]
         # if there are still empty spots, fill it since nothing need be replaced
@@ -142,13 +145,14 @@ class HighlightReel:
         self.sort()
 
 # the following is just testing and should be deleted once highlight reel code is verified
-def main():
-    reel = HighlightReel()
-    import random
-    for t in range(15):
-        delta = random.uniform(5, 10)
-        reel.add_item(np.array([t, delta, 0, 1, 2]))
-        print(reel.reel)
-
-if __name__ == '__main__':
-    main()
+# uncomment to run
+# def main():
+#     reel = HighlightReel()
+#     import random
+#     for t in range(15):
+#         delta = random.uniform(5, 10)
+#         reel.add_item(np.array([t, delta, 0, 1, 2]))
+#         print(reel.reel)
+#
+# if __name__ == '__main__':
+#     main()
