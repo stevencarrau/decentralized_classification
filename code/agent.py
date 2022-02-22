@@ -34,7 +34,7 @@ class Agent:
         self.state_keys = state_keys
         self.dis = Util.prod2dis(state,states)
         self.alpha = 1.0
-        self.highlight_reel = HighlightReel(num_items=5)
+        self.highlight_reel = self.HighlightReel(num_items=5)
 
     def likelihood(self, a, next_s, mc_dict):
         return np.array([m_i[(self.state, next_s)] for m_i in mc_dict[a]]).reshape((-1, 1))
@@ -107,52 +107,53 @@ class Agent:
         self.belief_artist.set_visible(False)
         self.belief_text.set_visible(False)
 
-class HighlightReel:
-    """
-    Stores an array of data about the top `num_items` timesteps
-    where the change in beliefs was the highest over the episode.
-    """
-
-    # dictates what column indices map to in the 2D reel np array
-    ITEM_LABELS_TO_IDX = {"time_step": 0, "max_delta": 1, "prev_state": 2, "next_state": 3, "trigger": 4}
-    NUM_ITEM_LABELS = len(ITEM_LABELS_TO_IDX)
-    EMPTY_ITEM = np.full((NUM_ITEM_LABELS), -1, dtype=float)
-
-    def __init__(self, num_items=10):
-        self.reel_length = num_items
-        self.reel = np.full((self.reel_length, self.NUM_ITEM_LABELS), self.EMPTY_ITEM, dtype=float)
-
-    def __str__(self):
-        return self.reel.__str__()
-
-    def sort(self):
+    class HighlightReel:
         """
-        sort self.reel based off of criteria.
-        currently, reel is sorted on the max_delta column
+        Inner class of Agent
+        Stores an array of data about the top `num_items` timesteps
+        where the change in beliefs was the highest over the episode.
         """
-        column_idx = self.ITEM_LABELS_TO_IDX["max_delta"]
-        self.reel = self.reel[self.reel[:, column_idx].argsort()]
 
-    def add_item(self, **item_args):
-        """
-        Given some arguments, generates a new np array to insert into self.reel.
-        item_args should be a dict of form {"time_step": 15, "max_delta": 0.23, ...} following
-        the labels in ITEM_LABELS_TO_IDX
-        """
-        assert item_args.keys() == self.ITEM_LABELS_TO_IDX.keys(), "Labels must exactly match to those in " \
-                                                              "ITEM_LABELS_TO_IDX"
+        # dictates what column indices map to in the 2D reel np array
+        ITEM_LABELS_TO_IDX = {"time_step": 0, "max_delta": 1, "prev_state": 2, "next_state": 3, "trigger": 4}
+        NUM_ITEM_LABELS = len(ITEM_LABELS_TO_IDX)
+        EMPTY_ITEM = np.full((NUM_ITEM_LABELS), -1, dtype=float)
 
-        # prepare 1D numpy array from dict in parameters using ITEM_LABELS_TO_IDX as an indexing guide
-        reel_item = self.EMPTY_ITEM.copy()
-        for label in item_args:
-            label_idx = self.ITEM_LABELS_TO_IDX[label]
-            value_of_label = item_args[label]
-            reel_item[label_idx] = value_of_label
+        def __init__(self, num_items):
+            self.reel_length = num_items
+            self.reel = np.full((self.reel_length, self.NUM_ITEM_LABELS), self.EMPTY_ITEM, dtype=float)
 
-        # replace item 0: is either EMPTY_ITEM or the item in
-        # the list with the smallest max delta due to sorting invariant
-        self.reel[0] = reel_item
+        def __str__(self):
+            return self.reel.__str__()
 
-        # sort always as a new item populates -- shouldn't be too time
-        # inefficient since self.reel only has `num_item` subarrays which should be <= 10 (?)
-        self.sort()
+        def sort(self):
+            """
+            sort self.reel based off of criteria.
+            currently, reel is sorted on the max_delta column
+            """
+            column_idx = self.ITEM_LABELS_TO_IDX["max_delta"]
+            self.reel = self.reel[self.reel[:, column_idx].argsort()]
+
+        def add_item(self, **item_args):
+            """
+            Given some arguments, generates a new np array to insert into self.reel.
+            item_args should be a dict of form {"time_step": 15, "max_delta": 0.23, ...} following
+            the labels in ITEM_LABELS_TO_IDX
+            """
+            assert item_args.keys() == self.ITEM_LABELS_TO_IDX.keys(), "Labels must exactly match to those in " \
+                                                                  "ITEM_LABELS_TO_IDX"
+
+            # prepare 1D numpy array from dict in parameters using ITEM_LABELS_TO_IDX as an indexing guide
+            reel_item = self.EMPTY_ITEM.copy()
+            for label in item_args:
+                label_idx = self.ITEM_LABELS_TO_IDX[label]
+                value_of_label = item_args[label]
+                reel_item[label_idx] = value_of_label
+
+            # replace item 0: is either EMPTY_ITEM or the item in
+            # the list with the smallest max delta due to sorting invariant
+            self.reel[0] = reel_item
+
+            # sort always as a new item populates -- shouldn't be too time
+            # inefficient since self.reel only has `num_item` subarrays which should be <= 10 (?)
+            self.sort()
