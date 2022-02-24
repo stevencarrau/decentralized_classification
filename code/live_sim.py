@@ -375,7 +375,9 @@ class SimulationRunner:
                     print('{} at {}: {}'.format(agent_idx,simulation.time_step,agent.max_delta))
                     write_objects += agent.update_belief(agent.belief_values, -2)
                     agent.highlight_reel.add_item(time_step=simulation.time_step, max_delta=agent.max_delta,
-                                                  prev_state=agent.state, next_state=next_s, trigger=simulation.ani.event)
+                                                  prev_state=Util.prod2state(agent.state, agent.states),
+                                                  next_state=Util.prod2state(next_s, agent.states),
+                                                  trigger=simulation.ani.event)
                 agent.state = next_s
                 agent.dis  = Util.prod2dis(agent.state,agent.states)
             non_write_dis = [0,1,2]
@@ -549,6 +551,24 @@ def main():
                      counter_text)
     # anim.save('Environment-Slide3_Video.mp4',fps=24, extra_args=['-vcodec', 'libx264'])
     plt.show()
+
+    # code to show highlights for a specific agent (executed after a run)
+    # for now, just take an idx from commandline.
+    # TODO change this to from a mouse click or program argument inputs, smth else
+    chosen_agent = agents[int(input("Enter agent idx to display highlights for: "))]
+    highlights = chosen_agent.highlight_reel.get_items()
+    track_queue = []
+    # print(highlights)
+    for i in range(len(highlights)):
+        prev_state = chosen_agent.highlight_reel.get_item_value(i, "prev_state")
+        next_state = chosen_agent.highlight_reel.get_item_value(i, "next_state")
+        # print(f"from {prev_state} to {next_state}:")
+
+        track = track_outs((prev_state, next_state))
+        # print(track)
+        track_queue.append(track)
+
+    print("highlight tracks:", track_queue)
 
 
 # anim.save('Environment-Slide3_Video.mp4',writer=writer)

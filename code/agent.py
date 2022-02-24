@@ -124,7 +124,7 @@ class Agent:
             self.reel = np.full((self.reel_length, self.NUM_ITEM_LABELS), self.EMPTY_ITEM, dtype=float)
 
         def __str__(self):
-            return self.reel.__str__()
+            return self.reel.get_items().__str__()
 
         def sort(self):
             """
@@ -157,3 +157,13 @@ class Agent:
             # sort always as a new item populates -- shouldn't be too time
             # inefficient since self.reel only has `num_item` subarrays which should be <= 10 (?)
             self.sort()
+
+        def get_items(self):
+            """Returns items in 2D array which aren't empty"""
+            return self.reel[np.where(self.reel[0] != self.EMPTY_ITEM)[0]]
+
+        def get_item_value(self, i, label):
+            """returns self.reel[i][`label`], at whatever index `label` is mapped to"""
+            assert label in self.ITEM_LABELS_TO_IDX.keys(), f"label must be in {self.ITEM_LABELS_TO_IDX.keys()}"
+
+            return self.get_items()[i][self.ITEM_LABELS_TO_IDX[label]]
