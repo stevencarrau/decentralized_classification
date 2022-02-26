@@ -130,7 +130,7 @@ class SimulationRunner:
         return grid_obj
 
     @staticmethod
-    def grid_init(nrows, ncols, desiredIndices):
+    def grid_init(nrows, ncols, desiredIndices, agent_track_queues=None):
         # bad ppl: thanos (threat MDP)
         # good ppl: Captain A (Store A MDP), Iron man (home MDP), black widow (store B MDP),
         # Hulk (repairman MDP), Thor (shopper MDP)
@@ -209,6 +209,9 @@ class SimulationRunner:
                               bad_i=b_i, mdp=mdp_list[int(id_no[0])], state=Util.state2prod(id_no[1], 0, state_keys),
                               t_i=t_i,
                               agent_idx=id_no[0], states=state_list,mc_dict=Simulation.mc_dict,state_keys=state_keys)
+            # set pre-loaded tracks if desired
+            if agent_track_queues is not None:
+                currAgent.track_queue = agent_track_queues[idx]
             agents.append(currAgent)
 
         for idx, id_no in enumerate(agents):
@@ -508,12 +511,16 @@ class SimulationRunner:
         # update simulation animation
         SimulationRunner.instance = sim_inst
 
-def main():
-    # ---------- PART 1:
-    # grab arguments of format: 'Store A Owner','Store B Owner','Repairman','Shopper','Suscipious','Home Owner'
-    agent_indices = Util.get_agent_indices(sys.argv)
-    event_names = {0: 'nominal', 1: 'iceA', 2: 'iceB', 3: 'iceC', 4: 'alarmA', 5: 'alarmB', 6: 'alarmG'}
+def run_interactive_sim(agent_indices, event_names, agent_track_queues=None):
+    """
+    Runs an interactive simulation showing the plt gridworld
+    for agents with indices `agent_indices` and events
+    and their values mapped in `event_names`.
 
+    `agent_track_queues` can be an array of tracks to send into grid_init
+    if pre-loaded tracks want to be run. if None, then the track queues start
+    out empty for each agent (default)
+    """
     mdp_list, mdp_states, mdp_keys = ERSA_Env()
     mc_dict = dict()
     env_states = list(mdp_states.keys())
@@ -541,7 +548,9 @@ def main():
     regions = dict.fromkeys(regionkeys, {-1})
     regions['deterministic'] = range(nrows * ncols)
 
-    agents, tr_ar, rl_ar, building_squares, ax, counter_text = SimulationRunner.grid_init(nrows, ncols, agent_indices)
+    agents, tr_ar, rl_ar, building_squares, ax, counter_text = SimulationRunner.grid_init(nrows=nrows, ncols=ncols,
+                                                                                          desiredIndices=agent_indices,
+                                                                                          agent_track_queues=agent_track_queues)
     gwg = Gridworld([0], nrows=nrows, ncols=ncols, regions=regions, obstacles=building_squares)
     fig.canvas.mpl_connect('key_press_event', SimulationRunner.on_press)
     fig.canvas.mpl_connect('button_press_event', SimulationRunner.on_click)
@@ -552,23 +561,52 @@ def main():
     # anim.save('Environment-Slide3_Video.mp4',fps=24, extra_args=['-vcodec', 'libx264'])
     plt.show()
 
+    # can return more things later on if needed
+    return agents, anim
+
+def main():
+    # ---------- PART 1:
+    # grab arguments of format: 'Store A Owner','Store B Owner','Repairman','Shopper','Suscipious','Home Owner'
+    agent_indices = Util.get_agent_indices(sys.argv)
+    event_names = {0: 'nominal', 1: 'iceA', 2: 'iceB', 3: 'iceC', 4: 'alarmA', 5: 'alarmB', 6: 'alarmG'}
+
+    # run initial interactive simulation with command line initial locations
+    agents, anim = run_interactive_sim(agent_indices=agent_indices, event_names=event_names)
+
+    # ---------- PART 3:
     # code to show highlights for a specific agent (executed after a run)
     # for now, just take an idx from commandline.
-    # TODO change this to from a mouse click or program argument inputs, smth else
-    chosen_agent = agents[int(input("Enter agent idx to display highlights for: "))]
+    chosen_agent_idx = int(input("Enter agent idx to display highlights for: "))
+    chosen_agent = None
+    for agent in agents:
+        if agent.agent_idx == chosen_agent_idx:
+            chosen_agent = agent
+            break
+    # load the most significant highlight data for the agent
     highlights = chosen_agent.highlight_reel.get_items()
-    track_queue = []
-    # print(highlights)
+    # for every highlight, run an animation
     for i in range(len(highlights)):
-        prev_state = chosen_agent.highlight_reel.get_item_value(i, "prev_state")
-        next_state = chosen_agent.highlight_reel.get_item_value(i, "next_state")
+        print(f"running highlight {i}: {highlights[i]}")
+        prev_state = int(chosen_agent.highlight_reel.get_item_value(i, "prev_state"))
+        next_state = int(chosen_agent.highlight_reel.get_item_value(i, "next_state"))
         # print(f"from {prev_state} to {next_state}:")
 
-        track = track_outs((prev_state, next_state))
-        # print(track)
-        track_queue.append(track)
+        track_queue = track_outs((prev_state, next_state))
+        # print(track_queue)
 
-    print("highlight tracks:", track_queue)
+        # form agent_indices just for the 1 agent
+        highlight_agent_indices = [(chosen_agent_idx, prev_state)]
+        # print(highlight_agent_indices)
+
+        # reset animation stuff so things run
+        SimulationRunner.instance = None
+        del anim
+
+        # run only the track
+        # TODO: haven't got to the part where it stops running the animation after the track ends
+        # TODO: need to also show the trigger for each highlight
+        _, anim = run_interactive_sim(agent_indices=highlight_agent_indices, event_names=event_names,
+                                      agent_track_queues=[track_queue])
 
 
 # anim.save('Environment-Slide3_Video.mp4',writer=writer)
