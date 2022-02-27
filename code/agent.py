@@ -119,13 +119,14 @@ class Agent:
         """
 
         # dictates what column indices map to in the 2D reel np array
-        ITEM_LABELS_TO_IDX = {"time_step": 0, "max_delta": 1, "prev_state": 2, "next_state": 3, "trigger": 4}
+        ITEM_LABELS_TO_IDX = {"time_step": 0, "max_delta": 1, "prev_state": 2, "next_state": 3, "trigger": 4,
+                              "beliefs": 5}
         NUM_ITEM_LABELS = len(ITEM_LABELS_TO_IDX)
-        EMPTY_ITEM = np.full((NUM_ITEM_LABELS), -1, dtype=float)
+        EMPTY_ITEM = np.full((NUM_ITEM_LABELS), -1, dtype=object)
 
         def __init__(self, num_items):
             self.reel_length = num_items
-            self.reel = np.full((self.reel_length, self.NUM_ITEM_LABELS), self.EMPTY_ITEM, dtype=float)
+            self.reel = np.full((self.reel_length, self.NUM_ITEM_LABELS), self.EMPTY_ITEM, dtype=object)
 
         def __str__(self):
             return self.reel.get_items().__str__()
@@ -162,12 +163,15 @@ class Agent:
             # inefficient since self.reel only has `num_item` subarrays which should be <= 10 (?)
             self.sort()
 
-        def get_items(self):
-            """Returns items in 2D array which aren't empty"""
-            return self.reel[np.where(self.reel[0] != self.EMPTY_ITEM)[0]]
-
         def get_item_value(self, i, label):
             """returns self.reel[i][`label`], at whatever index `label` is mapped to"""
             assert label in self.ITEM_LABELS_TO_IDX.keys(), f"label must be in {self.ITEM_LABELS_TO_IDX.keys()}"
 
-            return self.get_items()[i][self.ITEM_LABELS_TO_IDX[label]]
+            return self.reel[i][self.ITEM_LABELS_TO_IDX[label]]
+
+        def prettify_subarray(self, i):
+            """Returns a neat dictionary when trying to display subarrays of the reel"""
+            dictionary = {}
+            for label in self.ITEM_LABELS_TO_IDX:
+                dictionary[label] = self.reel[i][self.ITEM_LABELS_TO_IDX[label]]
+            return dictionary

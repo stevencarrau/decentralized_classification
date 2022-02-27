@@ -6,6 +6,7 @@ from math import floor
 from math import pi
 from collections import deque
 from typing import List
+import time
 
 import matplotlib
 from matplotlib.animation import FuncAnimation
@@ -360,8 +361,6 @@ class SimulationRunner:
                     t_i[0].set_visible(False)
                     write_objects += t_i
 
-            # also set the animation to moving since we just want to replay the scene
-            simulation.ani.moving = True
         elif active_event == 0:
             for t_i in tr_ar:
                 t_i[0].set_visible(False)
@@ -387,6 +386,8 @@ class SimulationRunner:
                 if agent.highlight_mode:
                     if simulation.ani.running:
                         simulation.ani.event_source.stop()
+                        time.sleep(1)
+                        plt.close()
                         return write_objects
                 next_s = agent.mdp.sample(agent.state, simulation.ani.event)
                 agent.track_queue += track_outs(
@@ -403,7 +404,8 @@ class SimulationRunner:
                     agent.highlight_reel.add_item(time_step=simulation.time_step, max_delta=agent.max_delta,
                                                   prev_state=Util.prod2state(agent.state, agent.states),
                                                   next_state=Util.prod2state(next_s, agent.states),
-                                                  trigger=simulation.ani.event)
+                                                  trigger=simulation.ani.event,
+                                                  beliefs=agent.belief_values)
                 agent.state = next_s
                 agent.dis  = Util.prod2dis(agent.state,agent.states)
             non_write_dis = [0,1,2]
@@ -512,7 +514,8 @@ class SimulationRunner:
         sim_inst = SimulationRunner.instance
         if event.button == 1:
             sim_inst.ani.sensor_state = SensorState.ADD_SENSOR
-            sim_inst.sensors.append(Sensor(tuple(reversed((floor(event.xdata), floor(event.ydata)))),
+            if hasattr(Simulation, 'instance') and Simulation.instance is not None:
+                sim_inst.sensors.append(Sensor(tuple(reversed((floor(event.xdata), floor(event.ydata)))),
                                                             observable_regions=SimulationRunner.instance.observable_regions,
                                                             ncols=SimulationRunner.instance.ncols,ax=SimulationRunner.instance.ax,gwg=SimulationRunner.instance.gwg))
         if event.button == 2:
@@ -542,7 +545,8 @@ def get_agent_with_idx(agent_idx: int, agents: List[Agent]):
         if agent.agent_idx == agent_idx:
             return agent
 
-def run_interactive_sim(agent_indices, event_names, agent_track_queues=None, preloaded_triggers=None):
+def run_interactive_sim(agent_indices, event_names, agent_track_queues=None, preloaded_triggers=None,
+                        preloaded_beliefs=None):
     """
     Runs an interactive simulation showing the plt gridworld
     for agents with indices `agent_indices` and events
@@ -555,6 +559,9 @@ def run_interactive_sim(agent_indices, event_names, agent_track_queues=None, pre
     preloaded_triggers can be a list of trigger indices that pre-sets a trigger on the grid. This is
     usually none so we start out with an empty grid, but can be specified in highlights
     for example
+
+    preloaded_beliefs is None if no beliefs want to be loaded beforehand, or an array with elements of
+    the form (idx, belief_array).
     """
     mdp_list, mdp_states, mdp_keys = ERSA_Env()
     mc_dict = dict()
@@ -593,8 +600,8 @@ def run_interactive_sim(agent_indices, event_names, agent_track_queues=None, pre
     for agent in agents:
         agent.highlight_mode = highlight_mode
 
-    # set pre-loaded tracks if desired
     if highlight_mode:
+        # set pre-loaded tracks if desired
         for agent_idx, track_queue in agent_track_queues:
             get_agent_with_idx(agent_idx, agents).track_queue = track_queue
 
@@ -605,6 +612,10 @@ def run_interactive_sim(agent_indices, event_names, agent_track_queues=None, pre
         for agent in agents:
             agent.highlight_triggers = preloaded_triggers
 
+        # set the beliefs
+        for agent_idx, belief_vals in preloaded_beliefs:
+            agent = get_agent_with_idx(agent_idx, agents)
+            agent.update_belief(belief_vals, -2)
 
 
     gwg = Gridworld([0], nrows=nrows, ncols=ncols, regions=regions, obstacles=building_squares)
@@ -631,14 +642,26 @@ def main():
 
     # ---------- PART 3:
     # code to show highlights for a specific agent (executed after a run)
-    # for now, just take an idx from commandline.
-    chosen_agent_idx = int(input("Enter agent idx to display highlights for: "))
+
+    # get the agent index from cmdline input
+    agent_idx_choices = [agent.agent_idx for agent in agents]
+    question = f"Enter agent idx to display highlights for (choices: {agent_idx_choices}): "
+    chosen_agent_idx = int(input(question))
+    while chosen_agent_idx not in agent_idx_choices:
+        print("Not a valid choice")
+        chosen_agent_idx = int(input(question))
     chosen_agent = get_agent_with_idx(chosen_agent_idx, agents)
+
     # load the most significant highlight data for the agent
-    highlights = chosen_agent.highlight_reel.get_items()
-    # for every highlight, run an animation
-    for i in range(len(highlights)):
-        print(f"running highlight {i}: {highlights[i]}")
+    highlights = chosen_agent.highlight_reel.reel
+    # for every highlight, run an animation. The most important highlights are last
+    # due to the backend sorting in the highlight reel, so start from the back (most
+    # important episodes first)
+    for i in range(len(highlights) - 1, -1, -1):
+        print(f"running highlight {i}: {chosen_agent.highlight_reel.prettify_subarray(i)}")
+        if np.array_equal(highlights[i], Agent.HighlightReel.EMPTY_ITEM):
+            continue
+
         prev_state = int(chosen_agent.highlight_reel.get_item_value(i, "prev_state"))
         next_state = int(chosen_agent.highlight_reel.get_item_value(i, "next_state"))
         # print(f"from {prev_state} to {next_state}:")
@@ -663,16 +686,17 @@ def main():
         elif trigger != 0:
             triggers.append(trigger)
 
+        # get belief values to load them
+        beliefs = (chosen_agent_idx, chosen_agent.highlight_reel.get_item_value(i, "beliefs"))
+
         # reset animation stuff so things run
         SimulationRunner.instance = None
         del anim
 
-        # run only the track
-        # TODO: haven't got to the part where it stops running the animation after the track ends
-        # TODO: need to also show the trigger for each highlight
-        print("triggers: ", triggers)
+        # run the simulation
         _, anim = run_interactive_sim(agent_indices=highlight_agent_indices, event_names=event_names,
-                                      agent_track_queues=[track_queue], preloaded_triggers=triggers)
+                                      agent_track_queues=[track_queue], preloaded_triggers=triggers,
+                                      preloaded_beliefs=[beliefs])
 
 
 # anim.save('Environment-Slide3_Video.mp4',writer=writer)
