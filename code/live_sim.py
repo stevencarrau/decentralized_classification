@@ -5,6 +5,7 @@ from enum import Enum
 from math import floor
 from math import pi
 from collections import deque
+from typing import List
 
 import matplotlib
 from matplotlib.animation import FuncAnimation
@@ -130,7 +131,7 @@ class SimulationRunner:
         return grid_obj
 
     @staticmethod
-    def grid_init(nrows, ncols, desiredIndices, agent_track_queues=None):
+    def grid_init(nrows, ncols, desiredIndices):
         # bad ppl: thanos (threat MDP)
         # good ppl: Captain A (Store A MDP), Iron man (home MDP), black widow (store B MDP),
         # Hulk (repairman MDP), Thor (shopper MDP)
@@ -188,11 +189,6 @@ class SimulationRunner:
             itertools.chain(*storeB_squares))
         building_doors = [458, 472, 825]
 
-        # we are in 'highlight mode' if we want to load previous tracks
-        # this will only run the pre-loaded tracks and stop the simulation after the track
-        # has been replayed
-        highlight_mode = agent_track_queues != None
-
         # set up agents
         for idx, id_no in enumerate(desiredIndices):
             samp_out = Util.prod2state(mdp_list[idx].sample(Util.state2prod(id_no[1], 0, state_keys), 0), state_list)
@@ -214,11 +210,6 @@ class SimulationRunner:
                               bad_i=b_i, mdp=mdp_list[int(id_no[0])], state=Util.state2prod(id_no[1], 0, state_keys),
                               t_i=t_i,
                               agent_idx=id_no[0], states=state_list,mc_dict=Simulation.mc_dict,state_keys=state_keys)
-            # set pre-loaded tracks if desired
-            if agent_track_queues is not None:
-                currAgent.track_queue = agent_track_queues[idx]
-            # set whether the agents are in 'highlight mode' or not
-            currAgent.highlight_mode = highlight_mode
             agents.append(currAgent)
 
         for idx, id_no in enumerate(agents):
@@ -353,11 +344,30 @@ class SimulationRunner:
         #     active_event = 4
         # else:
         #     active_event = 0
-        if active_event == 0:
+
+        # special case for highlight mode: show stored triggers regardless
+        # of keypresses since we only want to highlight stored data
+        if agents[0].highlight_mode:
+            # can use highlight_triggers of any agent, they should all be
+            # the same (should only be 1 agent anyways)
+            triggers_to_show = agents[0].highlight_triggers
+            for ind, t_i in enumerate(tr_ar):
+                event = ind + 1
+                if event in triggers_to_show:
+                    t_i[0].set_visible(True)
+                    write_objects += t_i
+                else:
+                    t_i[0].set_visible(False)
+                    write_objects += t_i
+
+            # also set the animation to moving since we just want to replay the scene
+            simulation.ani.moving = True
+        elif active_event == 0:
             for t_i in tr_ar:
                 t_i[0].set_visible(False)
                 write_objects += t_i
         else:
+            # normal: set triggers only if keypress detection
             for ind, t_i in enumerate(tr_ar):
                 if active_event == ind + 1:
                     t_i[0].set_visible(True)
@@ -524,7 +534,15 @@ class SimulationRunner:
         # update simulation animation
         SimulationRunner.instance = sim_inst
 
-def run_interactive_sim(agent_indices, event_names, agent_track_queues=None):
+def get_agent_with_idx(agent_idx: int, agents: List[Agent]):
+    """
+    Returns the agent which has agent_idx == agent_idx
+    """
+    for agent in agents:
+        if agent.agent_idx == agent_idx:
+            return agent
+
+def run_interactive_sim(agent_indices, event_names, agent_track_queues=None, preloaded_triggers=None):
     """
     Runs an interactive simulation showing the plt gridworld
     for agents with indices `agent_indices` and events
@@ -533,6 +551,10 @@ def run_interactive_sim(agent_indices, event_names, agent_track_queues=None):
     `agent_track_queues` can be an array of tracks to send into grid_init
     if pre-loaded tracks want to be run. if None, then the track queues start
     out empty for each agent (default)
+
+    preloaded_triggers can be a list of trigger indices that pre-sets a trigger on the grid. This is
+    usually none so we start out with an empty grid, but can be specified in highlights
+    for example
     """
     mdp_list, mdp_states, mdp_keys = ERSA_Env()
     mc_dict = dict()
@@ -562,8 +584,29 @@ def run_interactive_sim(agent_indices, event_names, agent_track_queues=None):
     regions['deterministic'] = range(nrows * ncols)
 
     agents, tr_ar, rl_ar, building_squares, ax, counter_text = SimulationRunner.grid_init(nrows=nrows, ncols=ncols,
-                                                                                          desiredIndices=agent_indices,
-                                                                                          agent_track_queues=agent_track_queues)
+                                                                                          desiredIndices=agent_indices)
+
+    # we are in 'highlight mode' if we want to load previous tracks
+    # this will only run the pre-loaded tracks and stop the simulation after the track
+    # has been replayed
+    highlight_mode = agent_track_queues is not None
+    for agent in agents:
+        agent.highlight_mode = highlight_mode
+
+    # set pre-loaded tracks if desired
+    if highlight_mode:
+        for agent_idx, track_queue in agent_track_queues:
+            get_agent_with_idx(agent_idx, agents).track_queue = track_queue
+
+        # show the triggers in `preloaded_triggers`
+        # start at idx 1 since idx 0 maps to trigger nominal
+        # then, event 1 maps to ice cream 1, ..., event 5 maps to trigger alarm B
+        assert preloaded_triggers is not None # shouldn't be None if in highlight mode
+        for agent in agents:
+            agent.highlight_triggers = preloaded_triggers
+
+
+
     gwg = Gridworld([0], nrows=nrows, ncols=ncols, regions=regions, obstacles=building_squares)
     fig.canvas.mpl_connect('key_press_event', SimulationRunner.on_press)
     fig.canvas.mpl_connect('button_press_event', SimulationRunner.on_click)
@@ -590,11 +633,7 @@ def main():
     # code to show highlights for a specific agent (executed after a run)
     # for now, just take an idx from commandline.
     chosen_agent_idx = int(input("Enter agent idx to display highlights for: "))
-    chosen_agent = None
-    for agent in agents:
-        if agent.agent_idx == chosen_agent_idx:
-            chosen_agent = agent
-            break
+    chosen_agent = get_agent_with_idx(chosen_agent_idx, agents)
     # load the most significant highlight data for the agent
     highlights = chosen_agent.highlight_reel.get_items()
     # for every highlight, run an animation
@@ -604,12 +643,25 @@ def main():
         next_state = int(chosen_agent.highlight_reel.get_item_value(i, "next_state"))
         # print(f"from {prev_state} to {next_state}:")
 
-        track_queue = track_outs((prev_state, next_state))
+        # takes the form of (0, [345, 512, ...])
+        track_queue = (chosen_agent_idx, track_outs((prev_state, next_state)))
         # print(track_queue)
 
         # form agent_indices just for the 1 agent
         highlight_agent_indices = [(chosen_agent_idx, prev_state)]
         # print(highlight_agent_indices)
+
+        # get trigger
+        triggers = []
+        trigger = int(chosen_agent.highlight_reel.get_item_value(i, "trigger"))
+        # a trigger of 6 means images from events 4 and 5 since it triggers both alarms:
+        # have both present in the triggers list.
+        # also, don't add to triggers if it is trigger 0 since that is just the nominal effect
+        # (nothing is shown)
+        if trigger == 6:
+            triggers.extend([4, 5])
+        elif trigger != 0:
+            triggers.append(trigger)
 
         # reset animation stuff so things run
         SimulationRunner.instance = None
@@ -618,8 +670,9 @@ def main():
         # run only the track
         # TODO: haven't got to the part where it stops running the animation after the track ends
         # TODO: need to also show the trigger for each highlight
+        print("triggers: ", triggers)
         _, anim = run_interactive_sim(agent_indices=highlight_agent_indices, event_names=event_names,
-                                      agent_track_queues=[track_queue])
+                                      agent_track_queues=[track_queue], preloaded_triggers=triggers)
 
 
 # anim.save('Environment-Slide3_Video.mp4',writer=writer)
