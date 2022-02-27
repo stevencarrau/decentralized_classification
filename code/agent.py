@@ -35,6 +35,8 @@ class Agent:
         self.dis = Util.prod2dis(state,states)
         self.alpha = 1.0
         self.highlight_reel = self.HighlightReel(num_items=5)
+        # this is false by default, can be set to true externally
+        self.highlight_mode = False
 
     def likelihood(self, a, next_s, mc_dict):
         return np.array([m_i[(self.state, next_s)] for m_i in mc_dict[a]]).reshape((-1, 1))

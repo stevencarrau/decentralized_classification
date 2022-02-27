@@ -188,6 +188,11 @@ class SimulationRunner:
             itertools.chain(*storeB_squares))
         building_doors = [458, 472, 825]
 
+        # we are in 'highlight mode' if we want to load previous tracks
+        # this will only run the pre-loaded tracks and stop the simulation after the track
+        # has been replayed
+        highlight_mode = agent_track_queues != None
+
         # set up agents
         for idx, id_no in enumerate(desiredIndices):
             samp_out = Util.prod2state(mdp_list[idx].sample(Util.state2prod(id_no[1], 0, state_keys), 0), state_list)
@@ -212,6 +217,8 @@ class SimulationRunner:
             # set pre-loaded tracks if desired
             if agent_track_queues is not None:
                 currAgent.track_queue = agent_track_queues[idx]
+            # set whether the agents are in 'highlight mode' or not
+            currAgent.highlight_mode = highlight_mode
             agents.append(currAgent)
 
         for idx, id_no in enumerate(agents):
@@ -365,6 +372,12 @@ class SimulationRunner:
 
         for agent_idx, agent in enumerate(agents):
             if len(agent.track_queue) == 0:
+                # if we're running in highlight mode, the pre-loaded track queue
+                # has been finished (the episode is done playing), so stop the animation
+                if agent.highlight_mode:
+                    if simulation.ani.running:
+                        simulation.ani.event_source.stop()
+                        return write_objects
                 next_s = agent.mdp.sample(agent.state, simulation.ani.event)
                 agent.track_queue += track_outs(
                     (Util.prod2state(agent.state, agent.states), Util.prod2state(next_s, agent.states)))
