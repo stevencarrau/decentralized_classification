@@ -320,10 +320,24 @@ class SimulationRunner:
         ncols = simulation.ncols
         building_squares = simulation.building_squares
 
-        # if in highlight mode, show the time step instead of from 0..60
+        # if in highlight mode, there will be special cases for the time step
+        # rather than the usual showing the time step instead of from 0..60
         if agents[0].highlight_mode:
-            simulation.time_step = agents[0].highlight_time_step
-            simulation.counter_text.set_text('{}'.format(simulation.time_step))
+            # the finish case updates the time step [scroll down a bit for context]:
+            # so if the sim has finished in the previous time step, we will be 1 time
+            # step after highlight_time_step
+            stop_sim = simulation.time_step == 1 + agents[0].highlight_time_step
+            if stop_sim:
+                simulation.ani.event_source.stop()
+                simulation.ani.running = False
+                time.sleep(1)
+                plt.close()
+            else:
+                # normal: don't increment timestep and just keep showing
+                # the time step from the highlight reel. This is why the `if stop_sim`
+                # check works, since it is always static until the increment happens (finishes)
+                simulation.time_step = agents[0].highlight_time_step
+                simulation.counter_text.set_text('{}'.format(simulation.time_step))
 
         write_objects = simulation.update_sensor_locations()
 
@@ -389,11 +403,21 @@ class SimulationRunner:
                 # if we're running in highlight mode, the pre-loaded track queue
                 # has been finished (the episode is done playing), so stop the animation
                 if agent.highlight_mode:
-                    if simulation.ani.running:
-                        simulation.ani.event_source.stop()
-                        time.sleep(1)
-                        plt.close()
-                        return write_objects
+                    # increment time step to signal that we are done with the highlight episode
+                    # [scroll up a bit]
+                    simulation.pause_flag = True
+                    simulation.time_step += 1
+                    simulation.counter_text.set_text('{}'.format(simulation.time_step))
+                    # update the belief plot to the new beliefs to show the change in beliefs
+                    # that happened as an effect of the current highlight episode (the new plot
+                    # will have the most recent loaded beliefs after the episode)
+                    new_beliefs = agent.highlight_prev_beliefs + agent.highlight_delta_beliefs
+                    agent.update_belief(new_beliefs, -2)
+
+                    # update sim and don't continue with rest of code since that will be sampling from
+                    # mdp etc. -- we just want to load past data
+                    SimulationRunner.instance = simulation
+                    return write_objects
                 next_s = agent.mdp.sample(agent.state, simulation.ani.event)
                 agent.track_queue += track_outs(
                     (Util.prod2state(agent.state, agent.states), Util.prod2state(next_s, agent.states)))
@@ -403,14 +427,17 @@ class SimulationRunner:
                     simulation.counter_text.set_text('{}'.format(simulation.time_step))
                     write_objects += [simulation.counter_text]
                 if agent.track_queue[0] in simulation.observable_states:
+                    prev_beliefs = agent.belief_values
                     agent.update_value(simulation.ani.event, next_s)
                     print('{} at {}: {}'.format(agent_idx,simulation.time_step,agent.max_delta))
                     write_objects += agent.update_belief(agent.belief_values, -2)
+                    new_beliefs = agent.belief_values
+                    delta_beliefs = new_beliefs - prev_beliefs
                     agent.highlight_reel.add_item(time_step=simulation.time_step, max_delta=agent.max_delta,
                                                   prev_state=Util.prod2state(agent.state, agent.states),
                                                   next_state=Util.prod2state(next_s, agent.states),
-                                                  trigger=simulation.ani.event,
-                                                  beliefs=agent.belief_values)
+                                                  trigger=simulation.ani.event, prev_beliefs=prev_beliefs,
+                                                  delta_beliefs=delta_beliefs)
                 agent.state = next_s
                 agent.dis  = Util.prod2dis(agent.state,agent.states)
             non_write_dis = [0,1,2]
@@ -551,7 +578,7 @@ def get_agent_with_idx(agent_idx: int, agents: List[Agent]):
             return agent
 
 def run_interactive_sim(agent_indices, event_names, agent_track_queues=None, preloaded_triggers=None,
-                        preloaded_beliefs=None, preloaded_time_steps=None):
+                        preloaded_prev_beliefs=None, preloaded_time_steps=None, preloaded_delta_beliefs=None):
     """
     Runs an interactive simulation showing the plt gridworld
     for agents with indices `agent_indices` and events
@@ -565,8 +592,8 @@ def run_interactive_sim(agent_indices, event_names, agent_track_queues=None, pre
     usually none so we start out with an empty grid, but can be specified in highlights
     for example
 
-    preloaded_beliefs is None if no beliefs want to be loaded beforehand, or an array with elements of
-    the form (idx, belief_array).
+    preloaded_prev_beliefs is None if no beliefs want to be loaded beforehand, or an array with elements of
+    the form (idx, belief_array). same with delta_beliefs
 
     preloaded_time_steps is None if no time steps want to be shown, or an array of integer time steps
     """
@@ -613,16 +640,22 @@ def run_interactive_sim(agent_indices, event_names, agent_track_queues=None, pre
             get_agent_with_idx(agent_idx, agents).track_queue = track_queue
 
         # show the triggers in `preloaded_triggers`
-        # start at idx 1 since idx 0 maps to trigger nominal
-        # then, event 1 maps to ice cream 1, ..., event 5 maps to trigger alarm B
         assert preloaded_triggers is not None # shouldn't be None if in highlight mode
         for agent in agents:
             agent.highlight_triggers = preloaded_triggers
 
-        # set the beliefs
-        for agent_idx, belief_vals in preloaded_beliefs:
+        # store previous beliefs that the agents held at the start
+        # of each highlight. Initially display them on the belief plots
+        for agent_idx, belief_vals in preloaded_prev_beliefs:
             agent = get_agent_with_idx(agent_idx, agents)
+            agent.highlight_prev_beliefs = belief_vals
             agent.update_belief(belief_vals, -2)
+
+        # store the delta_beliefs for each agent (in order to show the new
+        # belief values at the end of the highlight)
+        for agent_idx, delta_beliefs in preloaded_delta_beliefs:
+            agent = get_agent_with_idx(agent_idx, agents)
+            agent.highlight_delta_beliefs = delta_beliefs
 
         # set the time steps
         for agent_idx, time_step in preloaded_time_steps:
@@ -697,8 +730,11 @@ def main():
         elif trigger != 0:
             triggers.append(trigger)
 
-        # get belief values to load them
-        beliefs = (chosen_agent_idx, chosen_agent.highlight_reel.get_item_value(i, "beliefs"))
+        # get belief values
+        # values that the agent held in prev_state
+        prev_beliefs = (chosen_agent_idx, chosen_agent.highlight_reel.get_item_value(i, "prev_beliefs"))
+        # delta from prev_beliefs to the new beliefs
+        delta_beliefs = (chosen_agent_idx, chosen_agent.highlight_reel.get_item_value(i, "delta_beliefs"))
 
         # store the time step
         time_step = (chosen_agent_idx, chosen_agent.highlight_reel.get_item_value(i, "time_step"))
@@ -710,7 +746,8 @@ def main():
         # run the simulation
         _, anim = run_interactive_sim(agent_indices=highlight_agent_indices, event_names=event_names,
                                       agent_track_queues=[track_queue], preloaded_triggers=triggers,
-                                      preloaded_beliefs=[beliefs], preloaded_time_steps=[time_step])
+                                      preloaded_time_steps=[time_step], preloaded_prev_beliefs=[prev_beliefs],
+                                      preloaded_delta_beliefs=[delta_beliefs])
 
 
 # anim.save('Environment-Slide3_Video.mp4',writer=writer)

@@ -36,10 +36,15 @@ class Agent:
         self.alpha = 1.0
 
         # below attributes are for showing the episodes in the highlight
+        # we store them here instead of HighlightReel because self.highlight_reel
+        # gets automatically updated while the sim runs. Storing them in Agent allows
+        # us to set aside preloaded data, which is needed for highlighting past movements
         self.highlight_reel = self.HighlightReel(num_items=5)
         self.highlight_mode = False
         self.highlight_triggers = None
         self.highlight_time_step = None
+        self.highlight_prev_beliefs = None
+        self.highlight_delta_beliefs = None
 
     def likelihood(self, a, next_s, mc_dict):
         return np.array([m_i[(self.state, next_s)] for m_i in mc_dict[a]]).reshape((-1, 1))
@@ -121,7 +126,7 @@ class Agent:
 
         # dictates what column indices map to in the 2D reel np array
         ITEM_LABELS_TO_IDX = {"time_step": 0, "max_delta": 1, "prev_state": 2, "next_state": 3, "trigger": 4,
-                              "beliefs": 5}
+                              "prev_beliefs": 5, "delta_beliefs": 6}
         NUM_ITEM_LABELS = len(ITEM_LABELS_TO_IDX)
         EMPTY_ITEM = np.full((NUM_ITEM_LABELS), -1, dtype=object)
 
