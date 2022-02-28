@@ -320,6 +320,11 @@ class SimulationRunner:
         ncols = simulation.ncols
         building_squares = simulation.building_squares
 
+        # if in highlight mode, show the time step instead of from 0..60
+        if agents[0].highlight_mode:
+            simulation.time_step = agents[0].highlight_time_step
+            simulation.counter_text.set_text('{}'.format(simulation.time_step))
+
         write_objects = simulation.update_sensor_locations()
 
         # If not running don't update agents
@@ -546,7 +551,7 @@ def get_agent_with_idx(agent_idx: int, agents: List[Agent]):
             return agent
 
 def run_interactive_sim(agent_indices, event_names, agent_track_queues=None, preloaded_triggers=None,
-                        preloaded_beliefs=None):
+                        preloaded_beliefs=None, preloaded_time_steps=None):
     """
     Runs an interactive simulation showing the plt gridworld
     for agents with indices `agent_indices` and events
@@ -562,6 +567,8 @@ def run_interactive_sim(agent_indices, event_names, agent_track_queues=None, pre
 
     preloaded_beliefs is None if no beliefs want to be loaded beforehand, or an array with elements of
     the form (idx, belief_array).
+
+    preloaded_time_steps is None if no time steps want to be shown, or an array of integer time steps
     """
     mdp_list, mdp_states, mdp_keys = ERSA_Env()
     mc_dict = dict()
@@ -616,6 +623,10 @@ def run_interactive_sim(agent_indices, event_names, agent_track_queues=None, pre
         for agent_idx, belief_vals in preloaded_beliefs:
             agent = get_agent_with_idx(agent_idx, agents)
             agent.update_belief(belief_vals, -2)
+
+        # set the time steps
+        for agent_idx, time_step in preloaded_time_steps:
+            get_agent_with_idx(agent_idx, agents).highlight_time_step = time_step
 
 
     gwg = Gridworld([0], nrows=nrows, ncols=ncols, regions=regions, obstacles=building_squares)
@@ -689,6 +700,9 @@ def main():
         # get belief values to load them
         beliefs = (chosen_agent_idx, chosen_agent.highlight_reel.get_item_value(i, "beliefs"))
 
+        # store the time step
+        time_step = (chosen_agent_idx, chosen_agent.highlight_reel.get_item_value(i, "time_step"))
+
         # reset animation stuff so things run
         SimulationRunner.instance = None
         del anim
@@ -696,7 +710,7 @@ def main():
         # run the simulation
         _, anim = run_interactive_sim(agent_indices=highlight_agent_indices, event_names=event_names,
                                       agent_track_queues=[track_queue], preloaded_triggers=triggers,
-                                      preloaded_beliefs=[beliefs])
+                                      preloaded_beliefs=[beliefs], preloaded_time_steps=[time_step])
 
 
 # anim.save('Environment-Slide3_Video.mp4',writer=writer)

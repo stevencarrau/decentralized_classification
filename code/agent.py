@@ -39,6 +39,7 @@ class Agent:
         self.highlight_reel = self.HighlightReel(num_items=5)
         self.highlight_mode = False
         self.highlight_triggers = None
+        self.highlight_time_step = None
 
     def likelihood(self, a, next_s, mc_dict):
         return np.array([m_i[(self.state, next_s)] for m_i in mc_dict[a]]).reshape((-1, 1))
@@ -129,7 +130,7 @@ class Agent:
             self.reel = np.full((self.reel_length, self.NUM_ITEM_LABELS), self.EMPTY_ITEM, dtype=object)
 
         def __str__(self):
-            return self.reel.get_items().__str__()
+            return [self.prettify_subarray(i) for i in range(self.reel_length)]
 
         def sort(self):
             """
