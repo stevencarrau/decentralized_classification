@@ -669,7 +669,7 @@ def main():
     # due to the backend sorting in the highlight reel, so start from the back (most
     # important episodes first)
     for i in range(len(highlights) - 1, -1, -1):
-        print(f"running highlight {i}: {chosen_agent.highlight_reel.prettify_subarray(i)}")
+        print(f"running highlight {i}: {chosen_agent.highlight_reel.reelitem2dict(i)}")
         if np.array_equal(highlights[i], Agent.HighlightReel.EMPTY_ITEM):
             continue
 

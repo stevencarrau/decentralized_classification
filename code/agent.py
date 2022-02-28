@@ -130,7 +130,7 @@ class Agent:
             self.reel = np.full((self.reel_length, self.NUM_ITEM_LABELS), self.EMPTY_ITEM, dtype=object)
 
         def __str__(self):
-            return [self.prettify_subarray(i) for i in range(self.reel_length)]
+            return [self.reelitem2dict(i) for i in range(self.reel_length)]
 
         def sort(self):
             """
@@ -170,8 +170,8 @@ class Agent:
 
             return self.reel[i][self.ITEM_LABELS_TO_IDX[label]]
 
-        def prettify_subarray(self, i):
-            """Returns a neat dictionary when trying to display subarrays of the reel"""
+        def reelitem2dict(self, i):
+            """Returns a dictionary when trying to display subarrays of the reel"""
             dictionary = {}
             for label in self.ITEM_LABELS_TO_IDX:
                 dictionary[label] = self.reel[i][self.ITEM_LABELS_TO_IDX[label]]
