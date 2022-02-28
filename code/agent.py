@@ -154,6 +154,11 @@ class Agent:
             assert item_args.keys() == self.ITEM_LABELS_TO_IDX.keys(), "Labels must exactly match to those in " \
                                                                   "ITEM_LABELS_TO_IDX"
 
+            # ignore episodes with timestep 0 since they will by default
+            # probably always have a high max_delta
+            if item_args["time_step"] == 0:
+                return
+
             # prepare 1D numpy array from dict in parameters using ITEM_LABELS_TO_IDX as an indexing guide
             reel_item = self.EMPTY_ITEM.copy()
             for label in item_args:
