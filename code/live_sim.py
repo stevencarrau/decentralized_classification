@@ -413,6 +413,7 @@ class SimulationRunner:
                     # will have the most recent loaded beliefs after the episode)
                     new_beliefs = agent.highlight_prev_beliefs + agent.highlight_delta_beliefs
                     agent.update_belief(new_beliefs, -2)
+                    time.sleep(1)
 
                     # update sim and don't continue with rest of code since that will be sampling from
                     # mdp etc. -- we just want to load past data
