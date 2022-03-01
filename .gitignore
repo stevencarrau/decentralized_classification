@@ -3,3 +3,9 @@
 
 # build data
 __pycache__/
+
+# highlight videos
+highlight_videos/
+
+# livesim products
+code/livesim_data/

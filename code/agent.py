@@ -135,7 +135,10 @@ class Agent:
             self.reel = np.full((self.reel_length, self.NUM_ITEM_LABELS), self.EMPTY_ITEM, dtype=object)
 
         def __str__(self):
-            return [self.reelitem2dict(i) for i in range(self.reel_length)]
+            string_repr = ""
+            for reel_item_idx in range(self.reel_length):
+                string_repr += self.reelitem2dict(reel_item_idx).__str__() + "\n"
+            return string_repr
 
         def sort(self):
             """

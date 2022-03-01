@@ -7,6 +7,8 @@ from math import pi
 from collections import deque
 from typing import List
 import time
+import os
+import numpy as np
 
 import matplotlib
 from matplotlib.animation import FuncAnimation
@@ -20,8 +22,18 @@ from util import Util
 
 matplotlib.use('Qt5Agg')
 
+# frames for normal live simulations
 frames = 500
+# paths for saving agent data after live sims - make sure directories
+# are existing beforehand
+agents_save_path = "livesim_data"
+if not (os.path.exists(agents_save_path) and os.path.isdir(agents_save_path)):
+    os.makedirs(agents_save_path)
+agents_file_name = "agents.npy"
+agents_full_fpath = f"{agents_save_path}/{agents_file_name}"
 np.random.seed(0)
+# dict from event index to event name
+event_mapping = {0: 'nominal', 1: 'iceA', 2: 'iceB', 3: 'iceC', 4: 'alarmA', 5: 'alarmB', 6: 'alarmG'}
 
 
 class SensorState(Enum):
@@ -123,6 +135,9 @@ class SimulationRunner:
             SimulationRunner.instance = Simulation(ani, gwg, ax, agents, tr_ar, rl_ar, observable_regions,
                                                    building_squares,
                                                    nrows, ncols, counter_text)
+            # if in highlight mode, start off running
+            if all([agent.highlight_mode for agent in agents]):
+                SimulationRunner.instance.ani.moving = True
         else:
             print("Already have one instance of the simulation running!")
 
@@ -328,8 +343,8 @@ class SimulationRunner:
             # step after highlight_time_step
             stop_sim = simulation.time_step == 1 + agents[0].highlight_time_step
             if stop_sim:
-                simulation.ani.event_source.stop()
-                simulation.ani.running = False
+                # simulation.ani.event_source.stop()
+                # simulation.ani.running = False
                 time.sleep(1)
                 plt.close()
             else:
@@ -405,7 +420,7 @@ class SimulationRunner:
                 if agent.highlight_mode:
                     # increment time step to signal that we are done with the highlight episode
                     # [scroll up a bit]
-                    simulation.pause_flag = True
+                    # simulation.pause_flag = True
                     simulation.time_step += 1
                     simulation.counter_text.set_text('{}'.format(simulation.time_step))
                     # update the belief plot to the new beliefs to show the change in beliefs
@@ -577,26 +592,34 @@ def get_agent_with_idx(agent_idx: int, agents: List[Agent]):
     for agent in agents:
         if agent.agent_idx == agent_idx:
             return agent
+    return None
 
-def run_interactive_sim(agent_indices, event_names, agent_track_queues=None, preloaded_triggers=None,
-                        preloaded_prev_beliefs=None, preloaded_time_steps=None, preloaded_delta_beliefs=None):
+def run_simulation(agent_indices, event_names, highlight_agent_idx=None, preloaded_track=None, preloaded_triggers=None,
+                        preloaded_prev_beliefs=None, preloaded_time_step=None, preloaded_delta_beliefs=None):
     """
     Runs an interactive simulation showing the plt gridworld
     for agents with indices `agent_indices` and events
     and their values mapped in `event_names`.
 
-    `agent_track_queues` can be an array of tracks to send into grid_init
-    if pre-loaded tracks want to be run. if None, then the track queues start
-    out empty for each agent (default)
+    `highlight_agent_idx`: An integer idx corresponding to an agent if we want to run
+    highlights for that agent. None if we want to run interactive simulations normally and don't
+    want to run highlights.
 
-    preloaded_triggers can be a list of trigger indices that pre-sets a trigger on the grid. This is
-    usually none so we start out with an empty grid, but can be specified in highlights
-    for example
+    `preloaded_track`: A track to send into grid_inits if pre-loaded tracks want to be run. None
+    if we want to run interactive simulations normally and don't want to run highlights.
 
-    preloaded_prev_beliefs is None if no beliefs want to be loaded beforehand, or an array with elements of
-    the form (idx, belief_array). same with delta_beliefs
+    `preloaded_triggers`: A list of trigger indices that pre-sets a trigger on the grid. None
+    if we want to run interactive simulations normally and don't want to run highlights.
 
-    preloaded_time_steps is None if no time steps want to be shown, or an array of integer time steps
+    `preloaded_prev_beliefs`: A numpy array representing the belief_vals we want to load into agents[agent_idx]/
+    None if we want to run interactive simulations normally and don't want to run highlights.
+
+    `preloaded_time_step`: An integer representing the timestep we want to show in the highlight.
+    None if we want to run interactive simulations normally and don't want to run highlights.
+
+    `preloaded_delta_beliefs`: A numpy array representing the change from `preloaded_prev_beliefs` to
+    the new belief values in `preloaded_time_step + 1`. None if we want to run interactive simulations
+    normally and don't want to run highlights.
     """
     mdp_list, mdp_states, mdp_keys = ERSA_Env()
     mc_dict = dict()
@@ -628,41 +651,38 @@ def run_interactive_sim(agent_indices, event_names, agent_track_queues=None, pre
     agents, tr_ar, rl_ar, building_squares, ax, counter_text = SimulationRunner.grid_init(nrows=nrows, ncols=ncols,
                                                                                           desiredIndices=agent_indices)
 
-    # we are in 'highlight mode' if we want to load previous tracks
-    # this will only run the pre-loaded tracks and stop the simulation after the track
-    # has been replayed
-    highlight_mode = agent_track_queues is not None
+    # we are in highlight mode if we specify an idx: set this mode true or false for all agents
+    highlight_mode = highlight_agent_idx is not None
     for agent in agents:
         agent.highlight_mode = highlight_mode
 
     if highlight_mode:
-        # set pre-loaded tracks if desired
-        for agent_idx, track_queue in agent_track_queues:
-            get_agent_with_idx(agent_idx, agents).track_queue = track_queue
+        agent = get_agent_with_idx(highlight_agent_idx, agents)
+
+        # set pre-loaded track so our path is 'pre-filled'
+        assert preloaded_track is not None
+        agent.track_queue = preloaded_track
 
         # show the triggers in `preloaded_triggers`
-        assert preloaded_triggers is not None # shouldn't be None if in highlight mode
-        for agent in agents:
-            agent.highlight_triggers = preloaded_triggers
+        assert preloaded_triggers is not None
+        agent.highlight_triggers = preloaded_triggers
 
         # store previous beliefs that the agents held at the start
         # of each highlight. Initially display them on the belief plots
-        for agent_idx, belief_vals in preloaded_prev_beliefs:
-            agent = get_agent_with_idx(agent_idx, agents)
-            agent.highlight_prev_beliefs = belief_vals
-            agent.update_belief(belief_vals, -2)
+        assert preloaded_prev_beliefs is not None
+        agent.highlight_prev_beliefs = preloaded_prev_beliefs
+        agent.update_belief(preloaded_prev_beliefs, -2)
 
         # store the delta_beliefs for each agent (in order to show the new
         # belief values at the end of the highlight)
-        for agent_idx, delta_beliefs in preloaded_delta_beliefs:
-            agent = get_agent_with_idx(agent_idx, agents)
-            agent.highlight_delta_beliefs = delta_beliefs
+        assert preloaded_delta_beliefs is not None
+        agent.highlight_delta_beliefs = preloaded_delta_beliefs
 
-        # set the time steps
-        for agent_idx, time_step in preloaded_time_steps:
-            get_agent_with_idx(agent_idx, agents).highlight_time_step = time_step
+        # set the time step
+        assert preloaded_time_step is not None
+        agent.highlight_time_step = preloaded_time_step
 
-
+    print("Starting simulation ...")
     gwg = Gridworld([0], nrows=nrows, ncols=ncols, regions=regions, obstacles=building_squares)
     fig.canvas.mpl_connect('key_press_event', SimulationRunner.on_press)
     fig.canvas.mpl_connect('button_press_event', SimulationRunner.on_click)
@@ -670,8 +690,26 @@ def run_interactive_sim(agent_indices, event_names, agent_track_queues=None, pre
     anim = FuncAnimation(fig, SimulationRunner.update_all, frames=frames, interval=1, blit=False, repeat=False)
     SimulationRunner(anim, gwg, ax, agents, tr_ar, rl_ar, observable_regions, building_squares, nrows, ncols,
                      counter_text)
-    # anim.save('Environment-Slide3_Video.mp4',fps=24, extra_args=['-vcodec', 'libx264'])
-    plt.show()
+
+    # TODO: save the videos to mp4 if in highlight mode so we can replay them afterwards
+    # if not in highlight mode, continue with interactive display.
+    # for now, just do plt.show() to show the episodes
+    if highlight_mode:
+        agent_character_names = ['Captain America', 'Black Widow', 'Hulk', 'Thor', 'Thanos', 'Ironman']
+        agent_name = agent_character_names[highlight_agent_idx]
+        vid_title = f"{agent_name}_Highlight_Timestep_{preloaded_time_step}.mp4"
+        # create highlights folder if does not exist
+        save_path = "../highlight_videos"
+        if not(os.path.exists(save_path) and os.path.isdir(save_path)):
+            os.makedirs(save_path)
+        full_video_path = f"{save_path}/{vid_title}"
+        print(f"Saving highlight for time step {preloaded_time_step} at \"{full_video_path}\" ...")
+        # anim.save(full_video_path, writer=writer)
+        plt.show()
+        print(f"Finished saving highlight for time step {preloaded_time_step}.")
+    else:
+        # if not in highlight mode, show interactive sim and run normally
+        plt.show()
 
     # can return more things later on if needed
     return agents, anim
@@ -680,75 +718,17 @@ def main():
     # ---------- PART 1:
     # grab arguments of format: 'Store A Owner','Store B Owner','Repairman','Shopper','Suscipious','Home Owner'
     agent_indices = Util.get_agent_indices(sys.argv)
-    event_names = {0: 'nominal', 1: 'iceA', 2: 'iceB', 3: 'iceC', 4: 'alarmA', 5: 'alarmB', 6: 'alarmG'}
+    global event_mapping
 
     # run initial interactive simulation with command line initial locations
-    agents, anim = run_interactive_sim(agent_indices=agent_indices, event_names=event_names)
+    agents, anim = run_simulation(agent_indices=agent_indices, event_names=event_mapping)
 
-    # ---------- PART 3:
-    # code to show highlights for a specific agent (executed after a run)
-
-    # get the agent index from cmdline input
-    agent_idx_choices = [agent.agent_idx for agent in agents]
-    question = f"Enter agent idx to display highlights for (choices: {agent_idx_choices}): "
-    chosen_agent_idx = int(input(question))
-    while chosen_agent_idx not in agent_idx_choices:
-        print("Not a valid choice")
-        chosen_agent_idx = int(input(question))
-    chosen_agent = get_agent_with_idx(chosen_agent_idx, agents)
-
-    # load the most significant highlight data for the agent
-    highlights = chosen_agent.highlight_reel.reel
-    # for every highlight, run an animation. The most important highlights are last
-    # due to the backend sorting in the highlight reel, so start from the back (most
-    # important episodes first)
-    for i in range(len(highlights) - 1, -1, -1):
-        print(f"running highlight {i}: {chosen_agent.highlight_reel.reelitem2dict(i)}")
-        if np.array_equal(highlights[i], Agent.HighlightReel.EMPTY_ITEM):
-            continue
-
-        prev_state = int(chosen_agent.highlight_reel.get_item_value(i, "prev_state"))
-        next_state = int(chosen_agent.highlight_reel.get_item_value(i, "next_state"))
-        # print(f"from {prev_state} to {next_state}:")
-
-        # takes the form of (0, [345, 512, ...])
-        track_queue = (chosen_agent_idx, track_outs((prev_state, next_state)))
-        # print(track_queue)
-
-        # form agent_indices just for the 1 agent
-        highlight_agent_indices = [(chosen_agent_idx, prev_state)]
-        # print(highlight_agent_indices)
-
-        # get trigger
-        triggers = []
-        trigger = int(chosen_agent.highlight_reel.get_item_value(i, "trigger"))
-        # a trigger of 6 means images from events 4 and 5 since it triggers both alarms:
-        # have both present in the triggers list.
-        # also, don't add to triggers if it is trigger 0 since that is just the nominal effect
-        # (nothing is shown)
-        if trigger == 6:
-            triggers.extend([4, 5])
-        elif trigger != 0:
-            triggers.append(trigger)
-
-        # get belief values
-        # values that the agent held in prev_state
-        prev_beliefs = (chosen_agent_idx, chosen_agent.highlight_reel.get_item_value(i, "prev_beliefs"))
-        # delta from prev_beliefs to the new beliefs
-        delta_beliefs = (chosen_agent_idx, chosen_agent.highlight_reel.get_item_value(i, "delta_beliefs"))
-
-        # store the time step
-        time_step = (chosen_agent_idx, chosen_agent.highlight_reel.get_item_value(i, "time_step"))
-
-        # reset animation stuff so things run
-        SimulationRunner.instance = None
-        del anim
-
-        # run the simulation
-        _, anim = run_interactive_sim(agent_indices=highlight_agent_indices, event_names=event_names,
-                                      agent_track_queues=[track_queue], preloaded_triggers=triggers,
-                                      preloaded_time_steps=[time_step], preloaded_prev_beliefs=[prev_beliefs],
-                                      preloaded_delta_beliefs=[delta_beliefs])
+    # save the agent data to avoid re-running simulation many times in case other
+    # programs (like highlight.py) need data from live simulations
+    print("Writing simulation data to disk...")
+    global agents_full_fpath
+    np.save(agents_full_fpath, np.array(agents))
+    print("Finished saving simulation data.")
 
 
 # anim.save('Environment-Slide3_Video.mp4',writer=writer)
