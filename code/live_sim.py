@@ -345,7 +345,7 @@ class SimulationRunner:
             if stop_sim:
                 # simulation.ani.event_source.stop()
                 # simulation.ani.running = False
-                time.sleep(1)
+                plt.pause(1)
                 plt.close()
             else:
                 # normal: don't increment timestep and just keep showing
@@ -428,7 +428,7 @@ class SimulationRunner:
                     # will have the most recent loaded beliefs after the episode)
                     new_beliefs = agent.highlight_prev_beliefs + agent.highlight_delta_beliefs
                     agent.update_belief(new_beliefs, -2)
-                    time.sleep(1)
+                    plt.pause(1)
 
                     # update sim and don't continue with rest of code since that will be sampling from
                     # mdp etc. -- we just want to load past data
