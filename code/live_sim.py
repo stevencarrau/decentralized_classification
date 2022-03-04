@@ -135,9 +135,10 @@ class SimulationRunner:
             SimulationRunner.instance = Simulation(ani, gwg, ax, agents, tr_ar, rl_ar, observable_regions,
                                                    building_squares,
                                                    nrows, ncols, counter_text)
-            # if in highlight mode, start off running
-            if all([agent.highlight_mode for agent in agents]):
-                SimulationRunner.instance.ani.moving = True
+            # bottom may need to be triggered to get mp4 saving to work? idk
+            # # if in highlight mode, start off running
+            # if all([agent.highlight_mode for agent in agents]):
+            #     SimulationRunner.instance.ani.moving = True
         else:
             print("Already have one instance of the simulation running!")
 
@@ -690,6 +691,12 @@ def run_simulation(agent_indices, event_names, highlight_agent_idx=None, preload
         assert preloaded_alternate_tracks is not None
         for alt_track in preloaded_alternate_tracks:
             print("alternate track:", alt_track)
+            locations = [tuple(reversed(Util.coords(alt_track[i] - 30, ncols))) for i in range(len(alt_track))]
+            print("alternate track x,y coordinates:", locations)
+            coord_x, coord_y = [loc[0] for loc in locations], [loc[1] for loc in locations]
+            # annotate all parts of line as dots
+            alt_track_color = (100.0 / 255.0, 64.7 / 255.0, 0.0)    # brown
+            ax.plot(coord_x, coord_y, color=alt_track_color, marker='.')
 
     print("Starting simulation ...")
     gwg = Gridworld([0], nrows=nrows, ncols=ncols, regions=regions, obstacles=building_squares)
@@ -712,10 +719,10 @@ def run_simulation(agent_indices, event_names, highlight_agent_idx=None, preload
         if not(os.path.exists(save_path) and os.path.isdir(save_path)):
             os.makedirs(save_path)
         full_video_path = f"{save_path}/{vid_title}"
-        print(f"Saving highlight for time step {preloaded_time_step} at \"{full_video_path}\" ...")
+        # print(f"Saving highlight for time step {preloaded_time_step} at \"{full_video_path}\" ...")
         # anim.save(full_video_path, writer=writer)
-        # plt.show()
-        print(f"Finished saving highlight for time step {preloaded_time_step}.")
+        plt.show()
+        # print(f"Finished saving highlight for time step {preloaded_time_step}.")
     else:
         # if not in highlight mode, show interactive sim and run normally
         plt.show()

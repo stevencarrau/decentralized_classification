@@ -104,7 +104,7 @@ def main():
                                  preloaded_time_step=time_step, preloaded_delta_beliefs=delta_beliefs,
                                  preloaded_alternate_tracks=alternate_tracks)
 
-    print("Finished saving all highlights.")
+    # print("Finished saving all highlights.")
 
 if __name__ == "__main__":
     main()
