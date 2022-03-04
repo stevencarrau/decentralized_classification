@@ -1,4 +1,5 @@
 from live_sim import *
+from darpa_model import get_env_tracks
 
 if not (os.path.exists(agents_save_path) and os.path.isdir(agents_save_path)):
     raise Exception("live_sim.py was probably not run yet. Run it to generate data and make sure"
@@ -36,16 +37,18 @@ def main():
         if np.array_equal(highlights[i], Agent.HighlightReel.EMPTY_ITEM):
             continue
 
-        prev_state = int(chosen_agent.highlight_reel.get_item_value(i, "prev_state"))
-        next_state = int(chosen_agent.highlight_reel.get_item_value(i, "next_state"))
+        prev_state = chosen_agent.highlight_reel.get_item_value(i, "prev_state")
+        next_state = chosen_agent.highlight_reel.get_item_value(i, "next_state")
         # print(f"from {prev_state} to {next_state}:")
 
-        # takes the form of (0, [345, 512, ...])
-        track = track_outs((prev_state, next_state))
+        # get the track for the agent to replay based off of stored state data
+        transformed_prev_state = Util.prod2state(prev_state, chosen_agent.states)
+        transformed_next_state = Util.prod2state(next_state, chosen_agent.states)
+        track = track_outs((transformed_prev_state, transformed_next_state))
         # print(track_queue)
 
         # form agent_indices just for the 1 agent
-        highlight_agent_indices = [(chosen_agent_idx, prev_state)]
+        highlight_agent_indices = [(chosen_agent_idx, transformed_prev_state)]
         # print(highlight_agent_indices)
 
         # get trigger
@@ -66,8 +69,29 @@ def main():
         # delta from prev_beliefs to the new beliefs
         delta_beliefs = chosen_agent.highlight_reel.get_item_value(i, "delta_beliefs")
 
-        # store the time step
+        # get the time step
         time_step = chosen_agent.highlight_reel.get_item_value(i, "time_step")
+
+        # get the most likely alternate state that the agent would have transitioned to alternatively:
+        all_next_alt_states = chosen_agent.mdp.next_states_sorted_prob(s=prev_state, a=trigger)
+        alt_track = None
+        for alt_state in all_next_alt_states:
+            # we're trying to show an alternate track than the one
+            # chosen, so skip if we encounter the same state that the agent actually
+            # took
+            if alt_state == next_state:
+                continue
+
+            # get first track which produces a valid track since some
+            # (prev_state, alt_state) tuples may not be in the gridworld transition model
+            trans_in = (transformed_prev_state, Util.prod2state(alt_state, chosen_agent.states))
+            if trans_in in get_env_tracks():
+                # print("alt_state found:", alt_state)
+                alt_track = track_outs(trans_in)
+                break
+
+        assert alt_track is not None, "Some track should have been found"
+        alternate_tracks = [alt_track]
 
         # reset animation stuff so things run
         SimulationRunner.instance = None
@@ -77,7 +101,8 @@ def main():
         _, anim = run_simulation(agent_indices=highlight_agent_indices, event_names=event_mapping,
                                  highlight_agent_idx=chosen_agent_idx, preloaded_track=track,
                                  preloaded_triggers=triggers, preloaded_prev_beliefs=prev_beliefs,
-                                 preloaded_time_step=time_step, preloaded_delta_beliefs=delta_beliefs)
+                                 preloaded_time_step=time_step, preloaded_delta_beliefs=delta_beliefs,
+                                 preloaded_alternate_tracks=alternate_tracks)
 
     print("Finished saving all highlights.")
 

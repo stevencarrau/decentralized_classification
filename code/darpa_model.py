@@ -236,9 +236,8 @@ def ERSA_Env():
     mdp_lists = [MDP(states=list(product_states.keys()), alphabet=event_space, transitions=l_t) for l_t in list_trans]
     return mdp_lists, product_states, product_reverse
 
-
-def track_outs(trans_in):
-    # Paths in gridworld for transitions
+def get_env_tracks():
+    """Returns a list of environment tracks for the gridworld transitions"""
     env_tracks = {(0, 1): [555, 554, 553, 552, 551, 550, 549, 548, 518],
                   (0, 0): [555, 554, 553, 583, 584, 585, 586, 556, 555],
                   (0, 6): [555, 556, 557, 558, 559, 560, 561, 562, 532],
@@ -260,4 +259,9 @@ def track_outs(trans_in):
                   (6, 7): [532, 502, 472, 473, 443, 413, 412, 442, 442],
                   (7, 6): [442, 441, 440, 470, 471, 472, 502, 532, 532],
                   (7, 7): [412, 382, 381, 380, 410, 440, 470, 471, 472]}
-    return env_tracks[trans_in]
+    return env_tracks
+
+def track_outs(trans_in):
+    """For a specific input state transition pair, return a list of integers
+    corresponding to a track in the gridworld for that transition"""
+    return get_env_tracks()[trans_in]

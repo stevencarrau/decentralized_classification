@@ -291,6 +291,23 @@ class MDP(NFA):
                 return trace
         return trace
 
+    def next_states_sorted_prob(self, s, a):
+        """At state s and with action a, return a list of
+        states to transition to with decreasing probabilities
+        (ie, index 0 is the most probable next state, etc)"""
+        # get transition probabilities of all neighbors
+        neighbors = []
+        for t in self.post(s, a):
+            neighbors.append([t, self.prob_delta(s, a, t)])
+        # print("neighbors:", neighbors)
+
+        # sort on the probability
+        ordered_neighbors = sorted(neighbors, key=lambda x: x[1], reverse=True)
+        ordered_neighbors = [neighbor[0] for neighbor in ordered_neighbors]
+
+        # print("sorted neighbors:", ordered_neighbors)
+        return ordered_neighbors
+
 # def productMDP(mdp, dra):
 #     pmdp = MDP()
 #     init = (mdp.init, dra.get_transition(mdp.L[mdp.init], dra.initial_state))

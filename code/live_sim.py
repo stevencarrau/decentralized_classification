@@ -450,8 +450,7 @@ class SimulationRunner:
                     new_beliefs = agent.belief_values
                     delta_beliefs = new_beliefs - prev_beliefs
                     agent.highlight_reel.add_item(time_step=simulation.time_step, max_delta=agent.max_delta,
-                                                  prev_state=Util.prod2state(agent.state, agent.states),
-                                                  next_state=Util.prod2state(next_s, agent.states),
+                                                  prev_state=agent.state, next_state=next_s,
                                                   trigger=simulation.ani.event, prev_beliefs=prev_beliefs,
                                                   delta_beliefs=delta_beliefs)
                 agent.state = next_s
@@ -595,7 +594,8 @@ def get_agent_with_idx(agent_idx: int, agents: List[Agent]):
     return None
 
 def run_simulation(agent_indices, event_names, highlight_agent_idx=None, preloaded_track=None, preloaded_triggers=None,
-                        preloaded_prev_beliefs=None, preloaded_time_step=None, preloaded_delta_beliefs=None):
+                   preloaded_prev_beliefs=None, preloaded_time_step=None, preloaded_delta_beliefs=None,
+                   preloaded_alternate_tracks=None):
     """
     Runs an interactive simulation showing the plt gridworld
     for agents with indices `agent_indices` and events
@@ -620,6 +620,10 @@ def run_simulation(agent_indices, event_names, highlight_agent_idx=None, preload
     `preloaded_delta_beliefs`: A numpy array representing the change from `preloaded_prev_beliefs` to
     the new belief values in `preloaded_time_step + 1`. None if we want to run interactive simulations
     normally and don't want to run highlights.
+
+    `preloaded_alternate_tracks`: An array of tracks representing all other tracks that the agent
+    could have taken and that we want to also show in the grid, highlighted. None if we want to run interactive
+    simulations normally and don't want to run highlights.
     """
     mdp_list, mdp_states, mdp_keys = ERSA_Env()
     mc_dict = dict()
@@ -682,6 +686,11 @@ def run_simulation(agent_indices, event_names, highlight_agent_idx=None, preload
         assert preloaded_time_step is not None
         agent.highlight_time_step = preloaded_time_step
 
+        # highlight all alternate tracks in the grid
+        assert preloaded_alternate_tracks is not None
+        for alt_track in preloaded_alternate_tracks:
+            print("alternate track:", alt_track)
+
     print("Starting simulation ...")
     gwg = Gridworld([0], nrows=nrows, ncols=ncols, regions=regions, obstacles=building_squares)
     fig.canvas.mpl_connect('key_press_event', SimulationRunner.on_press)
@@ -705,7 +714,7 @@ def run_simulation(agent_indices, event_names, highlight_agent_idx=None, preload
         full_video_path = f"{save_path}/{vid_title}"
         print(f"Saving highlight for time step {preloaded_time_step} at \"{full_video_path}\" ...")
         # anim.save(full_video_path, writer=writer)
-        plt.show()
+        # plt.show()
         print(f"Finished saving highlight for time step {preloaded_time_step}.")
     else:
         # if not in highlight mode, show interactive sim and run normally

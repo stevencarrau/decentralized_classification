@@ -131,6 +131,13 @@ class Agent:
         EMPTY_ITEM = np.full((NUM_ITEM_LABELS), -1, dtype=object)
 
         def __init__(self, num_items):
+            # make sure the class finals are structured right
+            subarray_idxs = [val for val in self.ITEM_LABELS_TO_IDX.values()]
+            assert list(set(subarray_idxs)) == subarray_idxs, "Make sure values in ITEM_LABELS_TO_IDX are distinct, " \
+                                                              "these dictate the column indices in each subarray."
+            self.NUM_ITEM_LABELS = len(self.ITEM_LABELS_TO_IDX)
+            self.EMPTY_ITEM = np.full((self.NUM_ITEM_LABELS), -1, dtype=object)
+            # set class variables
             self.reel_length = num_items
             self.reel = np.full((self.reel_length, self.NUM_ITEM_LABELS), self.EMPTY_ITEM, dtype=object)
 
