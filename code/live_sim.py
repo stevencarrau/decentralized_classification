@@ -594,6 +594,20 @@ def get_agent_with_idx(agent_idx: int, agents: List[Agent]):
             return agent
     return None
 
+def draw_track(track, ax, ncols, track_color, marker='.'):
+    """Given a track of agent locations, draw it on the grid.
+    - track is the environment gridworld track
+    - ax is the plt object to plot the track on
+    - ncols is the # of cols in the grid
+    - track_color should be the color plt.plot expects: either a string color
+        or a tuple for RGBA
+    - marker should be a plt marker, set to '.' by default so it will
+        show as dots
+    """
+    locations = Util.track2coords(track, ncols)
+    coord_x, coord_y = [loc[0] for loc in locations], [loc[1] for loc in locations]
+    ax.plot(coord_x, coord_y, color=track_color, marker=marker)
+
 def run_simulation(agent_indices, event_names, highlight_agent_idx=None, preloaded_track=None, preloaded_triggers=None,
                    preloaded_prev_beliefs=None, preloaded_time_step=None, preloaded_delta_beliefs=None,
                    preloaded_alternate_tracks=None):
@@ -667,6 +681,8 @@ def run_simulation(agent_indices, event_names, highlight_agent_idx=None, preload
         # set pre-loaded track so our path is 'pre-filled'
         assert preloaded_track is not None
         agent.track_queue = preloaded_track
+        # show the track that it actually takes as green
+        draw_track(preloaded_track, ax, ncols, 'green')
 
         # show the triggers in `preloaded_triggers`
         assert preloaded_triggers is not None
@@ -690,13 +706,7 @@ def run_simulation(agent_indices, event_names, highlight_agent_idx=None, preload
         # highlight all alternate tracks in the grid
         assert preloaded_alternate_tracks is not None
         for alt_track in preloaded_alternate_tracks:
-            print("alternate track:", alt_track)
-            locations = [tuple(reversed(Util.coords(alt_track[i] - 30, ncols))) for i in range(len(alt_track))]
-            print("alternate track x,y coordinates:", locations)
-            coord_x, coord_y = [loc[0] for loc in locations], [loc[1] for loc in locations]
-            # annotate all parts of line as dots
-            alt_track_color = (100.0 / 255.0, 64.7 / 255.0, 0.0)    # brown
-            ax.plot(coord_x, coord_y, color=alt_track_color, marker='.')
+            draw_track(alt_track, ax, ncols, (100.0 / 255.0, 64.7 / 255.0, 0.0))
 
     print("Starting simulation ...")
     gwg = Gridworld([0], nrows=nrows, ncols=ncols, regions=regions, obstacles=building_squares)

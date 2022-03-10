@@ -21,6 +21,13 @@ class Util:
         return int(coords[0] * ncols) + int(coords[1])
 
     @staticmethod
+    def track2coords(track, ncols):
+        """Given a track and the number of columns on the board,
+        return the x,y coordinates representing the track.
+        """
+        return [tuple(reversed(Util.coords(track[i] - 30, ncols))) for i in range(len(track))]
+
+    @staticmethod
     def get_agent_indices(args):
         numAgents = len(args) - 1
         inputs = []
