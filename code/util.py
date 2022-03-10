@@ -1,3 +1,4 @@
+import os
 
 class Util:
     @staticmethod
@@ -26,6 +27,19 @@ class Util:
         return the x,y coordinates representing the track.
         """
         return [tuple(reversed(Util.coords(track[i] - 30, ncols))) for i in range(len(track))]
+
+    @staticmethod
+    def prepare_dir(dir):
+        """Either create the directory if it's not a thing already.
+        If the directory is already created, clean it."""
+        if not (os.path.exists(dir) and os.path.isdir(dir)):
+            # make a new one from scratch
+            os.makedirs(dir)
+        else:
+            # up to the user to delete old folder contents, may be
+            # unsafe if a 'delete directory' is inserted here to clean
+            # the previous contents
+            pass
 
     @staticmethod
     def get_agent_indices(args):

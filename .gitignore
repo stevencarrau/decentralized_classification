@@ -4,8 +4,11 @@
 # build data
 __pycache__/
 
+# directory for storing intermediate frames
+code/video_data
+
 # highlight videos
-highlight_videos/
+code/highlight_videos/
 
 # livesim products
 code/livesim_data/

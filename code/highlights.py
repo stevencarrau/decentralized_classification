@@ -1,5 +1,6 @@
 from live_sim import *
 from darpa_model import get_env_tracks
+import os
 
 if not (os.path.exists(agents_save_path) and os.path.isdir(agents_save_path)):
     raise Exception("live_sim.py was probably not run yet. Run it to generate data and make sure"
@@ -12,6 +13,10 @@ def main():
     saved. Loads that data and runs simulations again while preloading that
     data.
     """
+
+    # create highlights folder if does not exist
+    highlight_videos_save_path = "highlight_videos"
+    Util.prepare_dir(highlight_videos_save_path)
 
     agents = np.load(agents_full_fpath, allow_pickle=True).tolist()
     # print(agents)
@@ -96,6 +101,11 @@ def main():
         # reset animation stuff so things run
         SimulationRunner.instance = None
         anim = None
+        # remove previous frames
+        import shutil
+        shutil.rmtree(video_data_save_path)
+        # create the dir again
+        Util.prepare_dir(video_data_save_path)
 
         # run the simulation but with more parameters to indicate we want to run highlights
         _, anim = run_simulation(agent_indices=highlight_agent_indices, event_names=event_mapping,
@@ -103,6 +113,16 @@ def main():
                                  preloaded_triggers=triggers, preloaded_prev_beliefs=prev_beliefs,
                                  preloaded_time_step=time_step, preloaded_delta_beliefs=delta_beliefs,
                                  preloaded_alternate_tracks=alternate_tracks)
+
+        agent_character_names = ['Captain America', 'Black Widow', 'Hulk', 'Thor', 'Thanos', 'Ironman']
+        agent_name = agent_character_names[chosen_agent_idx]
+        vid_title = f"{agent_name}_Highlight_Timestep_{time_step}.mp4"
+        full_video_path = f"{highlight_videos_save_path}/{vid_title}"
+
+        print(f"Saving highlight for time step {time_step} at \"{full_video_path}\" ...")
+        # use ffmpeg to patch the videos together
+        os.system(f"ffmpeg -r 1 -i {video_data_save_path}/%04d.png -vcodec mpeg4 -y {full_video_path}")
+        print(f"Finished saving highlight for time step {time_step}.")
 
     # print("Finished saving all highlights.")
 

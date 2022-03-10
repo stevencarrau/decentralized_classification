@@ -6,9 +6,6 @@ from math import floor
 from math import pi
 from collections import deque
 from typing import List
-import time
-import os
-import numpy as np
 
 import matplotlib
 from matplotlib.animation import FuncAnimation
@@ -27,11 +24,13 @@ frames = 500
 # paths for saving agent data after live sims - make sure directories
 # are existing beforehand
 agents_save_path = "livesim_data"
-if not (os.path.exists(agents_save_path) and os.path.isdir(agents_save_path)):
-    os.makedirs(agents_save_path)
 agents_file_name = "agents.npy"
 agents_full_fpath = f"{agents_save_path}/{agents_file_name}"
 np.random.seed(0)
+
+# paths for saving frames for video data to go to
+video_data_save_path = "video_data"
+
 # dict from event index to event name
 event_mapping = {0: 'nominal', 1: 'iceA', 2: 'iceB', 3: 'iceC', 4: 'alarmA', 5: 'alarmB', 6: 'alarmG'}
 
@@ -136,9 +135,9 @@ class SimulationRunner:
                                                    building_squares,
                                                    nrows, ncols, counter_text)
             # bottom may need to be triggered to get mp4 saving to work? idk
-            # # if in highlight mode, start off running
-            # if all([agent.highlight_mode for agent in agents]):
-            #     SimulationRunner.instance.ani.moving = True
+            # if in highlight mode, start off running
+            if all([agent.highlight_mode for agent in agents]):
+                SimulationRunner.instance.ani.moving = True
         else:
             print("Already have one instance of the simulation running!")
 
@@ -339,6 +338,15 @@ class SimulationRunner:
         # if in highlight mode, there will be special cases for the time step
         # rather than the usual showing the time step instead of from 0..60
         if agents[0].highlight_mode:
+            # saving videos every round to patch them up
+            vid_title = video_data_save_path + '/{:04d}.png'.format(i)
+            # for the first and last frames, save more pictures to make
+            # the video more palatable. otherwise, keep the # of frames to
+            # save per actualy frame relatively low
+            num_frames = 4 if i == 0 or i  else 2
+            for j in range(num_frames):
+                plt.savefig(vid_title, bbox_inches='tight')
+
             # the finish case updates the time step [scroll down a bit for context]:
             # so if the sim has finished in the previous time step, we will be 1 time
             # step after highlight_time_step
@@ -346,7 +354,6 @@ class SimulationRunner:
             if stop_sim:
                 # simulation.ani.event_source.stop()
                 # simulation.ani.running = False
-                plt.pause(1)
                 plt.close()
             else:
                 # normal: don't increment timestep and just keep showing
@@ -429,7 +436,6 @@ class SimulationRunner:
                     # will have the most recent loaded beliefs after the episode)
                     new_beliefs = agent.highlight_prev_beliefs + agent.highlight_delta_beliefs
                     agent.update_belief(new_beliefs, -2)
-                    plt.pause(1)
 
                     # update sim and don't continue with rest of code since that will be sampling from
                     # mdp etc. -- we just want to load past data
@@ -717,22 +723,11 @@ def run_simulation(agent_indices, event_names, highlight_agent_idx=None, preload
     SimulationRunner(anim, gwg, ax, agents, tr_ar, rl_ar, observable_regions, building_squares, nrows, ncols,
                      counter_text)
 
-    # TODO: save the videos to mp4 if in highlight mode so we can replay them afterwards
-    # if not in highlight mode, continue with interactive display.
-    # for now, just do plt.show() to show the episodes
     if highlight_mode:
-        agent_character_names = ['Captain America', 'Black Widow', 'Hulk', 'Thor', 'Thanos', 'Ironman']
-        agent_name = agent_character_names[highlight_agent_idx]
-        vid_title = f"{agent_name}_Highlight_Timestep_{preloaded_time_step}.mp4"
-        # create highlights folder if does not exist
-        save_path = "../highlight_videos"
-        if not(os.path.exists(save_path) and os.path.isdir(save_path)):
-            os.makedirs(save_path)
-        full_video_path = f"{save_path}/{vid_title}"
-        # print(f"Saving highlight for time step {preloaded_time_step} at \"{full_video_path}\" ...")
-        # anim.save(full_video_path, writer=writer)
         plt.show()
-        # print(f"Finished saving highlight for time step {preloaded_time_step}.")
+        # uncomment this plt.show() if you want to see the visualization.
+        # for now, it's uncommented because we are saving to mp4's
+        pass
     else:
         # if not in highlight mode, show interactive sim and run normally
         plt.show()
@@ -745,6 +740,8 @@ def main():
     # grab arguments of format: 'Store A Owner','Store B Owner','Repairman','Shopper','Suscipious','Home Owner'
     agent_indices = Util.get_agent_indices(sys.argv)
     global event_mapping
+
+    Util.prepare_dir(agents_save_path)
 
     # run initial interactive simulation with command line initial locations
     agents, anim = run_simulation(agent_indices=agent_indices, event_names=event_mapping)
