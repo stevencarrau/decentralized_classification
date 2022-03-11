@@ -343,9 +343,7 @@ class SimulationRunner:
             # for the first and last frames, save more pictures to make
             # the video more palatable. otherwise, keep the # of frames to
             # save per actualy frame relatively low
-            num_frames = 4 if i == 0 or i  else 2
-            for j in range(num_frames):
-                plt.savefig(vid_title, bbox_inches='tight')
+            plt.savefig(vid_title, bbox_inches='tight')
 
             # the finish case updates the time step [scroll down a bit for context]:
             # so if the sim has finished in the previous time step, we will be 1 time
