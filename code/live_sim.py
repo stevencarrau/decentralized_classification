@@ -454,8 +454,7 @@ class SimulationRunner:
                     write_objects += agent.update_belief(agent.belief_values, -2)
                     new_beliefs = agent.belief_values
                     delta_beliefs = new_beliefs - prev_beliefs
-                    delta_threat_belief = new_beliefs[4] - prev_beliefs[4]
-                    delta_nonthreat_belief = (1.0 - new_beliefs[4]) - (1.0 - prev_beliefs[4])
+                    delta_threat_belief = delta_beliefs[4]
                     agent.highlight_reel.add_item(time_step=simulation.time_step, max_delta=agent.max_delta,
                                                   prev_state=agent.state, next_state=next_s,
                                                   trigger=simulation.ani.event, prev_beliefs=prev_beliefs,
