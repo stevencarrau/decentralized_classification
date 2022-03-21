@@ -126,7 +126,7 @@ class Agent:
 
         # dictates what column indices map to in the 2D reel np array
         ITEM_LABELS_TO_IDX = {"time_step": 0, "max_delta": 1, "prev_state": 2, "next_state": 3, "trigger": 4,
-                              "prev_beliefs": 5, "delta_beliefs": 6}
+                              "prev_beliefs": 5, "delta_beliefs": 6, "delta_threat_belief": 7}
         NUM_ITEM_LABELS = len(ITEM_LABELS_TO_IDX)
         EMPTY_ITEM = np.full((NUM_ITEM_LABELS), -1, dtype=object)
 
@@ -152,7 +152,7 @@ class Agent:
             sort self.reel based off of criteria.
             currently, reel is sorted on the max_delta column
             """
-            column_idx = self.ITEM_LABELS_TO_IDX["max_delta"]
+            column_idx = self.ITEM_LABELS_TO_IDX["delta_threat_belief"]
             self.reel = self.reel[self.reel[:, column_idx].argsort()]
 
         def add_item(self, **item_args):

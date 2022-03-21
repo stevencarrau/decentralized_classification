@@ -127,6 +127,7 @@ def save_highlights_for_single_agent(agents):
     Using `agents` loaded from disk, load the most significant highlights for a single
     agent from cmdline args. Save the highlight videos to $PWD/`highlight_videos_save_path`
     """
+
     # get the agent index from args
     assert len(sys.argv) == 2, "Must specify the agent idx through program arguments."
     chosen_agent_idx = int(sys.argv[1])
@@ -135,6 +136,7 @@ def save_highlights_for_single_agent(agents):
         raise Exception(f"Invalid agent idx: must be one of {agent_idx_choices} for the saved "
                         f"agents data file {agents_full_fpath}")
 
+    print(f"-------SAVING MOST IMPACTFUL HIGHLIGHTS WHILE CONSIDERING ONLY AGENT {chosen_agent_idx}-------")
     chosen_agent = get_agent_with_idx(chosen_agent_idx, agents)
 
     # load the most significant highlight data for the agent
@@ -144,7 +146,33 @@ def save_highlights_for_single_agent(agents):
     # important episodes first)
     for i in range(len(highlights) - 1, -1, -1):
         highlight = highlights[i]
-        run_and_save_sim_for_single_highlight(chosen_agent_idx, chosen_agent, i, highlight)
+        run_and_save_sim_for_single_highlight(chosen_agent_idx=chosen_agent_idx, chosen_agent=chosen_agent,
+                                              highlight_idx=i, highlight=highlight)
+
+def save_most_threatful_highlights_all_agents(agents):
+    """
+    Using `agents` loaded from disk, load the highlights with the most `delta_threat_belief` in
+    the highlight_reel array, and save them to disk, from all agents.
+    """
+    print("-------SAVING MOST THREATFUL HIGHLIGHTS WHILE CONSIDERING ALL AGENTS-------")
+
+    # combine all agents' highlights so we can look at them as a whole
+    all_highlights = []
+    for agent in agents:
+        for highlight_idx in range(agent.highlight_reel.reel_length):
+            highlight = agent.highlight_reel.reel[highlight_idx]
+            delta_threat_belief = get_highlight_item_value(highlight, "delta_threat_belief")
+            all_highlights.append((delta_threat_belief, agent.agent_idx, agent, highlight_idx, highlight))
+
+    # sort this combined list by delta_threat_belief (at idx 0 for every tuple in the list).
+    # reverse so that the most impactful are at the front of the list; take the first 5 after that
+    # so we only run and save 5 sims
+    sorted_highlights = sorted(all_highlights, key=lambda x: x[0], reverse=True)[:5]
+
+    # show a sim for every one of these highlights
+    for tup in sorted_highlights:
+        run_and_save_sim_for_single_highlight(chosen_agent_idx=tup[1], chosen_agent=tup[2],
+                                              highlight_idx=tup[3], highlight=tup[4])
 
 def main():
     """
@@ -157,8 +185,9 @@ def main():
     agents = np.load(agents_full_fpath, allow_pickle=True).tolist()
     # print(agents)
 
-    save_highlights_for_single_agent(agents)
+    # save_highlights_for_single_agent(agents)
 
+    save_most_threatful_highlights_all_agents(agents)
 
     print("Finished saving all highlights.")
 
