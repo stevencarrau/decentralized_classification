@@ -4,14 +4,26 @@ class Util:
     @staticmethod
     def prod2state(s_in, prod_keys):
         return prod_keys[s_in][0]
+    @staticmethod
+    def prod2stateSet(set_state,prod_keys):
+        return set([prod_keys[s_in][0] for s_in in set_state])
 
     @staticmethod
     def prod2dis(s_in, prod_keys):
         return prod_keys[s_in][1]
 
     @staticmethod
+    def prod2disSet(set_state, prod_keys):
+        return set([prod_keys[s_in][1] for s_in in set_state])
+
+
+    @staticmethod
     def state2prod(s_in, dis_in, states):
         return states[(s_in, dis_in)]
+
+    @staticmethod
+    def state2prodSet(set_pairs,states):
+        return set([states[(s_in[0],s_in[1])]for s_in in set_pairs])
 
     @staticmethod
     def coords(s, ncols):

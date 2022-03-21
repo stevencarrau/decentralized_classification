@@ -114,6 +114,17 @@ class MDP(NFA):
                 #     policy[s].add(a)
         return U, policy
 
+    def neighbor_states(self,s_in,dist=1):
+        neighbor_set = set()
+        neighbor_set.add(s_in)
+        for i in range(dist):
+            dist_set = set()
+            for s in neighbor_set:
+                for a in self.alphabet:
+                    dist_set = dist_set.union(self.post(s,a))
+            neighbor_set= neighbor_set.union(dist_set)
+        return neighbor_set
+
     # def E_step_value_iteration(self,R,
     #                     epsilon=0.1, gamma=0.9):
     #     U1 = dict([(s, 0) for s in self.states])
