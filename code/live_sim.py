@@ -369,22 +369,22 @@ class SimulationRunner:
             return write_objects
 
         active_event = simulation.ani.event
-        # if simulation.time_step > 5 and simulation.time_step - 1 < 15:
-        #     active_event = 2
-        # elif simulation.time_step > 14 and simulation.time_step - 1 < 21:
-        #     active_event = 6
-        # elif simulation.time_step > 20 and simulation.time_step - 1 < 31:
-        #     active_event = 4
-        # elif simulation.time_step > 30 and simulation.time_step - 1 < 36:
-        #     active_event = 1
-        # elif simulation.time_step > 35 and simulation.time_step - 1 < 41:
-        #     active_event = 2
-        #     for a_i in agents:
-        #         a_i.alpha=1
-        # elif simulation.time_step > 41 and simulation.time_step - 1 < 48:
-        #     active_event = 4
-        # else:
-        #     active_event = 0
+        if simulation.time_step > 5 and simulation.time_step - 1 < 15:
+            active_event = 2
+        elif simulation.time_step > 14 and simulation.time_step - 1 < 21:
+            active_event = 6
+        elif simulation.time_step > 20 and simulation.time_step - 1 < 31:
+            active_event = 4
+        elif simulation.time_step > 30 and simulation.time_step - 1 < 36:
+            active_event = 1
+        elif simulation.time_step > 35 and simulation.time_step - 1 < 41:
+            active_event = 2
+            for a_i in agents:
+                a_i.alpha=1
+        elif simulation.time_step > 41 and simulation.time_step - 1 < 48:
+            active_event = 4
+        else:
+            active_event = 0
 
         # special case for highlight mode: show stored triggers regardless
         # of keypresses since we only want to highlight stored data
