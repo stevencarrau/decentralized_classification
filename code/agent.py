@@ -2,6 +2,7 @@ import numpy as np
 from math import floor,log
 from math import pi
 from util import Util
+from darpa_model import track_outs
 
 def entropy(dist_in):
     H = 0
@@ -116,6 +117,99 @@ class Agent:
         self.belief_fill.set_visible(False)
         self.belief_artist.set_visible(False)
         self.belief_text.set_visible(False)
+
+    def livesim_step_update(self, simulation, agent_idx):
+        """
+        Called during grid_update() in live_sim.py to update agent
+        beliefs, belief plots, and populate track queues (if required).
+        simulation: Should be a Simulation object, should probably be
+                    SimulationRunner.instance.
+        agent_idx: The idx of the agent inside the agents list in live_sim.
+                    May not always be equivalent to self.agent_idx
+        Returns an array, write_objects.
+        """
+        write_objects = []
+        ncols = simulation.ncols
+        building_squares = simulation.building_squares
+
+        if len(self.track_queue) == 0:
+            # if we're running in highlight mode, the pre-loaded track queue
+            # has been finished (the episode is done playing), so stop the animation
+            if self.highlight_mode:
+                # increment time step to signal that we are done with the highlight episode
+                # [scroll up a bit]
+                # simulation.pause_flag = True
+                simulation.time_step += 1
+                simulation.counter_text.set_text('{}'.format(simulation.time_step))
+                # update the belief plot to the new beliefs to show the change in beliefs
+                # that happened as an effect of the current highlight episode (the new plot
+                # will have the most recent loaded beliefs after the episode)
+                new_beliefs = self.highlight_prev_beliefs + self.highlight_delta_beliefs
+                self.update_belief(new_beliefs, -2)
+
+                # update sim and don't continue with rest of code since that will be sampling from
+                # mdp etc. -- we just want to load past data
+                return write_objects
+            next_s = self.mdp.sample(self.state, simulation.ani.event)
+            dist = 1
+            print(Util.prod2stateSet(self.mdp.neighbor_states(self.state, dist),
+                                     self.states))  # States in the environment that are dist away
+            self.track_queue += track_outs(
+                (Util.prod2state(self.state, self.states), Util.prod2state(next_s, self.states)))
+            if agent_idx == 0:
+                simulation.pause_flag = True
+                simulation.time_step += 1
+                simulation.counter_text.set_text('{}'.format(simulation.time_step))
+                write_objects += [simulation.counter_text]
+            if self.track_queue[0] in simulation.observable_states:
+                prev_beliefs = self.belief_values
+                self.update_value(simulation.ani.event, next_s)
+                print('{} at {}: {}'.format(agent_idx, simulation.time_step, self.max_delta))
+                write_objects += self.update_belief(self.belief_values, -2)
+                new_beliefs = self.belief_values
+                delta_beliefs = new_beliefs - prev_beliefs
+                delta_threat_belief = delta_beliefs[4]
+                self.highlight_reel.add_item(time_step=simulation.time_step, max_delta=self.max_delta,
+                                              prev_state=self.state, next_state=next_s,
+                                              trigger=simulation.ani.event, prev_beliefs=prev_beliefs,
+                                              delta_beliefs=delta_beliefs, delta_threat_belief=delta_threat_belief)
+            self.state = next_s
+            self.dis = Util.prod2dis(self.state, self.states)
+        non_write_dis = [0, 1, 2]
+        non_write_dis.pop(Util.prod2dis(self.state, self.states))
+        write_objects += [self.c_set[c_j].set_visible(False) for c_j in non_write_dis]
+        c_i = self.c_set[Util.prod2dis(self.state, self.states)]
+        c_i.set_visible(True)
+        b_i = self.b_i
+        self.activate_belief_plt()
+        b_i.set_visible(True)
+        text_i = self.t_i
+        if simulation.ani.moving:
+            agent_pos = self.track_queue.pop(0)
+        else:
+            agent_pos = self.track_queue[0]
+        loc = tuple(reversed(Util.coords(agent_pos - 30, ncols)))
+        # Use below line if you're working with circles
+        b_i.set_center([loc[0] + 1, loc[1] - 1])
+
+        # Use this line if you're working with images
+        c_i.xy = loc
+        c_i.xyann = loc
+        c_i.xybox = loc
+
+        if agent_pos in building_squares:
+            c_i.offsetbox.image.set_alpha(0.35)
+        else:
+            c_i.offsetbox.image.set_alpha(1.0)
+
+        self.c_set[Util.prod2dis(self.state, self.states)] = c_i
+        if self.belief > 0.75:
+            b_i.set_visible(True)
+        else:
+            b_i.set_visible(False)
+        write_objects += [c_i, b_i]
+
+        return write_objects
 
     class HighlightReel:
         """

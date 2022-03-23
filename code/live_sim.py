@@ -420,82 +420,9 @@ class SimulationRunner:
                 write_objects += [tr_ar[-2][0], tr_ar[-1][0]]
 
         for agent_idx, agent in enumerate(agents):
-            if len(agent.track_queue) == 0:
-                # if we're running in highlight mode, the pre-loaded track queue
-                # has been finished (the episode is done playing), so stop the animation
-                if agent.highlight_mode:
-                    # increment time step to signal that we are done with the highlight episode
-                    # [scroll up a bit]
-                    # simulation.pause_flag = True
-                    simulation.time_step += 1
-                    simulation.counter_text.set_text('{}'.format(simulation.time_step))
-                    # update the belief plot to the new beliefs to show the change in beliefs
-                    # that happened as an effect of the current highlight episode (the new plot
-                    # will have the most recent loaded beliefs after the episode)
-                    new_beliefs = agent.highlight_prev_beliefs + agent.highlight_delta_beliefs
-                    agent.update_belief(new_beliefs, -2)
-
-                    # update sim and don't continue with rest of code since that will be sampling from
-                    # mdp etc. -- we just want to load past data
-                    SimulationRunner.instance = simulation
-                    return write_objects
-                next_s = agent.mdp.sample(agent.state, simulation.ani.event)
-                dist = 1
-                print(Util.prod2stateSet(agent.mdp.neighbor_states(agent.state,dist),agent.states)) # States in the environment that are dist away
-                agent.track_queue += track_outs(
-                    (Util.prod2state(agent.state, agent.states), Util.prod2state(next_s, agent.states)))
-                if agent_idx == 0:
-                    simulation.pause_flag = True
-                    simulation.time_step += 1
-                    simulation.counter_text.set_text('{}'.format(simulation.time_step))
-                    write_objects += [simulation.counter_text]
-                if agent.track_queue[0] in simulation.observable_states:
-                    prev_beliefs = agent.belief_values
-                    agent.update_value(simulation.ani.event, next_s)
-                    print('{} at {}: {}'.format(agent_idx,simulation.time_step,agent.max_delta))
-                    write_objects += agent.update_belief(agent.belief_values, -2)
-                    new_beliefs = agent.belief_values
-                    delta_beliefs = new_beliefs - prev_beliefs
-                    delta_threat_belief = delta_beliefs[4]
-                    agent.highlight_reel.add_item(time_step=simulation.time_step, max_delta=agent.max_delta,
-                                                  prev_state=agent.state, next_state=next_s,
-                                                  trigger=simulation.ani.event, prev_beliefs=prev_beliefs,
-                                                  delta_beliefs=delta_beliefs, delta_threat_belief=delta_threat_belief)
-                agent.state = next_s
-                agent.dis  = Util.prod2dis(agent.state,agent.states)
-            non_write_dis = [0,1,2]
-            non_write_dis.pop(Util.prod2dis(agent.state, agent.states))
-            write_objects += [agent.c_set[c_j].set_visible(False) for c_j in non_write_dis]
-            c_i = agent.c_set[Util.prod2dis(agent.state, agent.states)]
-            c_i.set_visible(True)
-            b_i = agent.b_i
-            agent.activate_belief_plt()
-            b_i.set_visible(True)
-            text_i = agent.t_i
-            if simulation.ani.moving:
-                agent_pos = agent.track_queue.pop(0)
-            else:
-                agent_pos = agent.track_queue[0]
-            loc = tuple(reversed(Util.coords(agent_pos - 30, ncols)))
-            # Use below line if you're working with circles
-            b_i.set_center([loc[0] + 1, loc[1] - 1])
-
-            # Use this line if you're working with images
-            c_i.xy = loc
-            c_i.xyann = loc
-            c_i.xybox = loc
-
-            if agent_pos in building_squares:
-                c_i.offsetbox.image.set_alpha(0.35)
-            else:
-                c_i.offsetbox.image.set_alpha(1.0)
-
-            agent.c_set[Util.prod2dis(agent.state, agent.states)] = c_i
-            if agent.belief > 0.75:
-                b_i.set_visible(True)
-            else:
-                b_i.set_visible(False)
-            write_objects += [c_i, b_i]
+            # update beliefs, beleif charts, and track queue (if necessary)
+            # for all agents
+            write_objects.extend(agent.livesim_step_update(simulation, agent_idx))
 
         for r_i in rl_ar:
             r_i[0].set_visible(False)
@@ -662,7 +589,7 @@ def run_simulation(agent_indices, event_names, highlight_agent_idx=None, preload
     with open('VisibleStates.json') as json_file:
         observable_regions = json.load(json_file)
 
-    my_dpi = 350
+    my_dpi = 150
     Writer = matplotlib.animation.writers['ffmpeg']
     writer = Writer(fps=2.0, metadata=dict(artist='Me'), bitrate=1800)
     fig = plt.figure(figsize=(3600 / my_dpi, 2000 / my_dpi), dpi=my_dpi)
