@@ -47,6 +47,15 @@ class Agent:
         self.highlight_prev_beliefs = None
         self.highlight_delta_beliefs = None
 
+        # fields for the network graph
+        # cumulative number of times that other agents stepped in a neighboring state at that time step, but just
+        # worry about the state and the frequency of being in that other state, not about the agents themselves
+        self.neighboring_states_count = {}
+
+        # cumulative number of times that other agents stepped in a neighboring state at that time step, but don't
+        # worry about the states: just about the frequency of being in *a* neighboring state, and the agents
+        self.agents_in_neighboring_states_count = {}
+
     def likelihood(self, a, next_s, mc_dict):
         return np.array([m_i[(self.state, next_s)] for m_i in mc_dict[a]]).reshape((-1, 1))
 
@@ -118,14 +127,19 @@ class Agent:
         self.belief_artist.set_visible(False)
         self.belief_text.set_visible(False)
 
-    def livesim_step_update(self, simulation, agent_idx):
+    def livesim_step_update(self, simulation, agent_idx, all_agent_locations):
         """
         Called during grid_update() in live_sim.py to update agent
         beliefs, belief plots, and populate track queues (if required).
         simulation: Should be a Simulation object, should probably be
                     SimulationRunner.instance.
         agent_idx: The idx of the agent inside the agents list in live_sim.
-                    May not always be equivalent to self.agent_idx
+                    May not always be equivalent to self.agent_idx (agent_idx is
+                    the location in the agents array but agent.agent_idx is the actual
+                    id tag of the agent)
+        all_agent_locations: A dict from agent.agent_idx -> prod2state(agent.state).
+                            Basically a mapping of all agents' previous locations before
+                            any updates.
         Returns an array, write_objects.
         """
         write_objects = []
@@ -147,13 +161,34 @@ class Agent:
                 new_beliefs = self.highlight_prev_beliefs + self.highlight_delta_beliefs
                 self.update_belief(new_beliefs, -2)
 
-                # update sim and don't continue with rest of code since that will be sampling from
+                # don't continue with rest of code since that will be sampling from
                 # mdp etc. -- we just want to load past data
                 return write_objects
+
+            print("agent idx:", self.agent_idx)
             next_s = self.mdp.sample(self.state, simulation.ani.event)
+            # find the states that are `dist` away from the agents' current state
             dist = 1
-            print(Util.prod2stateSet(self.mdp.neighbor_states(self.state, dist),
-                                     self.states))  # States in the environment that are dist away
+            valid_neighbor_states = Util.prod2stateSet(self.mdp.neighbor_states(self.state, dist),
+                                     self.states)
+            print("neighboring states before:", self.neighboring_states_count)
+            print("agent in neighboring states count before:", self.agents_in_neighboring_states_count)
+            print("neighbor states:", valid_neighbor_states)  # States in the environment that are dist away
+            print("all_agent_locations:", all_agent_locations)
+            for idx in all_agent_locations:
+                # we want to only consider agents that aren't `self` and are within
+                # `dist` from `self`'s state
+                neighbor_state = all_agent_locations[idx]
+                if (idx == self.agent_idx) or (neighbor_state not in valid_neighbor_states):
+                    continue
+                # another agent stepped in a neighboring state: increase the freq for that neighboring state
+                self.neighboring_states_count[neighbor_state] = self.neighboring_states_count.get(neighbor_state, 0) + 1
+                # another agent stepped into a neighboring state: increase the freq for that agent
+                self.agents_in_neighboring_states_count[idx] = self.agents_in_neighboring_states_count.get(idx, 0) + 1
+
+            print("updated neighboring_states:", self.neighboring_states_count)
+            print("updated agent in neighboring states count:", self.agents_in_neighboring_states_count)
+
             self.track_queue += track_outs(
                 (Util.prod2state(self.state, self.states), Util.prod2state(next_s, self.states)))
             if agent_idx == 0:
@@ -175,6 +210,7 @@ class Agent:
                                               delta_beliefs=delta_beliefs, delta_threat_belief=delta_threat_belief)
             self.state = next_s
             self.dis = Util.prod2dis(self.state, self.states)
+            print("\n")
         non_write_dis = [0, 1, 2]
         non_write_dis.pop(Util.prod2dis(self.state, self.states))
         write_objects += [self.c_set[c_j].set_visible(False) for c_j in non_write_dis]

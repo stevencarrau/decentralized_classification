@@ -419,10 +419,17 @@ class SimulationRunner:
                 tr_ar[-2][0].set_visible(True)
                 write_objects += [tr_ar[-2][0], tr_ar[-1][0]]
 
+        # store the locations (states) of all agents before any updates are
+        # made so that we dont get sequencing errors
+        all_agent_locations = {}
+        for agent in agents:
+            # agent idx -> state mapping
+            all_agent_locations[agent.agent_idx] = Util.prod2state(agent.state, agent.states)
+
         for agent_idx, agent in enumerate(agents):
             # update beliefs, beleif charts, and track queue (if necessary)
             # for all agents
-            write_objects.extend(agent.livesim_step_update(simulation, agent_idx))
+            write_objects.extend(agent.livesim_step_update(simulation, agent_idx, all_agent_locations))
 
         for r_i in rl_ar:
             r_i[0].set_visible(False)
@@ -589,7 +596,7 @@ def run_simulation(agent_indices, event_names, highlight_agent_idx=None, preload
     with open('VisibleStates.json') as json_file:
         observable_regions = json.load(json_file)
 
-    my_dpi = 150
+    my_dpi = 350
     Writer = matplotlib.animation.writers['ffmpeg']
     writer = Writer(fps=2.0, metadata=dict(artist='Me'), bitrate=1800)
     fig = plt.figure(figsize=(3600 / my_dpi, 2000 / my_dpi), dpi=my_dpi)
