@@ -48,13 +48,11 @@ class Agent:
         self.highlight_delta_beliefs = None
 
         # fields for the network graph
-        # cumulative number of times that other agents stepped in a neighboring state at that time step, but just
-        # worry about the state and the frequency of being in that other state, not about the agents themselves
-        self.neighboring_states_count = {}
 
-        # cumulative number of times that other agents stepped in a neighboring state at that time step, but don't
-        # worry about the states: just about the frequency of being in *a* neighboring state, and the agents
-        self.agents_in_neighboring_states_count = {}
+        # agent_idx -> cumulative # of times that the other agent was in a neighboring state of `self`
+        self.agent_in_neighbor_state_freqs = {}
+        # the limit for how far away a neighbor state can be, from where `self` is right now
+        self.neighbor_state_radius = 1
 
     def likelihood(self, a, next_s, mc_dict):
         return np.array([m_i[(self.state, next_s)] for m_i in mc_dict[a]]).reshape((-1, 1))
@@ -167,27 +165,21 @@ class Agent:
 
             print("agent idx:", self.agent_idx)
             next_s = self.mdp.sample(self.state, simulation.ani.event)
-            # find the states that are `dist` away from the agents' current state
-            dist = 1
-            valid_neighbor_states = Util.prod2stateSet(self.mdp.neighbor_states(self.state, dist),
+            valid_neighbor_states = Util.prod2stateSet(self.mdp.neighbor_states(self.state, self.neighbor_state_radius),
                                      self.states)
-            print("neighboring states before:", self.neighboring_states_count)
-            print("agent in neighboring states count before:", self.agents_in_neighboring_states_count)
+            print("agent in neighboring states count before:", self.agent_in_neighbor_state_freqs)
             print("neighbor states:", valid_neighbor_states)  # States in the environment that are dist away
             print("all_agent_locations:", all_agent_locations)
             for idx in all_agent_locations:
                 # we want to only consider agents that aren't `self` and are within
-                # `dist` from `self`'s state
-                neighbor_state = all_agent_locations[idx]
-                if (idx == self.agent_idx) or (neighbor_state not in valid_neighbor_states):
+                # `dist` from `self`'s state (so that they are neighbor states)
+                agent_state = all_agent_locations[idx]
+                if (idx == self.agent_idx) or (agent_state not in valid_neighbor_states):
                     continue
-                # another agent stepped in a neighboring state: increase the freq for that neighboring state
-                self.neighboring_states_count[neighbor_state] = self.neighboring_states_count.get(neighbor_state, 0) + 1
                 # another agent stepped into a neighboring state: increase the freq for that agent
-                self.agents_in_neighboring_states_count[idx] = self.agents_in_neighboring_states_count.get(idx, 0) + 1
+                self.agent_in_neighbor_state_freqs[idx] = self.agent_in_neighbor_state_freqs.get(idx, 0) + 1
 
-            print("updated neighboring_states:", self.neighboring_states_count)
-            print("updated agent in neighboring states count:", self.agents_in_neighboring_states_count)
+            print("updated agent in neighboring states count:", self.agent_in_neighbor_state_freqs)
 
             self.track_queue += track_outs(
                 (Util.prod2state(self.state, self.states), Util.prod2state(next_s, self.states)))

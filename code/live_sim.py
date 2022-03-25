@@ -419,8 +419,7 @@ class SimulationRunner:
                 tr_ar[-2][0].set_visible(True)
                 write_objects += [tr_ar[-2][0], tr_ar[-1][0]]
 
-        # store the locations (states) of all agents before any updates are
-        # made so that we dont get sequencing errors
+        # mapping of form agent_idx -> its state, to pass into agent.livesim_step_update
         all_agent_locations = {}
         for agent in agents:
             # agent idx -> state mapping
@@ -596,7 +595,7 @@ def run_simulation(agent_indices, event_names, highlight_agent_idx=None, preload
     with open('VisibleStates.json') as json_file:
         observable_regions = json.load(json_file)
 
-    my_dpi = 350
+    my_dpi = 150
     Writer = matplotlib.animation.writers['ffmpeg']
     writer = Writer(fps=2.0, metadata=dict(artist='Me'), bitrate=1800)
     fig = plt.figure(figsize=(3600 / my_dpi, 2000 / my_dpi), dpi=my_dpi)
