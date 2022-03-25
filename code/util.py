@@ -77,6 +77,13 @@ class Util:
 
         return sorted(inputs)
 
+    @staticmethod
+    def assert_livesim_data_exists(dir):
+        # make sure agents data file is already saved
+        if not (os.path.exists(dir) and os.path.isdir(dir)):
+            raise Exception("live_sim.py was probably not run yet. Run it to generate data and make sure"
+                            f" the data is saved correctly. Should be stored at {dir}")
+
 from collections import OrderedDict
 
 # class LimitedSizeDict(OrderedDict):

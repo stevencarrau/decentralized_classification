@@ -34,6 +34,9 @@ video_data_save_path = "video_data"
 # dict from event index to event name
 event_mapping = {0: 'nominal', 1: 'iceA', 2: 'iceB', 3: 'iceC', 4: 'alarmA', 5: 'alarmB', 6: 'alarmG'}
 
+agent_image_paths = ['pictures/captain_america', 'pictures/black_widow', 'pictures/hulk',
+                     'pictures/thor', 'pictures/thanos', 'pictures/ironman']
+
 
 class SensorState(Enum):
     REMOVE_SENSOR = 1
@@ -155,8 +158,6 @@ class SimulationRunner:
 
         init_states = [ind[1] for ind in desiredIndices]
         agents = []  # use "None"s as placeholders
-        agent_image_paths = ['pictures/captain_america', 'pictures/black_widow', 'pictures/hulk',
-                             'pictures/thor', 'pictures/thanos', 'pictures/ironman']
         path_augments = ['.png','-uncertain.png','-random.png']
         random_image_paths = ['pictures/rnd_level1.png', 'pictures/rnd_level2.png', 'pictures/rnd_level3.png']
         agent_character_names = ['Captain America', 'Black Widow', 'Hulk', 'Thor', 'Thanos', 'Ironman']
@@ -595,7 +596,7 @@ def run_simulation(agent_indices, event_names, highlight_agent_idx=None, preload
     with open('VisibleStates.json') as json_file:
         observable_regions = json.load(json_file)
 
-    my_dpi = 150
+    my_dpi = 350
     Writer = matplotlib.animation.writers['ffmpeg']
     writer = Writer(fps=2.0, metadata=dict(artist='Me'), bitrate=1800)
     fig = plt.figure(figsize=(3600 / my_dpi, 2000 / my_dpi), dpi=my_dpi)

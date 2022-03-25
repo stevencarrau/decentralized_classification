@@ -1,12 +1,8 @@
 from live_sim import *
 from darpa_model import get_env_tracks
 import os
-import time
 
-# make sure agents data file is already saved
-if not (os.path.exists(agents_save_path) and os.path.isdir(agents_save_path)):
-    raise Exception("live_sim.py was probably not run yet. Run it to generate data and make sure"
-                    f" the data is saved correctly. Should be stored at {agents_full_fpath}")
+Util.assert_livesim_data_exists(agents_save_path)
 
 # create highlights folder if does not exist
 highlight_videos_save_path = "highlight_videos"
