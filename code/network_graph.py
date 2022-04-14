@@ -1,5 +1,3 @@
-import matplotlib.pyplot as plt
-
 from live_sim import *
 import numpy as np
 from util import Util
@@ -35,10 +33,6 @@ def plt_draw_network(network, pos, agent_idxs_to_amplify=None, show=False):
     nodes = network.nodes()
     edges = network.edges()
 
-    # have a color map
-    # black, with alpha=weight
-    # edge_colors = [(0, 0, 0, network[u][v]['weight']) for u, v in edges]
-
     # have a color map gradient so colors indicate edge weight
     rgba = lambda r, g, b, a: (r/255, g/255, b/255, a)
     gradient_map = [
@@ -61,17 +55,15 @@ def plt_draw_network(network, pos, agent_idxs_to_amplify=None, show=False):
 
     edge_coloring = []
     for u,v in edges:
-        # put the weight into 1 of the 10 bins above
+        # put the weight into 1 of the bins above
         frac = network[u][v]['weight']
-        percentage = round(frac * 100)
-        bin = percentage // gradient_map_bin_size
-
+        bin = round(frac * 100) // gradient_map_bin_size
         color = gradient_map[bin]
         edge_coloring.append(color)
 
-    # have the same thickness for all edges
-    # thicknesses = [1 for u,v in edges]
-    thicknesses = [network[u][v]['weight']*8 for u,v in edges]
+    # have varying thickness to show more about relations within a certain category
+    thickness_scale = 6
+    thicknesses = [network[u][v]['weight'] * thickness_scale for u,v in edges]
 
     my_dpi = 350
     fig = plt.figure(figsize=(3600 / my_dpi, 2000 / my_dpi), dpi=my_dpi)
@@ -81,7 +73,7 @@ def plt_draw_network(network, pos, agent_idxs_to_amplify=None, show=False):
     ec = nx.draw_networkx_edges(network, pos, ax=ax, width=thicknesses, edge_color=edge_coloring)
     # draw nodes (agents)
     nc = nx.draw_networkx_nodes(network, pos, ax=ax, node_color='none')
-    # draw edge labels
+    # draw edge labels: don't do this because it'll get busy very quickly
     # weight_labels = nx.get_edge_attributes(network, 'weight')
     # nx.draw_networkx_edge_labels(network, pos=pos, edge_labels=weight_labels, ax=ax)
 
@@ -125,7 +117,6 @@ def plt_save_picture(picture_title):
     network_image_full_fpath = f"{network_images_save_path}/{picture_title}_network.png"
     print(f"\nSaving image to '{network_image_full_fpath}'...")
     plt.savefig(network_image_full_fpath)
-    # plt.close()
     print("Finished saving image.")
 
 def single_agent_centric_graph(agents):
@@ -166,7 +157,8 @@ def single_agent_centric_graph(agents):
         network.add_edge(chosen_agent_idx, other_agent_idx, weight=edge_weight)
     print("edges:", network.edges())
 
-    pos = nx.spring_layout(network) #nx.circular_layout(network)
+    # spring to have the central agent in the middle
+    pos = nx.spring_layout(network)
 
     plt_draw_network(network=network, pos=pos, agent_idxs_to_amplify=[chosen_agent_idx])
 
@@ -211,7 +203,8 @@ def all_agents_graph(agents):
         agent_u_centric_freq = agent_u.agent_in_neighbor_state_freqs.get(agent_v_idx, 0)
         agent_v_centric_freq = agent_v.agent_in_neighbor_state_freqs.get(agent_u_idx, 0)
 
-        # they must be the same: it's like they are within radius of each other
+        # they must be the same: it's like they are within radius of each other so
+        # live_sim should have realized that and say both are neighbors to each other
         assert agent_u_centric_freq == agent_v_centric_freq
 
         # now we can get the edge weight since the freqs are the same from both ends
@@ -221,13 +214,12 @@ def all_agents_graph(agents):
         # skip if it doesn't meet the threshold
         if freq_fraction < freq_threshold_percentage:
             continue
-
         # otherwise, the edge qualifies: add the edge
         network.add_edge(agent_u_idx, agent_v_idx, weight=freq_fraction)
     print("edges:", network.edges())
 
+    # circular to have all the agents in a circle
     pos = nx.circular_layout(network)
-    weights = [network[u][v]['weight'] for u, v in network.edges()]
 
     plt_draw_network(network=network, pos=pos)
 
