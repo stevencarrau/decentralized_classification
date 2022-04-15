@@ -15,6 +15,18 @@ def entropy(dist_in):
     return H
 
 class Agent:
+    # mapping from the type of situation to simulation.ani.event
+    situation_type_to_events = {
+        # no action
+        "nominal": [0],
+        # ice creams 1, 2, and 3
+        "ice_cream": [1, 2, 3],
+        # triggering alarms A, B, or both
+        "alarm": [4, 5, 6],
+        # no filter, all situations
+        "all": [0, 1, 2, 3, 4, 5, 6]
+    }
+
     def __init__(self, c_set, label, char_name, bad_i, mdp, state, t_i, states, state_keys,mc_dict, agent_idx=0):
         self.label = label
         self.char_name = char_name
@@ -36,7 +48,7 @@ class Agent:
         self.dis = Util.prod2dis(state,states)
         self.alpha = 1.0
 
-        # below attributes are for showing the episodes in the highlight
+        # ///////////// highlight reel fields /////////////
         # we store them here instead of HighlightReel because self.highlight_reel
         # gets automatically updated while the sim runs. Storing them in Agent allows
         # us to set aside preloaded data, which is needed for highlighting past movements
@@ -47,10 +59,11 @@ class Agent:
         self.highlight_prev_beliefs = None
         self.highlight_delta_beliefs = None
 
-        # fields for the network graph
-
-        # agent_idx -> cumulative # of times that the other agent was in a neighboring state of `self`
-        self.agent_in_neighbor_state_freqs = {}
+        # # ///////////// network graph fields /////////////
+        # agent_idx -> cumulative  # of times that the other agent was in a neighboring state of `self`.
+        # maintain a separate dict for each situation to be able to show different
+        # network graphs
+        self.neighbor_state_freqs = {key : dict() for key in self.situation_type_to_events}
         # the limit for how far away a neighbor state can be, from where `self` is right now
         self.neighbor_state_radius = 1
 
@@ -164,10 +177,24 @@ class Agent:
                 return write_objects
 
             print("agent idx:", self.agent_idx)
-            next_s = self.mdp.sample(self.state, simulation.ani.event)
+            curr_trigger = simulation.ani.event
+            print("curr_trigger:", curr_trigger)
+            print("agent in neighboring states count before:", self.neighbor_state_freqs)
+            # add 1 to the timesteps regardless of condition: track the number of timesteps spent in each trigger
+            # total
+            curr_situation = None
+            for situation_type, events in self.situation_type_to_events.items():
+                # get the specific situation that's not "all" since all includes every trigger anyways
+                if curr_trigger in events and situation_type != "all":
+                    curr_situation = situation_type
+            assert curr_situation not in ["all", None]
+            self.neighbor_state_freqs[curr_situation]["total_timesteps"] = self.neighbor_state_freqs[curr_situation].get("total_timesteps", 0) + 1
+            # also update 'all' anyways since this tracks timesteps over episodes regardless of situation
+            self.neighbor_state_freqs["all"]["total_timesteps"] = self.neighbor_state_freqs["all"].get("total_timesteps", 0) + 1
+
+            next_s = self.mdp.sample(self.state, curr_trigger)
             valid_neighbor_states = Util.prod2stateSet(self.mdp.neighbor_states(self.state, self.neighbor_state_radius),
                                      self.states)
-            print("agent in neighboring states count before:", self.agent_in_neighbor_state_freqs)
             print("neighbor states:", valid_neighbor_states)  # States in the environment that are dist away
             print("all_agent_locations:", all_agent_locations)
             for idx in all_agent_locations:
@@ -176,10 +203,15 @@ class Agent:
                 agent_state = all_agent_locations[idx]
                 if (idx == self.agent_idx) or (agent_state not in valid_neighbor_states):
                     continue
-                # another agent stepped into a neighboring state: increase the freq for that agent
-                self.agent_in_neighbor_state_freqs[idx] = self.agent_in_neighbor_state_freqs.get(idx, 0) + 1
 
-            print("updated agent in neighboring states count:", self.agent_in_neighbor_state_freqs)
+                # another agent stepped into a neighboring state: increase the freq for that agent
+                # based on the current situation
+                for situation_type, events in self.situation_type_to_events.items():
+                    if curr_trigger in events:
+                        # increase the frequency itself
+                        self.neighbor_state_freqs[situation_type][idx] = self.neighbor_state_freqs[situation_type].get(idx, 0) + 1
+
+            print("updated agent in neighboring states count:", self.neighbor_state_freqs)
 
             self.track_queue += track_outs(
                 (Util.prod2state(self.state, self.states), Util.prod2state(next_s, self.states)))
@@ -198,7 +230,7 @@ class Agent:
                 delta_threat_belief = delta_beliefs[4]
                 self.highlight_reel.add_item(time_step=simulation.time_step, max_delta=self.max_delta,
                                               prev_state=self.state, next_state=next_s,
-                                              trigger=simulation.ani.event, prev_beliefs=prev_beliefs,
+                                              trigger=curr_trigger, prev_beliefs=prev_beliefs,
                                               delta_beliefs=delta_beliefs, delta_threat_belief=delta_threat_belief)
             self.state = next_s
             self.dis = Util.prod2dis(self.state, self.states)
