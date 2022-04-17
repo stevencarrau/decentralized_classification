@@ -35,7 +35,8 @@ def plt_draw_network(network, pos, situation, situation_timesteps, agent_idxs_to
     # have a color map gradient so colors indicate edge weight
     rgba = lambda r, g, b, a: (r/255, g/255, b/255, a)
     gradient_map = [
-        rgba(208, 222, 33, 1),    # yellow
+        rgba(128, 128, 128, 1),     # gray
+        # rgba(208, 222, 33, 1),    # yellow
         # rgba(255, 255, 0, 1),        # highlighter yellow
         rgba(79, 220, 74, 1),       # green
         # rgba(63, 218, 216, 1),    # cyan
