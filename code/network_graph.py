@@ -13,15 +13,17 @@ Util.assert_livesim_data_exists(agents_save_path)
 network_images_save_path = "network_images"
 
 # the threshold for the edge weight to show up
-freq_threshold_percentage = 0.20
+freq_threshold_decimal = 0.20
 
-def plt_draw_network(network, pos, situation, situation_timesteps, agent_idxs_to_amplify=None, show=False):
+def plt_draw_network(network, pos, situation, situation_timesteps, num_timesteps_total,
+                     agent_idxs_to_amplify=None, show=False):
     """
     Draws the network on a plt Canvas.
     network: a networkx graph
     pos: a networkx graph layout
     situation: a string representing the trigger or situation to show data for
     situation_timesteps: the number of timesteps spent in `situation`
+    num_timesteps_total: the number of timesteps spent in the episode total
     agent_centric_idxs: if specified, makes these agents look bigger
     show: if True, does plt.show(). Warning: must set to False if you want
         to save to a picture. Or, add code to save to a picture before plt.show().
@@ -65,7 +67,8 @@ def plt_draw_network(network, pos, situation, situation_timesteps, agent_idxs_to
         edge_coloring.append(color)
 
     # uniform thickness for all edges
-    thicknesses = [3 for u,v in edges]
+    edge_thickness = 3
+    thicknesses = [edge_thickness for u,v in edges]
 
     my_dpi = 350
     fig = plt.figure(figsize=(3600 / my_dpi, 2000 / my_dpi), dpi=my_dpi)
@@ -101,11 +104,17 @@ def plt_draw_network(network, pos, situation, situation_timesteps, agent_idxs_to
     ax.axis('off')
 
     # draw the color legend
-    handles = [Line2D([], [], color=color, label=label)
+    handles = [Line2D([], [], color=color, label=label, linewidth=edge_thickness)
                for color, label in zip(gradient_map, gradient_labels)]
-    ax.legend(handles=handles, loc="upper center", ncol=len(gradient_map), fontsize="small",
-              title=f"Percentage Spent in Neighboring States out of {situation_timesteps} timesteps for '{situation}' "
-                    f"trigger")
+    situation_in_title = "none" if situation == "all" else f"'{situation}'"
+    title = f"Situation filter: {situation_in_title} ({situation_timesteps}/{num_timesteps_total} timesteps)\n" + \
+            f"Threshold: {round(freq_threshold_decimal * 100)}%"
+    # legend = ax.legend(handles=handles, loc="upper center", ncol=len(gradient_map), fontsize="small")
+    legend = ax.legend(handles=handles, loc="lower center", ncol=len(gradient_map), fontsize="small")
+    # legend = ax.legend(handles=handles, loc="center right", ncol=1, x fontsize="small")
+
+    ax.title.set_text(title)
+    # plt.setp(ax.get_texts(), multialignment='center')
 
     if show:
         plt.show()
@@ -121,59 +130,6 @@ def plt_save_picture(picture_title):
     print(f"\nSaving image to '{network_image_full_fpath}'...")
     plt.savefig(network_image_full_fpath)
     print("Finished saving image.")
-
-def single_agent_centric_graph(agents, agent_idx, situation_filter):
-    """
-    Visually show the relation between different agents as a graph.
-    agents: numpy array of agents
-    agent_idx: idx to show graph for
-    situation_filter: which situations to show the network graph for.
-    """
-    chosen_agent = get_agent_with_idx(agent_idx, agents)
-    other_agents = [agent for agent in agents if agent.agent_idx != agent_idx]
-
-    assert situation_filter in Agent.situation_type_to_events, "Situation type must be one of the situations specified" \
-                                                               " in Agent.situation_type_to_events: " \
-                                                               f"{Agent.situation_type_to_events.keys()}"
-
-    # get the total number of timesteps that the agent spent in that trigger overall
-    total_timesteps = chosen_agent.neighbor_state_freqs[situation_filter]["total_timesteps"]
-
-    network = nx.Graph()
-    # add all nodes first
-    for agent in agents:
-        idx = agent.agent_idx
-        img_path = agent_image_paths[idx] + ".png"
-        img = mpimg.imread(img_path)
-        network.add_node(idx, image=img)
-    print("nodes:", network.nodes())
-
-    # add the edges, weights, and images now
-    for other_agent in other_agents:
-        other_agent_idx = other_agent.agent_idx
-        # weight depends on how many times `other_agent` was in a neighbor state
-        # of `chosen_agent`
-        freq = chosen_agent.neighbor_state_freqs[situation_filter].get(other_agent_idx, 0)
-        freq = freq / total_timesteps
-
-        # skip if it goes over the threshold
-        if freq < freq_threshold_percentage:
-            continue
-        edge_weight = freq
-
-        network.add_edge(agent_idx, other_agent_idx, weight=edge_weight)
-    print("edges:", network.edges())
-
-    # circular layout, but emphasized agent will be larger than others
-    pos = nx.circular_layout(network)
-
-    plt_draw_network(network=network, pos=pos, situation=situation_filter, situation_timesteps=total_timesteps,
-                     agent_idxs_to_amplify=[agent_idx])
-
-    # save the image as a picture
-    agent_character_names = ['Captain_America', 'Black_Widow', 'Hulk', 'Thor', 'Thanos', 'Ironman']
-    agent_name = agent_character_names[agent_idx]
-    plt_save_picture(picture_title=f"{agent_name}_{situation_filter}")
 
 def all_agents_graph(agents, situation_filter):
     """
@@ -196,10 +152,17 @@ def all_agents_graph(agents, situation_filter):
                                                                f"{Agent.situation_type_to_events.keys()}"
 
     # assert that all the timesteps among all agents should be equal for this situation
-    all_timesteps = [agent.neighbor_state_freqs[situation_filter]["total_timesteps"] for agent in agents]
-    total_timesteps = all_timesteps[0]
-    assert all(val == total_timesteps for val in all_timesteps), f"timesteps for situation {situation_filter} should " \
-                                                                 f"be equal for all agents"
+    all_timesteps_in_situation = [agent.neighbor_state_freqs[situation_filter]["total_timesteps"] for agent in agents]
+    timesteps_in_situation = all_timesteps_in_situation[0]
+    assert all(val == timesteps_in_situation for val in all_timesteps_in_situation),\
+        f"timesteps for situation {situation_filter} should be equal for all agents"
+
+    # get the value for total timesteps in episode, regardless of filter
+    timesteps_for_no_filter = [agent.neighbor_state_freqs["all"]["total_timesteps"] for agent in agents]
+    all_timesteps = timesteps_for_no_filter[0]
+    assert all(val == all_timesteps for val in timesteps_for_no_filter),\
+        f"timesteps for no filter should be equal for all agents"
+
 
     network = nx.Graph()
     # add all nodes first
@@ -230,10 +193,10 @@ def all_agents_graph(agents, situation_filter):
 
         # now we can get the edge weight since the freqs are the same from both ends
         freq = agent_u_centric_freq
-        freq_fraction = freq / total_timesteps
+        freq_fraction = freq / timesteps_in_situation
 
         # skip if it doesn't meet the threshold
-        if freq_fraction < freq_threshold_percentage:
+        if freq_fraction < freq_threshold_decimal:
             continue
         # otherwise, the edge qualifies: add the edge
         network.add_edge(agent_u_idx, agent_v_idx, weight=freq_fraction)
@@ -242,7 +205,8 @@ def all_agents_graph(agents, situation_filter):
     # circular to have all the agents in a circle
     pos = nx.circular_layout(network)
 
-    plt_draw_network(network=network, pos=pos, situation=situation_filter, situation_timesteps=total_timesteps)
+    plt_draw_network(network=network, pos=pos, situation=situation_filter, situation_timesteps=timesteps_in_situation,
+                     num_timesteps_total=all_timesteps)
 
     plt_save_picture(picture_title=f"All_Agents_{situation_filter}")
 
@@ -253,11 +217,6 @@ def main():
     for agent in agents:
         print("agent idx:", agent.agent_idx)
         print("stored data:", agent.neighbor_state_freqs)
-
-    # to save network graphs for all situations, for all agents individually
-    # for agent in agents:
-    #     for situation in Agent.situation_type_to_events:
-    #         single_agent_centric_graph(agents, agent_idx = agent.agent_idx, situation_filter=situation)
 
     # to save network graphs for all situations, for all agents together
     for situation in Agent.situation_type_to_events:
