@@ -156,7 +156,7 @@ class Policy():
 
 		if slugs_location != None:
 			os.system(
-				'python2 ' + slugs_location + 'tools/StructuredSlugsParser/compiler.py ' + infile + '.structuredslugs > ' + infile + '.slugsin')
+				'python3 ' + slugs_location + 'tools/StructuredSlugsParser/compiler.py ' + infile + '.structuredslugs > ' + infile + '.slugsin')
 			sp = subprocess.Popen(
 				slugs_location + 'src/slugs --explicitStrategy --jsonOutput ' + infile + '.slugsin > ' + infile + '.json',
 				shell=True, stdout=subprocess.PIPE)
