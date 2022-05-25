@@ -50,7 +50,7 @@ def write_JSON(filename,data):
 
 def stringify_keys(d):
     """Convert a dict's keys to strings if they are not."""
-    for key in d.keys():
+    for key in list(d.keys()):
 
         # check inner dict
         if isinstance(d[key], dict):
