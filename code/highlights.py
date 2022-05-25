@@ -129,7 +129,7 @@ def save_highlights_for_single_agent(agents):
     chosen_agent_idx = int(sys.argv[1])
     agent_idx_choices = [agent.agent_idx for agent in agents]
     if chosen_agent_idx not in agent_idx_choices:
-        raise Exception(f"Invalid agent idx: must be one of {agent_idx_choices} for the saved "
+        raise Exception(f"Invalidrunning agent idx: must be one of {agent_idx_choices} for the saved "
                         f"agents data file {agents_full_fpath}")
 
     print(f"-------SAVING MOST IMPACTFUL HIGHLIGHTS WHILE CONSIDERING ONLY AGENT {chosen_agent_idx}-------")
@@ -163,7 +163,7 @@ def save_most_threatful_highlights_all_agents(agents):
     # sort this combined list by delta_threat_belief (at idx 0 for every tuple in the list).
     # reverse so that the most impactful are at the front of the list; take the first 5 after that
     # so we only run and save 5 sims
-    sorted_highlights = sorted(all_highlights, key=lambda x: x[0], reverse=True)[:5]
+    sorted_highlights = sorted(all_highlights, key=lambda x: x[0], reverse=True)[:10]
 
     # show a sim for every one of these highlights
     for tup in sorted_highlights:

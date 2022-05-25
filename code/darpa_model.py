@@ -67,8 +67,8 @@ def ERSA_Env():
     event_space = list(range(len(event_triggers)))
     methods = {'pathways': pathways, 'inside_room': inside_room}
     deltas = {0: 0.0, 1: 0.15, 2: 0.5}
-    escalation_prob = {0: 0.0, 1: 0.1, 2: 0.1, 3: 0.1, 4: 0.5, 5: 0.5, 6: 0.5}
-    # escalation_prob = {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0, 6: 0.0} # No disruption
+    # escalation_prob = {0: 0.0, 1: 0.1, 2: 0.1, 3: 0.1, 4: 0.5, 5: 0.5, 6: 0.5}
+    escalation_prob = {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0, 6: 0.0} # No disruption
 
     ## Hard code environment
     # 0 - street, 1 - street outside store A, 2 - store A, 3 - electricity box, 4 - street outside store B, 5 - store B, 6 - street outside home, 7 - home

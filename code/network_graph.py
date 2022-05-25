@@ -152,16 +152,19 @@ def all_agents_graph(agents, situation_filter):
                                                                f"{Agent.situation_type_to_events.keys()}"
 
     # assert that all the timesteps among all agents should be equal for this situation
-    all_timesteps_in_situation = [agent.neighbor_state_freqs[situation_filter]["total_timesteps"] for agent in agents]
-    timesteps_in_situation = all_timesteps_in_situation[0]
-    assert all(val == timesteps_in_situation for val in all_timesteps_in_situation),\
-        f"timesteps for situation {situation_filter} should be equal for all agents"
+    try:
+        all_timesteps_in_situation = [agent.neighbor_state_freqs[situation_filter]['total_timesteps'] for agent in agents]
+        timesteps_in_situation = all_timesteps_in_situation[0]
+        assert all(val == timesteps_in_situation for val in all_timesteps_in_situation),\
+            f"timesteps for situation {situation_filter} should be equal for all agents"
 
-    # get the value for total timesteps in episode, regardless of filter
-    timesteps_for_no_filter = [agent.neighbor_state_freqs["all"]["total_timesteps"] for agent in agents]
-    all_timesteps = timesteps_for_no_filter[0]
-    assert all(val == all_timesteps for val in timesteps_for_no_filter),\
-        f"timesteps for no filter should be equal for all agents"
+        # get the value for total timesteps in episode, regardless of filter
+        timesteps_for_no_filter = [agent.neighbor_state_freqs['all']['total_timesteps'] for agent in agents]
+        all_timesteps = timesteps_for_no_filter[0]
+        assert all(val == all_timesteps for val in timesteps_for_no_filter),\
+            f"timesteps for no filter should be equal for all agents"
+    except:
+        pass
 
 
     network = nx.Graph()

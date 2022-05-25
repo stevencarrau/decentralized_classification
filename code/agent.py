@@ -52,7 +52,7 @@ class Agent:
         # we store them here instead of HighlightReel because self.highlight_reel
         # gets automatically updated while the sim runs. Storing them in Agent allows
         # us to set aside preloaded data, which is needed for highlighting past movements
-        self.highlight_reel = self.HighlightReel(num_items=5)
+        self.highlight_reel = self.HighlightReel(num_items=10)
         self.highlight_mode = False
         self.highlight_triggers = None
         self.highlight_time_step = None
