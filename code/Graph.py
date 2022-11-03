@@ -86,6 +86,11 @@ if __name__ == '__main__':
 
     graph.add_vertex(agent6, agent7)
 
+    T = 10
+    for i in range(T):
+        for s in sensors:
+            edges_for_s = s.query(agents)
+            [graph.add_vertex(e[0],e[1]) for e in edges_for_s]
     # Scenario 2:
     # graph.add_sensors(sensors)
     # graph.add_agents(agents)
