@@ -2,19 +2,12 @@ class Graph:
     def __init__(self):
         self.vertices = {}
         self.agents = []
-        self.sensors = []
 
     def add_agent(self, agent):
         self.agents.append(agent)
 
     def add_agents(self, agents):
         self.agents = agents
-
-    def add_sensor(self, sensor):
-        self.sensors.append(sensor)
-
-    def add_sensors(self, sensors):
-        self.sensors = sensors
 
     # for now we store these as agent -> list of agents it's connected to
     def add_vertex(self, agent1, agent2):
@@ -32,11 +25,6 @@ class Graph:
 class Sensor:
     def __init__(self, name):
         self.name = name
-        self.shadow = None
-
-    def add_shadow(self, shadow):
-        # TODO: probably take from STK
-        pass
 
     def add_path(self, path):
         # TODO: probably import from STK
@@ -90,7 +78,7 @@ if __name__ == '__main__':
     for i in range(T):
         for s in sensors:
             edges_for_s = s.query(agents)
-            [graph.add_vertex(e[0],e[1]) for e in edges_for_s]
+            [graph.add_vertex(e[0], e[1]) for e in edges_for_s]
     # Scenario 2:
     # graph.add_sensors(sensors)
     # graph.add_agents(agents)
