@@ -28,6 +28,7 @@ class Graph:
             self.vertices[agent2] = [agent1]
 
     def add_vertices(self, agent1, agent_list):
+        self.vertices[agent1] = []
         for agent in agent_list:
             self.add_vertex(agent1, agent)
 
@@ -68,12 +69,7 @@ class Sensor:
         return str(self.name)
 
 
-class Agent:
-    def __init__(self, name):
-        self.name = name
 
-    def __str__(self):
-        return str(self.name)
 
 
 if __name__ == '__main__':
