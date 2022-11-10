@@ -148,18 +148,19 @@ class Agent:
 
     # Local Observation
     def observe(self):
-        guess = np.zeros((len(self.agent_id),1))
-        for i in range(len(self.agent_id)):
-            accuracy = 0.85
-            sigma = 0.05
-            if i == 4:
-                s = np.random.normal(1-accuracy, sigma,1)
-                s = np.clip(s,0,1)
-            else:
-                s = np.random.normal(accuracy, sigma,1)
-                s = np.clip(s,0,1)
-            guess[i] = s
-        return guess
+        # guess = np.zeros((len(self.agent_id),1))
+        idx = np.random.randint(0,5)
+        # for i in range(len(self.agent_id)):
+        accuracy = 0.85
+        sigma = 0.05
+        if idx == 4:
+            s = np.random.normal(1-accuracy, sigma,1)
+            s = np.clip(s,0,1)
+        else:
+            s = np.random.normal(accuracy, sigma,1)
+            s = np.clip(s,0,1)
+        # guess[i] = s
+        return idx,s
 
     def likelihood(self, sys_status,observation):
         epsilon = 0  # 1e-9
@@ -167,7 +168,7 @@ class Agent:
         # Work through each element of the tuple, if is likely then good if its unlikely then bad.
         # view_index = [self.id_idx[v_a] for v_a in viewable_agents]
         prob_i = 1.0
-        for v_i, v_p in zip(range(len(observation)),observation):
+        for v_i, v_p in zip([observation[0]],[observation[1]]):
             if len(v_p) > 1:
                 if sys_status[v_i] == 0:
                     prob_i *= v_p[1]  # Probability for bad model
@@ -178,7 +179,7 @@ class Agent:
                     prob_i *= 1.0 - v_p + epsilon
                 else:
                     prob_i *= v_p + epsilon
-        return prob_i
+        return prob_i[0]
 
     def updateLocalBelief(self, viewable_agents=None):
         ## Synchronous update rule

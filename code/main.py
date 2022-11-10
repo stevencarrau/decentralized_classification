@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import random
 import copy
 from STK_Agent import Agent
+import numpy as np
 
 agent1 = Agent("a1")
 agent2 = Agent("a2")
@@ -19,6 +20,7 @@ subagents_names = [a_i.name for a_i in subagents]
 for a_i in subagents:
     a_i.init_sharing_type(subagents_names)
     a_i.init_belief(len(subagents))
+subagents[-1].evil = True
 
 sensor1 = Sensor("s1", [agent1, agent2])
 sensor2 = Sensor("s2", [agent3, agent4])
@@ -40,7 +42,8 @@ graph.add_vertex(agent3, agent5)
 
 graph.add_vertex(agent6, agent7)
 
-T = 10
+T = 25
+true_belief = (1,1,1,1,0)
 graph.draw_graph(4)
 plt.ion()
 plt.show()
@@ -58,7 +61,12 @@ for t in range(T):
         belief_packet = dict(
             [[v_a.name, v_a.actual_belief] for v_a in graph.vertices[a]])
         a.shareBelief(belief_packet)
+    local_belief = [a.local_belief[true_belief] for a in graph.agents]
+    actual_belief = [a.actual_belief[true_belief] for a in graph.agents]
+    print(f"Local: {local_belief}")
+    print(f"Actual: {actual_belief}")
     plt.pause(1)
-    graph.update_graph()
+    graph.update_graph(actual_belief)
+    plt.draw_all()
 plt.ioff()
 plt.show()
