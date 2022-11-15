@@ -1,3 +1,12 @@
+# Set up your Python workspace
+# Note: The STK Python API used in this lesson is
+# only available with STK 12.1.
+# If not installed then use pip to install it.
+# pip install agi.stk<..ver..>-py3-none-any.whl
+# If using an older version of STK then use win32api or Comtypes
+
+from agi.stk12.stkdesktop import STKDesktop
+from agi.stk12.stkobjects import *
 from Graph import Sensor,  Graph
 from Graph_Visual import GraphVisual
 import matplotlib.pyplot as plt
@@ -6,43 +15,81 @@ import copy
 from STK_Agent import Agent
 import numpy as np
 
-agent1 = Agent("a1")
-agent2 = Agent("a2")
-agent3 = Agent("a3")
-agent4 = Agent("a4")
-agent5 = Agent("a5")
-agent6 = Agent("a6")
-agent7 = Agent("a7")
-agent8 = Agent("a8")
-agents = [agent1, agent2, agent3, agent4, agent5, agent6, agent7, agent8]
-subagents = [agent2, agent3, agent5, agent6, agent7]
+# When connected to STK via Python, while creating your variable, 
+# using the Tab key after periods enables IntelliSense which displays 
+# all of the options available off of the current interface. 
+# In the next section you will start STK 
+
+# NOTE FOR STK WEB: you can take advantage of STK/SDF SSO by changing 
+# your script to connect to an active instance instead of creating a 
+# new instance of STK:
+# Connect to an an instance of STK12
+stk = STKDesktop.AttachToApplication()
+
+# Create a new instance of STK12.
+# Optional arguments set the application visible state and the user-control 
+# (whether the application remains open after exiting python).
+#stk = STKDesktop.StartApplication(visible=True, userControl=True)
+#Check your Task Manager to confirm that STK was called 
+
+# Grab a handle on the STK application root.
+root = stk.Root
+root.UnitPreferences.Item('DateFormat').SetCurrentUnit('EpSec')
+
+# Recall that the AGStkObjectRoot object is at the apex of the STK Object Model. 
+# The associated IAgStkObjecetRoot interface will provide the methods and properties to load 
+# or create new scenarios and aaccess the Object Model Unit preferences. Through app you have 
+# a pointer to the IAgUiApplication interface. How will you obtain a pointer to the IAgStkObjectRoot
+# interface? According to IAgUiApplication documentation, the stk.GetObjectRoot() property returns 
+# a new instance of the root object of the STK Object Model. 
+
+# Check that the root object has been built correctly, check the type()
+
+type(root)
+
+# output will be 
+# agi.stk12.stkobjects.AgStkObjectRoot
+
+# Now that you have launched STK via the Python interface, 
+# let's see if we can create a new scenario and set the time 
+# period via Python. Create a new scenario, analysis period and 
+# reset the animation time.
+
+# 1. Create a new scenario.
+# The next task is to create a scenario via the NewScenario method 
+# of the IAgStkObjectRoot interface. According to the documentation, 
+# the NewScenario method expects to be passed a string representing 
+# the name of the scenario, but does not return anything.
+#root.CloseScenario()
+
+#root.NewScenario("STK_Scenario")
+
+scenario = root.CurrentScenario
+
+# create aircraft/sensor objects with corresponding agents
+aircraft = []
+sensors = []
+
+for obj in scenario.Children:
+    if isinstance(obj, AgAircraft):
+        aircraft.append(Agent(obj.InstanceName, obj))
+    elif isinstance(obj, AgPlace):
+        for sensor in obj.Children:
+            sensors.append(Sensor(sensor.InstanceName, sensor))
+
+# create graph
+subagents = aircraft
 subagents_names = [a_i.name for a_i in subagents]
 for a_i in subagents:
     a_i.init_sharing_type(subagents_names)
     a_i.init_belief(len(subagents))
-subagents[-1].evil = True
-
-sensor1 = Sensor("s1", [agent1, agent2])
-sensor2 = Sensor("s2", [agent3, agent4])
-sensor3 = Sensor("s3", [agent1, agent5])
-sensor4 = Sensor("s4", [agent8, agent3])
-sensor5 = Sensor("s5", [agent7])
-sensor6 = Sensor("s6", [agent2])
-sensors = [sensor1, sensor2, sensor3, sensor4, sensor5, sensor6]
+subagents[-1].evil = True   
 
 graph = GraphVisual()
-
-# Scenario 1
-# graph.add_sensors([sensor1, sensor2])
 graph.add_agents(subagents)
 
-graph.add_vertex(agent2, agent5)
-graph.add_vertex(agent3, agent2)
-graph.add_vertex(agent3, agent5)
+T = int(scenario.StopTime)
 
-graph.add_vertex(agent6, agent7)
-
-T = 25
 true_belief = (1,1,1,1,0)
 graph.draw_graph(4)
 plt.ion()
@@ -53,8 +100,13 @@ for t in range(T):
     for idx, a in enumerate(graph.agents):
         agent_list = copy.copy(graph.agents)
         agent_list.pop(idx)
-        new_vertices = random.sample(agent_list,random.randint(0,len(agent_list)-2))
-        graph.add_vertices(a,new_vertices)
+        
+        new_vertices = {}
+        for sensor in sensors:
+            new_vertices.update(sensor.query(agent_list, t))
+        new_vertices = list(new_vertices)
+        
+        graph.add_vertices(a, new_vertices)
         a.updateLocalBelief()
     # Loop again to build sharing graphs
     for idx,a in enumerate(graph.agents):

@@ -6,8 +6,9 @@ class ProbablilityNotOne(Exception):
 	pass
 
 class Agent:
-    def __init__(self, name):
+    def __init__(self, name, stk_ref):
         self.name = name
+        self.stk_ref = stk_ref
 
 
     def __str__(self):

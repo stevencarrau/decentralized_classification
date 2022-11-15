@@ -1,5 +1,6 @@
 import copy
-
+from agi.stk12.stkdesktop import STKDesktop
+from agi.stk12.stkobjects import *
 
 class Graph:
     def __init__(self):
@@ -45,23 +46,37 @@ class Graph:
 
 
 class Sensor:
-    def __init__(self, name, visible_agents):
+    def __init__(self, name, stk_ref):
         self.name = name
-        self.visible_agents = visible_agents
+        self.stk_ref = stk_ref
 
-        # TODO: get vis agents from STK
-        # self.visible_agents = self.get_visible_agents()
+    def get_visible_agents(self, agent_list, t):
+        visible_agents = []
+        
+        for agent_idx, agent in enumerate(agent_list):
+           access = self.stk_ref.GetAccessToObject(agent.stk_ref)
+           accessIntervals = access.ComputedAccessIntervalTimes
+           
+           for i in range(0, accessIntervals.Count):
+                times = accessIntervals.GetInterval(i)
+                if t >= times[0] and t <= times[1]:
+                    visible_agents.append(agent)
 
-    def get_visible_agents(self, excel):
-        # TODO, probably some nonsense from STK
-        # self.visible_agents = magic
-        pass
+        return visible_agents
 
-    def query(self):
+
+    def query(self, agent_list, t):
+        # create dictionary from every agent -> all other visible agents
         visible_agent_dict = {}
-        for idx, agent in enumerate(self.visible_agents):
-            copied_list = copy.deepcopy(self.visible_agents)
-            copied_list.pop(idx)
+        visible_agents = self.get_visible_agents(agent_list, t)
+        for idx, agent in enumerate(visible_agents):
+            copied_list = []
+            
+            # copy every other agent except the one you're on
+            for other_agent_idx, other_agent in enumerate(visible_agents):
+                if other_agent_idx != idx:
+                    copied_list.append(other_agent)
+
             visible_agent_dict[agent] = copied_list
         return visible_agent_dict
 

@@ -11,7 +11,7 @@ v = [0,.5,1.]
 l = list(zip(v,c))
 cmap=LinearSegmentedColormap.from_list('rg',l, N=256)
 
-matplotlib.use('Qt5Agg')
+# matplotlib.use('Qt5Agg')
 
 class GraphVisual(Graph):
     def draw_graph(self,fig_dim):
