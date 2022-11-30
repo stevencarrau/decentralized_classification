@@ -65,6 +65,11 @@ type(root)
 #root.NewScenario("STK_Scenario")
 
 scenario = root.CurrentScenario
+root.AnimationOptions = 2  # eAniOptionStop
+root.Mode = 32  # eAniXRealtime
+scenario.Animation.AnimStepValue = 1    # second
+scenario.Animation.RefreshDelta = .03   # second
+
 
 # create aircraft/sensor objects with corresponding agents
 aircraft = []
