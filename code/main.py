@@ -64,11 +64,12 @@ type(root)
 
 #root.NewScenario("STK_Scenario")
 
-scenario = root.CurrentScenario
-root.AnimationOptions = 2  # eAniOptionStop
+root.Rewind()
+root.AnimationOptions = 2  # eAsniOptionStop
 root.Mode = 32  # eAniXRealtime
-scenario.Animation.AnimStepValue = 1    # second
-scenario.Animation.RefreshDelta = .03   # second
+scenario = root.CurrentScenario
+scenario.Animation.AnimStepValue = 1  ;   # second
+# scenario.Animation.RefreshDelta = 5   # second
 
 
 # create aircraft/sensor objects with corresponding agents
@@ -93,13 +94,20 @@ subagents[-1].evil = True
 graph = GraphVisual()
 graph.add_agents(subagents)
 
-T = int(scenario.StopTime)
+# seems hard to change
+time_step = 0.033  # seconds
+num_timesteps_per_second = 1/time_step   # about 30 timesteps/sec
+time_multiplier = 1.5
+T = int(scenario.StopTime*time_multiplier)
 
 true_belief = (1,1,1,1,0)
 graph.draw_graph(4)
 plt.ion()
 plt.show()
 for t in range(T):
+    # print("\n\n\n\n")
+    # print(t)
+    # print("\n\n\n\n")
     graph.clear()
     # Loop once to update connections
     for idx, a in enumerate(graph.agents):
@@ -108,7 +116,7 @@ for t in range(T):
         
         new_vertices = {}
         for sensor in sensors:
-            new_vertices.update(sensor.query(agent_list, t))
+            new_vertices.update(sensor.query(agent_list, t/time_multiplier))
         new_vertices = list(new_vertices)
         
         graph.add_vertices(a, new_vertices)
@@ -125,5 +133,9 @@ for t in range(T):
     plt.pause(1)
     graph.update_graph(actual_belief)
     plt.draw_all()
+    for _ in range(int(num_timesteps_per_second/time_multiplier)):
+        root.StepForward()
+
+print("Done!")
 plt.ioff()
 plt.show()
