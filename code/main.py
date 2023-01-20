@@ -94,7 +94,7 @@ subagents[-1].evil = True
 graph = GraphVisual()
 graph.add_agents(subagents)
 
-# seems hard to change
+# STK runs sims at 30 fps, I think
 time_step = 0.033  # seconds
 num_timesteps_per_second = 1/time_step   # about 30 timesteps/sec
 time_multiplier = 1.5

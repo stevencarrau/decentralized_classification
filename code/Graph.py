@@ -1,4 +1,5 @@
 import copy
+import random
 from agi.stk12.stkdesktop import STKDesktop
 from agi.stk12.stkobjects import *
 
@@ -49,16 +50,40 @@ class Sensor:
     def __init__(self, name, stk_ref):
         self.name = name
         self.stk_ref = stk_ref
+        self.initialized = False
+        self.trueAccessIntervals = []   # indexed in same order as agent_list
+        self.noisyAccessIntervals = []   # indexed in same order as agent_list
+
 
     def get_visible_agents(self, agent_list, t):
         visible_agents = []
+
+        if not self.initialized:
+            for agent_idx, agent in enumerate(agent_list):
+                access = self.stk_ref.GetAccessToObject(agent.stk_ref)
+                accessIntervals = access.ComputedAccessIntervalTimes
+
+                trueAccessInterval = []
+                noisyAccessInterval = []
+
+                for i in range(accessIntervals.Count):
+                    times = accessIntervals.GetInterval(i)
+                    rand1 = random.gauss(5, 5)
+                    rand2 = random.gauss(5, 5)  
+                    interval = [times[0], times[1]]
+                    noisy_interval = [times[0] + rand1, times[1] + rand2]
+                    # interval = [times[0], times[1]]
+                    trueAccessInterval.append(interval)
+                    noisyAccessInterval.append(noisy_interval)
+
+                self.trueAccessIntervals.append(trueAccessInterval)
+                self.noisyAccessIntervals.append(noisyAccessInterval)
+
+            self.initialized = True
         
         for agent_idx, agent in enumerate(agent_list):
-           access = self.stk_ref.GetAccessToObject(agent.stk_ref)
-           accessIntervals = access.ComputedAccessIntervalTimes
-           
-           for i in range(0, accessIntervals.Count):
-                times = accessIntervals.GetInterval(i)
+           for i in range(len(self.noisyAccessIntervals[agent_idx])):
+                times = self.noisyAccessIntervals[agent_idx][i]
                 if t >= times[0] and t <= times[1]:
                     visible_agents.append(agent)
 
@@ -82,61 +107,3 @@ class Sensor:
 
     def __str__(self):
         return str(self.name)
-
-
-
-
-
-if __name__ == '__main__':
-    agent1 = Agent("a1")
-    agent2 = Agent("a2")
-    agent3 = Agent("a3")
-    agent4 = Agent("a4")
-    agent5 = Agent("a5")
-    agent6 = Agent("a6")
-    agent7 = Agent("a7")
-    agent8 = Agent("a8")
-    agents = [agent1, agent2, agent3, agent4, agent5, agent6, agent7, agent8]
-
-    sensor1 = Sensor("s1", [agent1, agent2])
-    sensor2 = Sensor("s2", [agent3, agent4])
-    sensor3 = Sensor("s3", [agent1, agent5])
-    sensor4 = Sensor("s4", [agent8, agent3])
-    sensor5 = Sensor("s5", [agent7])
-    sensor6 = Sensor("s6", [agent2])
-    sensors = [sensor1, sensor2, sensor3, sensor4, sensor5, sensor6]
-
-    graph = Graph()
-
-    # Scenario 1
-    graph.add_agents([agent2, agent3, agent5, agent6, agent7])
-
-    # for each timestep
-    graph.clear()
-    for s in sensors:
-        edges = s.query()
-        for agent in edges:
-            graph.add_vertices(agent, edges[agent])
-
-    # Scenario 2:
-    # graph.add_sensors(sensors)
-    # graph.add_agents(agents)
-    #
-    # graph.add_vertex(agent1, agent2)
-    # graph.add_vertex(agent2, agent3)
-    # # no replication
-    # graph.add_vertex(agent2, agent3)
-    # graph.add_vertex(agent1, agent3)
-    # graph.add_vertex(agent4, agent5)
-    # graph.add_vertex(agent1, agent6)
-    # graph.add_vertex(agent2, agent7)
-
-    print("\n\n")
-    for a in graph.agents:
-        print(a, end=" ")
-    print("\n\n")
-    for v in graph.vertices:
-        print(v, end="    ")
-        for a in graph.vertices[v]:
-            print(a, end=" ")
-        print()
