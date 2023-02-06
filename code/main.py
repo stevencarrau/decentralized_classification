@@ -72,6 +72,12 @@ scenario.Animation.AnimStepValue = 1  ;   # second
 # scenario.Animation.RefreshDelta = 5   # second
 
 
+# STK runs sims at 30 fps, I think
+time_step = 0.033  # seconds
+num_timesteps_per_second = 1/time_step   # about 30 timesteps/sec
+time_multiplier = 1.5
+T = int(scenario.StopTime*time_multiplier)    
+
 # create aircraft/sensor objects with corresponding agents
 aircraft = []
 sensors = []
@@ -79,6 +85,29 @@ sensors = []
 for obj in scenario.Children:
     if isinstance(obj, AgAircraft):
         aircraft.append(Agent(obj.InstanceName, obj))
+
+        # craftPosDP = obj.DataProviders.Item('Points Choose System')
+        # craftProvCenter = craftPosDP.Group.Item('Center')
+        # # Choose the referense system you want to report the Center point in
+        # craftProvCenter.PreData = 'CentralBody/Earth TOD'
+        # rptElems = [ ['Time'],['x'],['y'],['z'] ]
+        # results = craftProvCenter.ExecElements(scenario.StartTime, scenario.EndTime, 60, rptElems)
+        # datasets = results.DataSets
+        # time = datasets.GetDataSetByName('Time').GetValues()
+        # x = datasets.GetDataSetByName('x').GetValues()
+        # y = datasets.GetDataSetByName('y').GetValues()
+        # z = datasets.GetDataSetByName('z').GetValues()
+        
+        craftPosDP = obj.DataProviders.Item('Cartesian Position').Group.Item('ICRF').Exec(scenario.StartTime, T, time_step)
+        x = craftPosDP.DataSets.GetDataSetByName('x').GetValues()
+        y = craftPosDP.DataSets.GetDataSetByName('y').GetValues()
+        z = craftPosDP.DataSets.GetDataSetByName('z').GetValues()
+
+        print(obj.InstanceName)
+        print(len(x))
+        print(len(y))
+        print(len(z))
+        print()
     elif isinstance(obj, AgPlace):
         for sensor in obj.Children:
             sensors.append(Sensor(sensor.InstanceName, sensor))
@@ -94,11 +123,6 @@ subagents[-1].evil = True
 graph = GraphVisual()
 graph.add_agents(subagents)
 
-# STK runs sims at 30 fps, I think
-time_step = 0.033  # seconds
-num_timesteps_per_second = 1/time_step   # about 30 timesteps/sec
-time_multiplier = 1.5
-T = int(scenario.StopTime*time_multiplier)
 
 true_belief = (1,1,1,1,0)
 graph.draw_graph(4)
