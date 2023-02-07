@@ -25,7 +25,7 @@ import numpy as np
 # new instance of STK:
 # Connect to an an instance of STK12
 stk = STKDesktop.AttachToApplication()
-
+print(stk)
 # Create a new instance of STK12.
 # Optional arguments set the application visible state and the user-control 
 # (whether the application remains open after exiting python).
@@ -35,6 +35,7 @@ stk = STKDesktop.AttachToApplication()
 # Grab a handle on the STK application root.
 root = stk.Root
 root.UnitPreferences.Item('DateFormat').SetCurrentUnit('EpSec')
+root.UnitPreferences.SetCurrentUnit("DistanceUnit", "km")
 
 # Recall that the AGStkObjectRoot object is at the apex of the STK Object Model. 
 # The associated IAgStkObjecetRoot interface will provide the methods and properties to load 
@@ -46,7 +47,6 @@ root.UnitPreferences.Item('DateFormat').SetCurrentUnit('EpSec')
 # Check that the root object has been built correctly, check the type()
 
 type(root)
-
 # output will be 
 # agi.stk12.stkobjects.AgStkObjectRoot
 
@@ -59,11 +59,12 @@ type(root)
 # The next task is to create a scenario via the NewScenario method 
 # of the IAgStkObjectRoot interface. According to the documentation, 
 # the NewScenario method expects to be passed a string representing 
-# the name of the scenario, but does not return anything.
+# the name of the scenario, but does not return anything.   
 #root.CloseScenario()
 
 #root.NewScenario("STK_Scenario")
 
+# "Rewind" the current scenario (DC) for playing
 root.Rewind()
 root.AnimationOptions = 2  # eAsniOptionStop
 root.Mode = 32  # eAniXRealtime
@@ -72,7 +73,7 @@ scenario.Animation.AnimStepValue = 1  ;   # second
 # scenario.Animation.RefreshDelta = 5   # second
 
 
-# STK runs sims at 30 fps, I think
+# STK runs sims at 30 fps for this scenario
 time_step = 0.033  # seconds
 num_timesteps_per_second = 1/time_step   # about 30 timesteps/sec
 time_multiplier = 1.5
@@ -82,34 +83,55 @@ T = int(scenario.StopTime*time_multiplier)
 aircraft = []
 sensors = []
 
+# we will grab the coordinates of washington for position computation
+washingon_coords = []
+
 for obj in scenario.Children:
     if isinstance(obj, AgAircraft):
         aircraft.append(Agent(obj.InstanceName, obj))
 
-        # craftPosDP = obj.DataProviders.Item('Points Choose System')
-        # craftProvCenter = craftPosDP.Group.Item('Center')
-        # # Choose the referense system you want to report the Center point in
-        # craftProvCenter.PreData = 'CentralBody/Earth TOD'
-        # rptElems = [ ['Time'],['x'],['y'],['z'] ]
-        # results = craftProvCenter.ExecElements(scenario.StartTime, scenario.EndTime, 60, rptElems)
-        # datasets = results.DataSets
-        # time = datasets.GetDataSetByName('Time').GetValues()
-        # x = datasets.GetDataSetByName('x').GetValues()
-        # y = datasets.GetDataSetByName('y').GetValues()
-        # z = datasets.GetDataSetByName('z').GetValues()
-        
-        craftPosDP = obj.DataProviders.Item('Cartesian Position').Group.Item('ICRF').Exec(scenario.StartTime, T, time_step)
-        x = craftPosDP.DataSets.GetDataSetByName('x').GetValues()
-        y = craftPosDP.DataSets.GetDataSetByName('y').GetValues()
-        z = craftPosDP.DataSets.GetDataSetByName('z').GetValues()
+        aircraftChooseDP = obj.DataProviders.Item('Points Choose System')
+        dataProvCenter = aircraftChooseDP.Group.Item('Center')
+        # Choose the reference system you want to report the Center point in
+        dataProvCenter.PreData = 'CentralBody/Earth TOD'
+        rptElems = [['Time'], ['x'], ['y'], ['z']]
+        results = dataProvCenter.ExecElements(scenario.StartTime, T*900, 1/(num_timesteps_per_second*30))
+        datasets = results.DataSets
+        times = datasets.GetDataSetByName('Time').GetValues()
+        x = datasets.GetDataSetByName('x').GetValues()
+        y = datasets.GetDataSetByName('y').GetValues()
+        z = datasets.GetDataSetByName('z').GetValues()
+
+        # craftPosDP = obj.DataProviders.Item('Cartesian Position').Group.Item('ICRF').Exec(scenario.StartTime, T*900, 1/(num_timesteps_per_second*30))
+        # times = craftPosDP.DataSets.GetDataSetByName('Time').GetValues()
+        # x = craftPosDP.DataSets.GetDataSetByName('x').GetValues()
+        # y = craftPosDP.DataSets.GetDataSetByName('y').GetValues()
+        # z = craftPosDP.DataSets.GetDataSetByName('z').GetValues()
 
         print(obj.InstanceName)
         print(len(x))
         print(len(y))
         print(len(z))
-        print()
+
+        fig = plt.figure()
+        ax = plt.axes()
+
+        ax.plot(x, y)
+        plt.show()
+
     elif isinstance(obj, AgPlace):
         for sensor in obj.Children:
+            if obj.InstanceName == "Washington":
+                print(dir(obj.DataProviders))
+                washingon_x = obj.DataProviders.Item('Cartesian-x')
+                washingon_y = obj.DataProviders.Item('Cartesian-y')
+                washingon_z = obj.DataProviders.Item('Cartesian-z')
+                print("washington")
+                print(washingon_x)
+                print(washingon_y)
+                print(washingon_z)
+
+
             sensors.append(Sensor(sensor.InstanceName, sensor))
 
 # create graph
