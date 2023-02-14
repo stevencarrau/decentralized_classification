@@ -25,7 +25,6 @@ import numpy as np
 # new instance of STK:
 # Connect to an an instance of STK12
 stk = STKDesktop.AttachToApplication()
-print(stk)
 # Create a new instance of STK12.
 # Optional arguments set the application visible state and the user-control 
 # (whether the application remains open after exiting python).
@@ -88,50 +87,25 @@ washingon_coords = []
 
 for obj in scenario.Children:
     if isinstance(obj, AgAircraft):
-        aircraft.append(Agent(obj.InstanceName, obj))
+        craftPosDP = obj.DataProviders.Item('Cartesian Position').Group.Item('Fixed').Exec(scenario.StartTime, T*900, 1/(num_timesteps_per_second*30))
+        times = craftPosDP.DataSets.GetDataSetByName('Time').GetValues()
+        x = craftPosDP.DataSets.GetDataSetByName('x').GetValues()
+        y = craftPosDP.DataSets.GetDataSetByName('y').GetValues()
+        z = craftPosDP.DataSets.GetDataSetByName('z').GetValues()
 
-        aircraftChooseDP = obj.DataProviders.Item('Points Choose System')
-        dataProvCenter = aircraftChooseDP.Group.Item('Center')
-        # Choose the reference system you want to report the Center point in
-        dataProvCenter.PreData = 'CentralBody/Earth TOD'
-        rptElems = [['Time'], ['x'], ['y'], ['z']]
-        results = dataProvCenter.ExecElements(scenario.StartTime, T*900, 1/(num_timesteps_per_second*30))
-        datasets = results.DataSets
-        times = datasets.GetDataSetByName('Time').GetValues()
-        x = datasets.GetDataSetByName('x').GetValues()
-        y = datasets.GetDataSetByName('y').GetValues()
-        z = datasets.GetDataSetByName('z').GetValues()
-
-        # craftPosDP = obj.DataProviders.Item('Cartesian Position').Group.Item('ICRF').Exec(scenario.StartTime, T*900, 1/(num_timesteps_per_second*30))
-        # times = craftPosDP.DataSets.GetDataSetByName('Time').GetValues()
-        # x = craftPosDP.DataSets.GetDataSetByName('x').GetValues()
-        # y = craftPosDP.DataSets.GetDataSetByName('y').GetValues()
-        # z = craftPosDP.DataSets.GetDataSetByName('z').GetValues()
-
-        print(obj.InstanceName)
-        print(len(x))
-        print(len(y))
-        print(len(z))
+        aircraft.append(Agent(obj.InstanceName, obj, times, x, y, z))
 
         fig = plt.figure()
         ax = plt.axes()
 
         ax.plot(x, y)
+        plt.xlabel("X Position (km)")
+        plt.ylabel("Y Position (km)")
+        plt.title("XY Position for {0} in the Fixed Earth Frame".format(obj.InstanceName))
         plt.show()
 
     elif isinstance(obj, AgPlace):
         for sensor in obj.Children:
-            if obj.InstanceName == "Washington":
-                print(dir(obj.DataProviders))
-                washingon_x = obj.DataProviders.Item('Cartesian-x')
-                washingon_y = obj.DataProviders.Item('Cartesian-y')
-                washingon_z = obj.DataProviders.Item('Cartesian-z')
-                print("washington")
-                print(washingon_x)
-                print(washingon_y)
-                print(washingon_z)
-
-
             sensors.append(Sensor(sensor.InstanceName, sensor))
 
 # create graph
