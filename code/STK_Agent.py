@@ -1,20 +1,29 @@
 import itertools
-import numpy as np
+import numpy as np  
 from copy import deepcopy
 
 class ProbablilityNotOne(Exception):
 	pass
 
 class Agent:
-    def __init__(self, name, stk_ref, times, pos_x, pos_y, pos_z):
+    # generate noisy measurement from true value given by STK
+    def measure(x):
+        return 
+
+    # given x, y, and z from STK. noise from measurement added later
+    def __init__(self, name, stk_ref, times, x_true, y_true, z_true):
         self.name = name
         self.stk_ref = stk_ref
 
         # times and positions calculated from STK's Data Providers in Earth Fixed Reference Frame
         self.times = times
-        self.pos_x = pos_x
-        self.pos_y = pos_y
-        self.pos_z = pos_z
+        self.x_true = x_ref
+        self.y_true = y_ref
+        self.z_true = z_ref
+        # make noise follow bimodal distribution with a peak on the left for the bad agent and the peak on the right for the good agent
+        self.x_meas = 0
+        self.y_meas = 0
+        self.z_meas = 0
 
 
     def __str__(self):
