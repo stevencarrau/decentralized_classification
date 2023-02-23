@@ -1,14 +1,17 @@
 import itertools
 import numpy as np  
 from copy import deepcopy
+import matplotlib.pyplot as plt
 
 class ProbablilityNotOne(Exception):
 	pass
 
 class Agent:
-    # generate noisy measurement from true value given by STK
-    def measure(x):
-        return 
+    # make noise follow bimodal distribution with a peak on the left for the bad agent and the peak on the right for the good agent
+    evil_agent_peak = 5 
+    evil_agent_std = 2
+    good_agent_peak = 10
+    good_agent_std = 1
 
     # given x, y, and z from STK. noise from measurement added later
     def __init__(self, name, stk_ref, times, x_true, y_true, z_true):
@@ -17,13 +20,46 @@ class Agent:
 
         # times and positions calculated from STK's Data Providers in Earth Fixed Reference Frame
         self.times = times
-        self.x_true = x_ref
-        self.y_true = y_ref
-        self.z_true = z_ref
-        # make noise follow bimodal distribution with a peak on the left for the bad agent and the peak on the right for the good agent
-        self.x_meas = 0
-        self.y_meas = 0
-        self.z_meas = 0
+        self.x_true = x_true
+        self.y_true = y_true
+        self.z_true = z_true
+
+    def measure(self, pos_array):
+        diff_factor = 1/2
+        pos_array = np.array(pos_array)
+        noise_arr = np.empty(1)
+        if self.evil:
+            num_evil = int(diff_factor * len(pos_array))
+            num_good = len(pos_array) - num_evil
+        else:
+            num_good = int(diff_factor * len(pos_array))
+            num_evil = len(pos_array) - num_good
+
+        evil_noise = np.random.normal(Agent.evil_agent_peak, Agent.evil_agent_std, num_evil)
+        good_noise = np.random.normal(Agent.good_agent_peak, Agent.good_agent_std, num_good)
+        noise_arr = np.concatenate((evil_noise, good_noise))
+        return pos_array + noise_arr
+
+    def plotinfo(self):   
+        fig = plt.figure()
+        ax = plt.axes()
+        evil_label = "evil"
+
+        if self.evil:
+            self.x_meas = self.measure(self.x_true)
+            self.y_meas = self.measure(self.y_true)
+        else:
+            evil_label = "good"
+            self.x_meas = self.measure(self.x_true)
+            self.y_meas = self.measure(self.y_true)
+
+        ax.plot(self.x_true, self.y_true, label="true trajectory")
+        ax.plot(self.x_meas, self.y_meas, label="noisy trajectory")
+        plt.xlabel("X Position (km)")
+        plt.ylabel("Y Position (km)")
+        plt.title("XY Position for {0} {1} in the Fixed Earth Frame".format(evil_label, self.name))
+        plt.legend()
+        plt.show()
 
 
     def __str__(self):

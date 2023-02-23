@@ -89,20 +89,11 @@ for obj in scenario.Children:
     if isinstance(obj, AgAircraft):
         craftPosDP = obj.DataProviders.Item('Cartesian Position').Group.Item('Fixed').Exec(scenario.StartTime, T*900, 1/(num_timesteps_per_second*30))
         times = craftPosDP.DataSets.GetDataSetByName('Time').GetValues()
-        x = craftPosDP.DataSets.GetDataSetByName('x').GetValues()
-        y = craftPosDP.DataSets.GetDataSetByName('y').GetValues()
-        z = craftPosDP.DataSets.GetDataSetByName('z').GetValues()
+        x_values = craftPosDP.DataSets.GetDataSetByName('x').GetValues()
+        y_values = craftPosDP.DataSets.GetDataSetByName('y').GetValues()
+        z_values = craftPosDP.DataSets.GetDataSetByName('z').GetValues()
 
-        aircraft.append(Agent(obj.InstanceName, obj, times, x, y, z))
-
-        fig = plt.figure()
-        ax = plt.axes()
-
-        ax.plot(x, y)
-        plt.xlabel("X Position (km)")
-        plt.ylabel("Y Position (km)")
-        plt.title("XY Position for {0} in the Fixed Earth Frame".format(obj.InstanceName))
-        plt.show()
+        aircraft.append(Agent(obj.InstanceName, obj, times, x_values, y_values, z_values))
 
     elif isinstance(obj, AgPlace):
         for sensor in obj.Children:
@@ -115,6 +106,9 @@ for a_i in subagents:
     a_i.init_sharing_type(subagents_names)
     a_i.init_belief(len(subagents))
 subagents[-1].evil = True   
+
+for craft in aircraft:
+    craft.plotinfo()
 
 graph = GraphVisual()
 graph.add_agents(subagents)
