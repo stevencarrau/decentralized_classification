@@ -2,17 +2,12 @@ import itertools
 import numpy as np  
 from copy import deepcopy
 import matplotlib.pyplot as plt
+from scipy import stats
 
 class ProbablilityNotOne(Exception):
 	pass
 
 class Agent:
-    # make noise follow bimodal distribution with a peak on the left for the bad agent and the peak on the right for the good agent
-    evil_agent_peak = 5 
-    evil_agent_std = 2
-    good_agent_peak = 10
-    good_agent_std = 1
-
     # given x, y, and z from STK. noise from measurement added later
     def __init__(self, name, stk_ref, times, x_true, y_true, z_true):
         self.name = name
@@ -25,19 +20,49 @@ class Agent:
         self.z_true = z_true
 
     def measure(self, pos_array):
-        diff_factor = 1/2
+        # make noise follow bimodal distribution with a peak on the left for the bad agent and the peak on the right for the good agent
         pos_array = np.array(pos_array)
-        noise_arr = np.empty(1)
-        if self.evil:
-            num_evil = int(diff_factor * len(pos_array))
-            num_good = len(pos_array) - num_evil
-        else:
-            num_good = int(diff_factor * len(pos_array))
-            num_evil = len(pos_array) - num_good
+        
+        scale_factor = 5e-2
+        pdf = stats.norm.pdf
+        frac = 0.49
+        
+        # loc = mean, scale = stdev
+        # set 1
+        loc1, scale1, size1 = (-1, 0.75*scale_factor, 110)
+        loc2, scale2, size2 = (1, 0.25*scale_factor, int(frac*size1))
+        loc3, scale3, size3 = (-1, 0.25*scale_factor, 50)
+        loc4, scale4, size4 = (1, 0.89*scale_factor, int(size3/frac))
 
-        evil_noise = np.random.normal(Agent.evil_agent_peak, Agent.evil_agent_std, num_evil)
-        good_noise = np.random.normal(Agent.good_agent_peak, Agent.good_agent_std, num_good)
-        noise_arr = np.concatenate((evil_noise, good_noise))
+        # set 2
+        # loc1, scale1, size1 = (-1, 0.55, 110)
+        # loc2, scale2, size2 = (1, 0.35, 50)
+        # loc3, scale3, size3 = (-1, 0.25, 50)
+        # loc4, scale4, size4 = (1, 0.89, 115)
+                
+        # pick one bimodal distribution if the agent is evil, pick the other if the are good
+        if self.evil:
+            x = np.concatenate([np.random.normal(loc=loc3, scale=scale3, size=size3),
+                                np.random.normal(loc=loc4, scale=scale4, size=size4)])
+            x_eval = np.linspace(x.min() - 1, x.max() + 1, len(x))
+            bimodal_pdf = pdf(x_eval, loc=loc3, scale=scale3) * float(size3) / x.size \
+                        + pdf(x_eval, loc=loc4, scale=scale4) * float(size4) / x.size
+        else:
+            x = np.concatenate([np.random.normal(loc=loc1, scale=scale1, size=size1),
+                                np.random.normal(loc=loc2, scale=scale2, size=size2)])
+            x_eval = np.linspace(x.min() - 1, x.max() + 1, len(x))
+            bimodal_pdf = pdf(x_eval, loc=loc1, scale=scale1) * float(size1) / x.size \
+                        + pdf(x_eval, loc=loc2, scale=scale2) * float(size2) / x.size
+
+        noise_arr = scale_factor * np.random.choice(x, size=len(pos_array), p=bimodal_pdf/np.sum(bimodal_pdf))
+        
+        # plt.plot(x_eval_1, bimodal_pdf_1, 'r--', label="PDF 1")
+        # plt.plot(x_eval_2, bimodal_pdf_2, 'b--', label="PDF 2")
+        # plt.plot(random_choices_pdf_1, 'g', label="Random choices PDF 1")
+        # plt.legend()
+        # plt.show()
+
+        # print(noise_arr)        
         return pos_array + noise_arr
 
     def plotinfo(self):   
@@ -53,8 +78,8 @@ class Agent:
             self.x_meas = self.measure(self.x_true)
             self.y_meas = self.measure(self.y_true)
 
-        ax.plot(self.x_true, self.y_true, label="true trajectory")
-        ax.plot(self.x_meas, self.y_meas, label="noisy trajectory")
+        ax.plot(self.x_true, self.y_true, label="true trajectory", color = "blue")
+        ax.plot(self.x_meas, self.y_meas, label="noisy trajectory", color = "orange", linestyle = "dotted", alpha = 0.5)
         plt.xlabel("X Position (km)")
         plt.ylabel("Y Position (km)")
         plt.title("XY Position for {0} {1} in the Fixed Earth Frame".format(evil_label, self.name))
