@@ -129,7 +129,10 @@ for t in range(T):
         agent_list.pop(idx)
         
         new_vertices = {}
-        for sensor in sensors:
+        for sensor_idx, sensor in enumerate(sensors):
+            # FIXME: change if you want to block another sensor for the duration of the experiment
+            if sensor_idx == 2:
+                continue
             new_vertices.update(sensor.query(agent_list, t/time_multiplier))
         new_vertices = list(new_vertices)
         
