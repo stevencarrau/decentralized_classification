@@ -82,16 +82,16 @@ T = int(scenario.StopTime*time_multiplier)
 aircraft = []
 sensors = []
 
-# we will grab the coordinates of washington for position computation
-washingon_coords = []
+# grab the coordinates of washington for position computation
+washingon_coords = np.array([1115.07, -4843.94, 3983.24])
 
 for obj in scenario.Children:
     if isinstance(obj, AgAircraft):
         craftPosDP = obj.DataProviders.Item('Cartesian Position').Group.Item('Fixed').Exec(scenario.StartTime, T*900, 1/(num_timesteps_per_second*30))
         times = craftPosDP.DataSets.GetDataSetByName('Time').GetValues()
-        x_values = craftPosDP.DataSets.GetDataSetByName('x').GetValues()
-        y_values = craftPosDP.DataSets.GetDataSetByName('y').GetValues()
-        z_values = craftPosDP.DataSets.GetDataSetByName('z').GetValues()
+        x_values = craftPosDP.DataSets.GetDataSetByName('x').GetValues() - washingon_coords[0]
+        y_values = craftPosDP.DataSets.GetDataSetByName('y').GetValues() - washingon_coords[1]
+        z_values = craftPosDP.DataSets.GetDataSetByName('z').GetValues() - washingon_coords[2]
 
         aircraft.append(Agent(obj.InstanceName, obj, times, x_values, y_values, z_values))
 

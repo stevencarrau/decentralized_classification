@@ -69,6 +69,8 @@ class Agent:
         fig = plt.figure()
         ax = plt.axes()
         evil_label = "evil"
+        theta = np.linspace(0, 2*np.pi, 150)
+        radius = 0.25 # km
 
         if self.evil:
             self.x_meas = self.measure(self.x_true)
@@ -80,9 +82,10 @@ class Agent:
 
         ax.plot(self.x_true, self.y_true, label="true trajectory", color = "blue")
         ax.plot(self.x_meas, self.y_meas, label="noisy trajectory", color = "orange", linestyle = "dotted", alpha = 0.5)
+        ax.plot(radius*np.cos(theta), radius*np.sin(theta), label="no fly zone", color = "red")
         plt.xlabel("X Position (km)")
         plt.ylabel("Y Position (km)")
-        plt.title("XY Position for {0} {1} in the Fixed Earth Frame".format(evil_label, self.name))
+        plt.title("XY Position for {0} {1} WRT Washington".format(evil_label, self.name))
         plt.legend()
         plt.show()
 
