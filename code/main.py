@@ -106,22 +106,21 @@ for a_i in subagents:
     a_i.init_sharing_type(subagents_names)
     a_i.init_belief(len(subagents))
 subagents[-1].evil = True   
+subagents[2].evil = True   
 
-for craft in aircraft:
-    craft.plotinfo()
+# for craft in aircraft:
+#     craft.plotinfo()
 
 graph = GraphVisual()
 graph.add_agents(subagents)
 
 
-true_belief = (1,1,1,1,0)
+true_belief = (1,1,0,1,1,1,0)
+ignore_sensors = []
 graph.draw_graph(4)
 plt.ion()
 plt.show()
 for t in range(T):
-    # print("\n\n\n\n")
-    # print(t)
-    # print("\n\n\n\n")
     graph.clear()
     # Loop once to update connections
     for idx, a in enumerate(graph.agents):
@@ -130,8 +129,8 @@ for t in range(T):
         
         new_vertices = {}
         for sensor_idx, sensor in enumerate(sensors):
-            # FIXME: change if you want to block another sensor for the duration of the experiment
-            if sensor_idx == 2:
+            # FIXME: change if you want to block sensor(s) for the duration of the experiment
+            if sensor_idx in ignore_sensors:
                 continue
             new_vertices.update(sensor.query(agent_list, t/time_multiplier))
         new_vertices = list(new_vertices)
