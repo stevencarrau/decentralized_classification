@@ -19,9 +19,8 @@ class Agent:
         self.y_true = y_true
         self.z_true = z_true
 
-    def measure(self, pos_array):
+    def measure(self, t_idx):
         # make noise follow bimodal distribution with a peak on the left for the bad agent and the peak on the right for the good agent
-        pos_array = np.array(pos_array)
         
         scale_factor = 5e-2
         pdf = stats.norm.pdf
@@ -29,16 +28,10 @@ class Agent:
         
         # loc = mean, scale = stdev
         # set 1
-        loc1, scale1, size1 = (-1, 0.75*scale_factor, 110)
-        loc2, scale2, size2 = (1, 0.25*scale_factor, int(frac*size1))
-        loc3, scale3, size3 = (-1, 0.25*scale_factor, 50)
-        loc4, scale4, size4 = (1, 0.89*scale_factor, int(size3/frac))
-
-        # set 2
-        # loc1, scale1, size1 = (-1, 0.55, 110)
-        # loc2, scale2, size2 = (1, 0.35, 50)
-        # loc3, scale3, size3 = (-1, 0.25, 50)
-        # loc4, scale4, size4 = (1, 0.89, 115)
+        loc1, scale1, size1 = (0, 0.75*scale_factor, 110)
+        loc2, scale2, size2 = (2, 0.25*scale_factor, int(frac*size1))
+        loc3, scale3, size3 = (0, 0.25*scale_factor, 50)
+        loc4, scale4, size4 = (2, 0.89*scale_factor, int(size3/frac))
                 
         # pick one bimodal distribution if the agent is evil, pick the other if the are good
         if self.evil:
@@ -54,7 +47,19 @@ class Agent:
             bimodal_pdf = pdf(x_eval, loc=loc1, scale=scale1) * float(size1) / x.size \
                         + pdf(x_eval, loc=loc2, scale=scale2) * float(size2) / x.size
 
-        noise_arr = scale_factor * np.random.choice(x, size=len(pos_array), p=bimodal_pdf/np.sum(bimodal_pdf))
+        noise_arr = scale_factor * np.random.choice(x, size=1, p=bimodal_pdf/np.sum(bimodal_pdf))
+        
+        if t_idx < len(self.times)-1:
+            t_next = t_idx + 1
+        else:
+            # if we're at the end of the trajectory, consider the previous point to compute the tangent angle to trajectory
+            t_next = t_idx - 1
+
+        # angle of tangent line to trajectory
+        theta = np.arctan2(self.y_true[t_next] - self.y_true[t_idx], self.x_true[t_next] - self.x_true[t_idx])
+
+        noise_x = np.cos(theta) * noise_arr
+        noise_y = np.sin(theta) * noise_arr
         
         # plt.plot(x_eval_1, bimodal_pdf_1, 'r--', label="PDF 1")
         # plt.plot(x_eval_2, bimodal_pdf_2, 'b--', label="PDF 2")
@@ -62,8 +67,7 @@ class Agent:
         # plt.legend()
         # plt.show()
 
-        # print(noise_arr)        
-        return pos_array + noise_arr
+        return (noise_x, noise_y)
 
     def plotinfo(self):   
         fig = plt.figure()
@@ -72,16 +76,23 @@ class Agent:
         theta = np.linspace(0, 2*np.pi, 150)
         radius = 0.25 # km
 
-        if self.evil:
-            self.x_meas = self.measure(self.x_true)
-            self.y_meas = self.measure(self.y_true)
-        else:
+        if not self.evil:
             evil_label = "good"
-            self.x_meas = self.measure(self.x_true)
-            self.y_meas = self.measure(self.y_true)
+
+        x_meas = []
+        y_meas = []
+
+        for t_idx, t in enumerate(self.times):
+            if 0 <= t <= 30:  # seconds
+                (x_meas_t, y_meas_t) = self.measure(t_idx)  # generate noise
+                x_meas.append(self.x_true[t_idx] + x_meas_t)
+                y_meas.append(self.y_true[t_idx] + y_meas_t)
+            else:
+                x_meas.append(self.x_true[t_idx])
+                y_meas.append(self.y_true[t_idx])
 
         ax.plot(self.x_true, self.y_true, label="true trajectory", color = "blue")
-        ax.plot(self.x_meas, self.y_meas, label="noisy trajectory", color = "orange", linestyle = "dotted", alpha = 0.5)
+        ax.plot(x_meas, y_meas, label="bad trajectory", color = "orange", alpha = 0.5)
         ax.plot(radius*np.cos(theta), radius*np.sin(theta), label="no fly zone", color = "red")
         plt.xlabel("X Position (km)")
         plt.ylabel("Y Position (km)")

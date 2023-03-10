@@ -108,8 +108,8 @@ for a_i in subagents:
 subagents[-1].evil = True   
 subagents[2].evil = True   
 
-# for craft in aircraft:
-#     craft.plotinfo()
+for craft in aircraft:
+    craft.plotinfo()
 
 graph = GraphVisual()
 graph.add_agents(subagents)
