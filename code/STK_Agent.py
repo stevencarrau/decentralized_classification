@@ -9,9 +9,10 @@ class ProbablilityNotOne(Exception):
 
 class Agent:
     # given x, y, and z from STK. noise from measurement added later
-    def __init__(self, name, stk_ref, times, x_true, y_true, z_true):
+    def __init__(self, name, stk_ref, true_belief, times, x_true, y_true, z_true):
         self.name = name
         self.stk_ref = stk_ref
+        self.true_belief = true_belief
 
         # times and positions calculated from STK's Data Providers in Earth Fixed Reference Frame
         self.times = times
@@ -19,13 +20,13 @@ class Agent:
         self.y_true = y_true
         self.z_true = z_true
 
-    def measure(self, t_idx):
-        # make noise follow bimodal distribution with a peak on the left for the bad agent and the peak on the right for the good agent
-        
-        scale_factor = 5e-2
+
+    def intialize_bimodal_pdf(self):
+        # make noise follow bimodal distribution with a peak at 0 for the good agent and the peak on the right for the bad agent
         pdf = stats.norm.pdf
         frac = 0.49
-        
+        scale_factor = 5e-2
+
         # loc = mean, scale = stdev
         # set 1
         loc1, scale1, size1 = (0, 0.75*scale_factor, 110)
@@ -47,7 +48,12 @@ class Agent:
             bimodal_pdf = pdf(x_eval, loc=loc1, scale=scale1) * float(size1) / x.size \
                         + pdf(x_eval, loc=loc2, scale=scale2) * float(size2) / x.size
 
-        noise_arr = scale_factor * np.random.choice(x, size=1, p=bimodal_pdf/np.sum(bimodal_pdf))
+        self.x = x
+        self.bimodal_pdf = bimodal_pdf
+        self.scale_factor = scale_factor
+
+    def measure(self, t_idx):
+        noise_arr = self.scale_factor * np.random.choice(self.x, size=1, p=self.bimodal_pdf/np.sum(self.bimodal_pdf))
         
         if t_idx < len(self.times)-1:
             t_next = t_idx + 1
@@ -79,20 +85,29 @@ class Agent:
         if not self.evil:
             evil_label = "good"
 
-        x_meas = []
-        y_meas = []
+        x_meas_good = []
+        y_meas_good = []
+        x_meas_evil = []
+        y_meas_evil = []
 
-        for t_idx, t in enumerate(self.times):
-            if 0 <= t <= 30:  # seconds
+        # simulate good and bad noise in same interval
+        for i in range(2):
+            for t_idx, t in enumerate(self.times):
                 (x_meas_t, y_meas_t) = self.measure(t_idx)  # generate noise
-                x_meas.append(self.x_true[t_idx] + x_meas_t)
-                y_meas.append(self.y_true[t_idx] + y_meas_t)
-            else:
-                x_meas.append(self.x_true[t_idx])
-                y_meas.append(self.y_true[t_idx])
+                if 5 <= t <= 10:  # seconds
+                    if i == 0:
+                        x_meas_good.append(self.x_true[t_idx] + x_meas_t)
+                        y_meas_good.append(self.y_true[t_idx] + y_meas_t)
+                    elif i == 1:
+                        x_meas_evil.append(self.x_true[t_idx] + x_meas_t)
+                        y_meas_evil.append(self.y_true[t_idx] + y_meas_t)
+            self.evil = True
+
+        self.evil = False
 
         ax.plot(self.x_true, self.y_true, label="true trajectory", color = "blue")
-        ax.plot(x_meas, y_meas, label="bad trajectory", color = "orange", alpha = 0.5)
+        ax.plot(x_meas_good, x_meas_good, label="good noise", color = "green", alpha = 0.5)
+        ax.plot(x_meas_evil, y_meas_evil, label="evil noise", color = "orange", alpha = 0.5)
         ax.plot(radius*np.cos(theta), radius*np.sin(theta), label="no fly zone", color = "red")
         plt.xlabel("X Position (km)")
         plt.ylabel("Y Position (km)")

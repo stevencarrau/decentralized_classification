@@ -77,6 +77,7 @@ time_step = 0.033  # seconds
 num_timesteps_per_second = 1/time_step   # about 30 timesteps/sec
 time_multiplier = 1.5
 T = int(scenario.StopTime*time_multiplier)    
+true_belief = (1,1,0,1,1,1,0)
 
 # create aircraft/sensor objects with corresponding agents
 aircraft = []
@@ -93,7 +94,7 @@ for obj in scenario.Children:
         y_values = craftPosDP.DataSets.GetDataSetByName('y').GetValues() - washingon_coords[1]
         z_values = craftPosDP.DataSets.GetDataSetByName('z').GetValues() - washingon_coords[2]
 
-        aircraft.append(Agent(obj.InstanceName, obj, times, x_values, y_values, z_values))
+        aircraft.append(Agent(obj.InstanceName, obj, true_belief, times, x_values, y_values, z_values))
 
     elif isinstance(obj, AgPlace):
         for sensor in obj.Children:
@@ -106,16 +107,20 @@ for a_i in subagents:
     a_i.init_sharing_type(subagents_names)
     a_i.init_belief(len(subagents))
 subagents[-1].evil = True   
-subagents[2].evil = True   
+subagents[2].evil = True
 
+# initialize bimodal pdfs for each agent
 for craft in aircraft:
-    craft.plotinfo()
+    craft.intialize_bimodal_pdf()
+
+for craft_idx, craft in enumerate(aircraft):
+    if craft_idx == 4 or craft_idx == 5:
+        craft.plotinfo()
 
 graph = GraphVisual()
 graph.add_agents(subagents)
 
 
-true_belief = (1,1,0,1,1,1,0)
 ignore_sensors = []
 graph.draw_graph(4)
 plt.ion()
