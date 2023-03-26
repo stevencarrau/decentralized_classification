@@ -264,8 +264,8 @@ class Agent:
         for o_s in observe_set:
             observed_diff = o_s.measured - o_s.expected_position
             noise_measure = np.sqrt(observed_diff[0]**2+observed_diff[1]**2)
-            probability_bad = self.belief_bad(noise_measure)
-            probability_good = self.belief_good(noise_measure)
+            probability_bad = o_s.bimodal_bad(noise_measure)
+            probability_good = o_s.bimodal_good(noise_measure)
             obs_list.append((o_s.idx,probability_bad,probability_good))
         return obs_list
         #
@@ -286,24 +286,29 @@ class Agent:
         # # guess[i] = s
         # return idx,s
 
-    def likelihood(self, sys_status,observation):
-        epsilon = 0  # 1e-9
+    def likelihood(self, sys_status,observation_list):
+        epsilon = 1e-9
 
         # Work through each element of the tuple, if is likely then good if its unlikely then bad.
         # view_index = [self.id_idx[v_a] for v_a in viewable_agents]
         prob_i = 1.0
-        for v_i, v_p in zip([observation[0]],[observation[1]]):
-            if len(v_p) > 1:
-                if sys_status[v_i] == 0:
-                    prob_i *= v_p[1]  # Probability for bad model
-                else:
-                    prob_i *= v_p[0]  # Probability for good model
+        for o_s in observation_list:
+            if sys_status[o_s[0]] == 0:
+                prob_i *= o_s[1] + epsilon
             else:
-                if sys_status[v_i] == 0:  # if bad
-                    prob_i *= 1.0 - v_p + epsilon
-                else:
-                    prob_i *= v_p + epsilon
-        return prob_i[0]
+                prob_i *= o_s[2] + epsilon
+        # for v_i, v_p in zip([observation[0]],[observation[1]]):
+        #     if len(v_p) > 1:
+        #         if sys_status[v_i] == 0:
+        #             prob_i *= v_p[1]  # Probability for bad model
+        #         else:
+        #             prob_i *= v_p[0]  # Probability for good model
+        #     else:
+        #         if sys_status[v_i] == 0:  # if bad
+        #             prob_i *= 1.0 - v_p + epsilon
+        #         else:
+        #             prob_i *= v_p + epsilon
+        return prob_i
 
     def updateLocalBelief(self, viewable_agents=None):
         ## Synchronous update rule
