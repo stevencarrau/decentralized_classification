@@ -34,22 +34,28 @@ class Agent:
         loc3, scale3, size3 = (0, 0.25*scale_factor, 50)
         loc4, scale4, size4 = (2, 0.89*scale_factor, int(size3/frac))
                 
+        # Evil pdf
+        x = np.concatenate([np.random.normal(loc=loc3, scale=scale3, size=size3),
+                            np.random.normal(loc=loc4, scale=scale4, size=size4)])
+        x_eval = np.linspace(x.min() - 1, x.max() + 1, len(x))
+        bimodal_pdf = pdf(x_eval, loc=loc3, scale=scale3) * float(size3) / x.size \
+                    + pdf(x_eval, loc=loc4, scale=scale4) * float(size4) / x.size
+        self.bimodal_evil = bimodal_pdf
+        # Good pdf
+        x = np.concatenate([np.random.normal(loc=loc1, scale=scale1, size=size1),
+                            np.random.normal(loc=loc2, scale=scale2, size=size2)])
+        x_eval = np.linspace(x.min() - 1, x.max() + 1, len(x))
+        bimodal_pdf = pdf(x_eval, loc=loc1, scale=scale1) * float(size1) / x.size \
+                    + pdf(x_eval, loc=loc2, scale=scale2) * float(size2) / x.size
         # pick one bimodal distribution if the agent is evil, pick the other if the are good
+        self.bimodal_good = bimodal_pdf
         if self.evil:
-            x = np.concatenate([np.random.normal(loc=loc3, scale=scale3, size=size3),
-                                np.random.normal(loc=loc4, scale=scale4, size=size4)])
-            x_eval = np.linspace(x.min() - 1, x.max() + 1, len(x))
-            bimodal_pdf = pdf(x_eval, loc=loc3, scale=scale3) * float(size3) / x.size \
-                        + pdf(x_eval, loc=loc4, scale=scale4) * float(size4) / x.size
+            self.bimodal_pdf = self.bimodal_evil
         else:
-            x = np.concatenate([np.random.normal(loc=loc1, scale=scale1, size=size1),
-                                np.random.normal(loc=loc2, scale=scale2, size=size2)])
-            x_eval = np.linspace(x.min() - 1, x.max() + 1, len(x))
-            bimodal_pdf = pdf(x_eval, loc=loc1, scale=scale1) * float(size1) / x.size \
-                        + pdf(x_eval, loc=loc2, scale=scale2) * float(size2) / x.size
+            self.bimodal_pdf = self.bimodal_good
 
         self.x = x
-        self.bimodal_pdf = bimodal_pdf
+        # self.bimodal_pdf = bimodal_pdf
         self.scale_factor = scale_factor
 
     def measure(self, t_idx):
@@ -253,20 +259,32 @@ class Agent:
                 self.belief_bad.append(i)
 
     # Local Observation
-    def observe(self):
-        # guess = np.zeros((len(self.agent_id),1))
-        idx = np.random.randint(0,5)
-        # for i in range(len(self.agent_id)):
-        accuracy = 0.85
-        sigma = 0.05
-        if idx == 4:
-            s = np.random.normal(1-accuracy, sigma,1)
-            s = np.clip(s,0,1)
-        else:
-            s = np.random.normal(accuracy, sigma,1)
-            s = np.clip(s,0,1)
-        # guess[i] = s
-        return idx,s
+    def observe(self,observe_set):
+        obs_list = []
+        for o_s in observe_set:
+            observed_diff = o_s.measured - o_s.expected_position
+            noise_measure = np.sqrt(observed_diff[0]**2+observed_diff[1]**2)
+            probability_bad = self.belief_bad(noise_measure)
+            probability_good = self.belief_good(noise_measure)
+            obs_list.append((o_s.idx,probability_bad,probability_good))
+        return obs_list
+        #
+        #
+        #
+        #
+        # # guess = np.zeros((len(self.agent_id),1))
+        # idx = np.random.randint(0,5)
+        # # for i in range(len(self.agent_id)):
+        # accuracy = 0.85
+        # sigma = 0.05
+        # if idx == 4:
+        #     s = np.random.normal(1-accuracy, sigma,1)
+        #     s = np.clip(s,0,1)
+        # else:
+        #     s = np.random.normal(accuracy, sigma,1)
+        #     s = np.clip(s,0,1)
+        # # guess[i] = s
+        # return idx,s
 
     def likelihood(self, sys_status,observation):
         epsilon = 0  # 1e-9
@@ -290,7 +308,7 @@ class Agent:
     def updateLocalBelief(self, viewable_agents=None):
         ## Synchronous update rule
         tot_b = 0.0
-        observation = self.observe()
+        observation = self.observe(viewable_agents)
         for b_i in self.local_belief:
             tot_b += self.likelihood(b_i,observation)*self.local_belief[b_i]
         for b_i in self.local_belief:

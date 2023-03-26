@@ -141,6 +141,7 @@ for t in range(T):
         new_vertices = list(new_vertices)
         
         graph.add_vertices(a, new_vertices)
+        ## TODO: Give as input the "Observation" function - i.e connected agents that are in their "observable" zone
         a.updateLocalBelief()
     # Loop again to build sharing graphs
     for idx,a in enumerate(graph.agents):
