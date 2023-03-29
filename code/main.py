@@ -114,7 +114,6 @@ for craft in aircraft:
     craft.intialize_bimodal_pdf()
 
 for craft_idx, craft in enumerate(aircraft):
-    if craft_idx == 4 or craft_idx == 5:
         craft.plotinfo()
 
 graph = GraphVisual()

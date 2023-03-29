@@ -25,41 +25,44 @@ class Agent:
         # make noise follow bimodal distribution with a peak at 0 for the good agent and the peak on the right for the bad agent
         pdf = stats.norm.pdf
         frac = 0.49
-        scale_factor = 5e-2
+        scale_factor_good = 2e-2
+        scale_factor_evil = 5e-2
 
         # loc = mean, scale = stdev
         # set 1
-        loc1, scale1, size1 = (0, 0.75*scale_factor, 110)
-        loc2, scale2, size2 = (2, 0.25*scale_factor, int(frac*size1))
-        loc3, scale3, size3 = (0, 0.25*scale_factor, 50)
-        loc4, scale4, size4 = (2, 0.89*scale_factor, int(size3/frac))
+        loc1, scale1, size1 = (0, 0.75*scale_factor_good, 110)
+        loc2, scale2, size2 = (2, 0.25*scale_factor_good, int(frac*size1))
+        loc3, scale3, size3 = (0, 0.25*scale_factor_evil, 50)
+        loc4, scale4, size4 = (2, 0.89*scale_factor_evil, int(size3/frac))
                 
         # Evil pdf
-        x = np.concatenate([np.random.normal(loc=loc3, scale=scale3, size=size3),
+        x_evil = np.concatenate([np.random.normal(loc=loc3, scale=scale3, size=size3),
                             np.random.normal(loc=loc4, scale=scale4, size=size4)])
-        x_eval = np.linspace(x.min() - 1, x.max() + 1, len(x))
-        bimodal_pdf = pdf(x_eval, loc=loc3, scale=scale3) * float(size3) / x.size \
-                    + pdf(x_eval, loc=loc4, scale=scale4) * float(size4) / x.size
+        x_eval = np.linspace(x_evil.min() - 1, x_evil.max() + 1, len(x_evil))
+        bimodal_pdf = pdf(x_eval, loc=loc3, scale=scale3) * float(size3) / x_evil.size \
+                    + pdf(x_eval, loc=loc4, scale=scale4) * float(size4) / x_evil.size
         self.bimodal_evil = bimodal_pdf
+
         # Good pdf
-        x = np.concatenate([np.random.normal(loc=loc1, scale=scale1, size=size1),
+        x_good = np.concatenate([np.random.normal(loc=loc1, scale=scale1, size=size1),
                             np.random.normal(loc=loc2, scale=scale2, size=size2)])
-        x_eval = np.linspace(x.min() - 1, x.max() + 1, len(x))
-        bimodal_pdf = pdf(x_eval, loc=loc1, scale=scale1) * float(size1) / x.size \
-                    + pdf(x_eval, loc=loc2, scale=scale2) * float(size2) / x.size
-        # pick one bimodal distribution if the agent is evil, pick the other if the are good
+        x_eval = np.linspace(x_good.min() - 1, x_good.max() + 1, len(x_good))
+        bimodal_pdf = pdf(x_eval, loc=loc1, scale=scale1) * float(size1) / x_good.size \
+                    + pdf(x_eval, loc=loc2, scale=scale2) * float(size2) / x_good.size
         self.bimodal_good = bimodal_pdf
+        
+        # pick one bimodal distribution if the agent is evil, pick the other if the are good
         if self.evil:
             self.bimodal_pdf = self.bimodal_evil
+            self.scale_factor = scale_factor_evil
+            self.x = x_evil
         else:
             self.bimodal_pdf = self.bimodal_good
-
-        self.x = x
-        # self.bimodal_pdf = bimodal_pdf
-        self.scale_factor = scale_factor
+            self.scale_factor = scale_factor_good
+            self.x = x_good
 
     def measure(self, t_idx):
-        noise_arr = self.scale_factor * np.random.choice(self.x, size=1, p=self.bimodal_pdf/np.sum(self.bimodal_pdf))
+        noise = self.scale_factor * np.random.choice(self.x, size=1, p=self.bimodal_pdf/np.sum(self.bimodal_pdf))
         
         if t_idx < len(self.times)-1:
             t_next = t_idx + 1
@@ -70,14 +73,8 @@ class Agent:
         # angle of tangent line to trajectory
         theta = np.arctan2(self.y_true[t_next] - self.y_true[t_idx], self.x_true[t_next] - self.x_true[t_idx])
 
-        noise_x = np.cos(theta) * noise_arr
-        noise_y = np.sin(theta) * noise_arr
-        
-        # plt.plot(x_eval_1, bimodal_pdf_1, 'r--', label="PDF 1")
-        # plt.plot(x_eval_2, bimodal_pdf_2, 'b--', label="PDF 2")
-        # plt.plot(random_choices_pdf_1, 'g', label="Random choices PDF 1")
-        # plt.legend()
-        # plt.show()
+        noise_x = np.cos(theta) * noise
+        noise_y = np.sin(theta) * noise
 
         return (noise_x, noise_y)
 
@@ -86,7 +83,7 @@ class Agent:
         ax = plt.axes()
         evil_label = "evil"
         theta = np.linspace(0, 2*np.pi, 150)
-        radius = 0.25 # km
+        radius = 0.175 # km
 
         if not self.evil:
             evil_label = "good"
@@ -101,23 +98,32 @@ class Agent:
             for t_idx, t in enumerate(self.times):
                 (x_meas_t, y_meas_t) = self.measure(t_idx)  # generate noise
                 if 5 <= t <= 10:  # seconds
-                    if i == 0:
-                        x_meas_good.append(self.x_true[t_idx] + x_meas_t)
-                        y_meas_good.append(self.y_true[t_idx] + y_meas_t)
-                    elif i == 1:
+                    if self.evil:
                         x_meas_evil.append(self.x_true[t_idx] + x_meas_t)
                         y_meas_evil.append(self.y_true[t_idx] + y_meas_t)
-            self.evil = True
+                    else:
+                        x_meas_good.append(self.x_true[t_idx] + x_meas_t)
+                        y_meas_good.append(self.y_true[t_idx] + y_meas_t)
+            self.evil = not self.evil
 
-        self.evil = False
+            if self.evil:
+                self.scale_factor = 5e-2
+            else:
+                self.scale_factor = 2e-2
+
+        self.evil = not self.evil
+        if self.evil:
+                self.scale_factor = 5e-2
+        else:
+            self.scale_factor = 2e-2
 
         ax.plot(self.x_true, self.y_true, label="true trajectory", color = "blue")
-        ax.plot(x_meas_good, x_meas_good, label="good noise", color = "green", alpha = 0.5)
+        ax.plot(x_meas_good, y_meas_good, label="good noise", color = "green")
         ax.plot(x_meas_evil, y_meas_evil, label="evil noise", color = "orange", alpha = 0.5)
         ax.plot(radius*np.cos(theta), radius*np.sin(theta), label="no fly zone", color = "red")
         plt.xlabel("X Position (km)")
         plt.ylabel("Y Position (km)")
-        plt.title("XY Position for {0} {1} WRT Washington".format(evil_label, self.name))
+        plt.title("XY Position for {0} {1} wrt Washington".format(evil_label, self.name))
         plt.legend()
         plt.show()
 
