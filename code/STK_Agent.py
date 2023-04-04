@@ -23,13 +23,11 @@ class Observe:
             agent_observable_interval = Agent.intervals_near_zone[agent_idx]
             agent_observable = agent_observable_interval[0] <= t <= agent_observable_interval[1]
 
-            expected_position = np.array([agent.x_true[t], agent.y_true[t], agent.z_true[t]])
-            
-            if agent_observable:
-                (noise_x, noise_y) = agent.measure(t)
-            else:
-                (noise_x, noise_y) = ([0], [0])
+            if not agent_observable:
+                continue
 
+            expected_position = np.array([agent.x_true[t], agent.y_true[t], agent.z_true[t]])
+            (noise_x, noise_y) = agent.measure(t)
             measured_position = expected_position + np.array([noise_x[0], noise_y[0], 0])
 
             o_s = Observation(agent_idx, measured_position, expected_position, agent.bimodal_evil, agent.bimodal_good)
@@ -38,7 +36,8 @@ class Observe:
 
 class Agent:
     # given x, y, and z from STK. noise from measurement added later
-    intervals_near_zone = [[0, 1], [0, 1], [5, 10], [10, 15], [5, 10]]
+    # intervals_near_zone = [[0, 1], [0, 1], [5, 10], [10, 15], [5, 10]]
+    intervals_near_zone = [[0, 60], [0, 60], [5, 60], [10, 60], [0, 60]]
     def __init__(self, name, stk_ref, true_belief, times, x_true, y_true, z_true):
         self.name = name
         self.stk_ref = stk_ref

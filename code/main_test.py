@@ -23,10 +23,10 @@ washingon_coords = np.array([1115.07, -4843.94, 3983.24])
 
 for craft in range(1,6):
     data = np.loadtxt("Aircraft{num}.csv".format(num=craft), delimiter=',')
-    times = data[:, 0]
-    x_values = data[:, 1]
-    y_values = data[:, 2]
-    z_values = data[:, 3]
+    times = data[0, :]
+    x_values = data[1, :]
+    y_values = data[2, :]
+    z_values = data[3, :]
 
     aircraft.append(Agent("Aircraft{num}".format(num=craft), None, true_belief, times, x_values, y_values, z_values))
 
