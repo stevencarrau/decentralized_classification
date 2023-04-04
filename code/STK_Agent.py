@@ -7,8 +7,38 @@ from scipy import stats
 class ProbablilityNotOne(Exception):
 	pass
 
+
+class Observation:
+    def __init__(self, idx, measured, expected_position, bimodal_bad, bimodal_good):
+        self.idx = idx
+        self.measured = measured
+        self.expected_position = expected_position
+        self.bimodal_bad = bimodal_bad
+        self.bimodal_good = bimodal_good
+
+class Observe:
+    def get_observations(agents, t):
+        observe_set = []
+        for agent_idx, agent in enumerate(agents):
+            agent_observable_interval = Agent.intervals_near_zone[agent_idx]
+            agent_observable = agent_observable_interval[0] <= t <= agent_observable_interval[1]
+
+            expected_position = np.array([agent.x_true[t], agent.y_true[t], agent.z_true[t]])
+            
+            if agent_observable:
+                (noise_x, noise_y) = agent.measure(t)
+            else:
+                (noise_x, noise_y) = ([0], [0])
+
+            measured_position = expected_position + np.array([noise_x[0], noise_y[0], 0])
+
+            o_s = Observation(agent_idx, measured_position, expected_position, agent.bimodal_evil, agent.bimodal_good)
+            observe_set.append(o_s)
+        return observe_set
+
 class Agent:
     # given x, y, and z from STK. noise from measurement added later
+    intervals_near_zone = [[0, 1], [0, 1], [5, 10], [10, 15], [5, 10]]
     def __init__(self, name, stk_ref, true_belief, times, x_true, y_true, z_true):
         self.name = name
         self.stk_ref = stk_ref
@@ -19,6 +49,10 @@ class Agent:
         self.x_true = x_true
         self.y_true = y_true
         self.z_true = z_true
+
+    def intialize_interval(self, idx):
+        self.idx = idx
+        self.interval = Agent.intervals_near_zone[idx]
 
 
     def intialize_bimodal_pdf(self):
@@ -38,16 +72,14 @@ class Agent:
         # Evil pdf
         x_evil = np.concatenate([np.random.normal(loc=loc3, scale=scale3, size=size3),
                             np.random.normal(loc=loc4, scale=scale4, size=size4)])
-        x_eval = np.linspace(x_evil.min() - 1, x_evil.max() + 1, len(x_evil))
-        bimodal_pdf = pdf(x_eval, loc=loc3, scale=scale3) * float(size3) / x_evil.size \
+        bimodal_pdf = lambda x_eval: pdf(x_eval, loc=loc3, scale=scale3) * float(size3) / x_evil.size \
                     + pdf(x_eval, loc=loc4, scale=scale4) * float(size4) / x_evil.size
         self.bimodal_evil = bimodal_pdf
 
         # Good pdf
         x_good = np.concatenate([np.random.normal(loc=loc1, scale=scale1, size=size1),
                             np.random.normal(loc=loc2, scale=scale2, size=size2)])
-        x_eval = np.linspace(x_good.min() - 1, x_good.max() + 1, len(x_good))
-        bimodal_pdf = pdf(x_eval, loc=loc1, scale=scale1) * float(size1) / x_good.size \
+        bimodal_pdf = lambda x_eval: pdf(x_eval, loc=loc1, scale=scale1) * float(size1) / x_good.size \
                     + pdf(x_eval, loc=loc2, scale=scale2) * float(size2) / x_good.size
         self.bimodal_good = bimodal_pdf
         
@@ -62,7 +94,8 @@ class Agent:
             self.x = x_good
 
     def measure(self, t_idx):
-        noise = self.scale_factor * np.random.choice(self.x, size=1, p=self.bimodal_pdf/np.sum(self.bimodal_pdf))
+        x_eval = np.linspace(self.x.min() - 1, self.x.max() + 1, len(self.x))
+        noise = self.scale_factor * np.random.choice(self.x, size=1, p=self.bimodal_pdf(x_eval)/np.sum(self.bimodal_pdf(x_eval)))
         
         if t_idx < len(self.times)-1:
             t_next = t_idx + 1
@@ -78,55 +111,60 @@ class Agent:
 
         return (noise_x, noise_y)
 
+    def dumpcsv(self):
+        print(self.name)
+        np.savetxt("{name}.csv".format(name=self.name), (self.times, self.x_true, self.y_true, self.z_true), delimiter=',', fmt="%s")
+
     def plotinfo(self):   
         fig = plt.figure()
         ax = plt.axes()
         evil_label = "evil"
         theta = np.linspace(0, 2*np.pi, 150)
         radius = 0.175 # km
-
-        if not self.evil:
-            evil_label = "good"
-
-        x_meas_good = []
-        y_meas_good = []
-        x_meas_evil = []
-        y_meas_evil = []
+        plot = False
 
         # simulate good and bad noise in same interval
-        for i in range(2):
-            for t_idx, t in enumerate(self.times):
-                (x_meas_t, y_meas_t) = self.measure(t_idx)  # generate noise
-                if 5 <= t <= 10:  # seconds
-                    if self.evil:
-                        x_meas_evil.append(self.x_true[t_idx] + x_meas_t)
-                        y_meas_evil.append(self.y_true[t_idx] + y_meas_t)
-                    else:
-                        x_meas_good.append(self.x_true[t_idx] + x_meas_t)
-                        y_meas_good.append(self.y_true[t_idx] + y_meas_t)
-            self.evil = not self.evil
+        if plot:
+            if not self.evil:
+                evil_label = "good"
 
+            x_meas_good = []
+            y_meas_good = []
+            x_meas_evil = []
+            y_meas_evil = []
+
+            for i in range(2):
+                for t_idx, t in enumerate(self.times):
+                    (x_meas_t, y_meas_t) = self.measure(t_idx)  # generate noise
+                    if self.interval[0] <= t <= self.interval[1]:  # seconds
+                        if self.evil:
+                            x_meas_evil.append(self.x_true[t_idx] + x_meas_t)
+                            y_meas_evil.append(self.y_true[t_idx] + y_meas_t)
+                        else:
+                            x_meas_good.append(self.x_true[t_idx] + x_meas_t)
+                            y_meas_good.append(self.y_true[t_idx] + y_meas_t)
+                self.evil = not self.evil
+
+                if self.evil:
+                    self.scale_factor = 5e-2
+                else:
+                    self.scale_factor = 2e-2
+
+            self.evil = not self.evil
             if self.evil:
-                self.scale_factor = 5e-2
+                    self.scale_factor = 5e-2
             else:
                 self.scale_factor = 2e-2
 
-        self.evil = not self.evil
-        if self.evil:
-                self.scale_factor = 5e-2
-        else:
-            self.scale_factor = 2e-2
-
-        ax.plot(self.x_true, self.y_true, label="true trajectory", color = "blue")
-        ax.plot(x_meas_good, y_meas_good, label="good noise", color = "green")
-        ax.plot(x_meas_evil, y_meas_evil, label="evil noise", color = "orange", alpha = 0.5)
-        ax.plot(radius*np.cos(theta), radius*np.sin(theta), label="no fly zone", color = "red")
-        plt.xlabel("X Position (km)")
-        plt.ylabel("Y Position (km)")
-        plt.title("XY Position for {0} {1} wrt Washington".format(evil_label, self.name))
-        plt.legend()
-        plt.show()
-
+            ax.plot(self.x_true, self.y_true, label="true trajectory", color = "blue")
+            ax.plot(x_meas_good, y_meas_good, label="good noise", color = "green")
+            ax.plot(x_meas_evil, y_meas_evil, label="evil noise", color = "orange", alpha = 0.5)
+            ax.plot(radius*np.cos(theta), radius*np.sin(theta), label="no fly zone", color = "red")
+            plt.xlabel("X Position (km)")
+            plt.ylabel("Y Position (km)")
+            plt.title("XY Position for {0} {1} wrt Washington".format(evil_label, self.name))
+            plt.legend()
+            plt.show()
 
     def __str__(self):
         return str(self.name)

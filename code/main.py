@@ -12,7 +12,7 @@ from Graph_Visual import GraphVisual
 import matplotlib.pyplot as plt
 import random
 import copy
-from STK_Agent import Agent
+from STK_Agent import Agent, Observation, Observe
 import numpy as np
 
 # When connected to STK via Python, while creating your variable, 
@@ -77,7 +77,7 @@ time_step = 0.033  # seconds
 num_timesteps_per_second = 1/time_step   # about 30 timesteps/sec
 time_multiplier = 1.5
 T = int(scenario.StopTime*time_multiplier)    
-true_belief = (1,1,0,1,1,1,0)
+true_belief = (1,1,0,1,1)
 
 # create aircraft/sensor objects with corresponding agents
 aircraft = []
@@ -107,14 +107,18 @@ for a_i in subagents:
     a_i.init_sharing_type(subagents_names)
     a_i.init_belief(len(subagents))
 subagents[-1].evil = True   
-subagents[2].evil = True
 
-# initialize bimodal pdfs for each agent
-for craft in aircraft:
-    craft.intialize_bimodal_pdf()
-
+# initialize bimodal pdfs and intervals for each agent
 for craft_idx, craft in enumerate(aircraft):
-        craft.plotinfo()
+    craft.intialize_bimodal_pdf()
+    craft.intialize_interval(craft_idx)
+    craft.dumpcsv()
+
+
+print("[INFO] Done with initialization")
+
+# for craft_idx, craft in enumerate(aircraft):
+#      craft.plotinfo()
 
 graph = GraphVisual()
 graph.add_agents(subagents)
@@ -124,7 +128,7 @@ ignore_sensors = []
 graph.draw_graph(4)
 plt.ion()
 plt.show()
-for t in range(T):
+for t_idx, t in enumerate(range(T)):
     graph.clear()
     # Loop once to update connections
     for idx, a in enumerate(graph.agents):
@@ -136,12 +140,13 @@ for t in range(T):
             # FIXME: change if you want to block sensor(s) for the duration of the experiment
             if sensor_idx in ignore_sensors:
                 continue
-            new_vertices.update(sensor.query(agent_list, t/time_multiplier))
+            new_vertices.update(sensor.query(agent_list, t_idx/time_multiplier))
         new_vertices = list(new_vertices)
         
         graph.add_vertices(a, new_vertices)
         ## TODO: Give as input the "Observation" function - i.e connected agents that are in their "observable" zone
-        a.updateLocalBelief()
+        observations = Observe.get_observations(graph.agents, int(t_idx/time_multiplier))
+        a.updateLocalBelief(observations)
     # Loop again to build sharing graphs
     for idx,a in enumerate(graph.agents):
         belief_packet = dict(
