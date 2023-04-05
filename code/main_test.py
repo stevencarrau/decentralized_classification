@@ -42,6 +42,7 @@ subagents[-1].evil = True
 # initialize bimodal pdfs and intervals for each agent
 for craft_idx, craft in enumerate(aircraft):
     craft.intialize_bimodal_pdf()
+    craft.intialize_interval(craft_idx)
 
 graph = GraphVisual()
 graph.add_agents(subagents)

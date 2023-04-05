@@ -38,6 +38,26 @@ class Agent:
     # given x, y, and z from STK. noise from measurement added later
     # intervals_near_zone = [[0, 1], [0, 1], [5, 10], [10, 15], [5, 10]]
     intervals_near_zone = [[0, 60], [0, 60], [5, 60], [10, 60], [0, 60]]
+
+    # make noise follow bimodal distribution with a peak at 0 for the good agent and the peak on the right for the bad agent
+    pdf = stats.norm.pdf
+    frac = 0.49
+    scale_factor_good = 2e-2
+    scale_factor_evil = 5e-2
+
+    # loc = mean, scale = stdev
+    # set 1
+    loc1, scale1, size1 = (0, 0.75, 110)
+    loc2, scale2, size2 = (2, 0.25, int(frac*size1))
+    loc3, scale3, size3 = (0, 0.25, 50)
+    loc4, scale4, size4 = (2, 0.89, int(size3/frac))
+    
+    x_evil = np.concatenate([np.random.normal(loc=loc3, scale=scale3, size=size3),
+                            np.random.normal(loc=loc4, scale=scale4, size=size4)])
+
+    x_good = np.concatenate([np.random.normal(loc=loc1, scale=scale1, size=size1),
+                            np.random.normal(loc=loc2, scale=scale2, size=size2)])
+      
     def __init__(self, name, stk_ref, true_belief, times, x_true, y_true, z_true):
         self.name = name
         self.stk_ref = stk_ref
@@ -53,44 +73,32 @@ class Agent:
         self.idx = idx
         self.interval = Agent.intervals_near_zone[idx]
 
+    def eval_evil_pdf(self, x_eval):
+        bimodal_pdf = Agent.pdf(x_eval, loc=Agent.loc3, scale=Agent.scale3) * float(Agent.size3) / Agent.x_evil.size \
+                    + Agent.pdf(x_eval, loc=Agent.loc4, scale=Agent.scale4) * float(Agent.size4) / Agent.x_evil.size
+        bimodal_pdf /= np.sum(bimodal_pdf)       
+        return bimodal_pdf
 
-    def intialize_bimodal_pdf(self):
-        # make noise follow bimodal distribution with a peak at 0 for the good agent and the peak on the right for the bad agent
-        pdf = stats.norm.pdf
-        frac = 0.49
-        scale_factor_good = 2e-2
-        scale_factor_evil = 5e-2
+    def eval_good_pdf(self, x_eval):
+        bimodal_pdf = Agent.pdf(x_eval, loc=Agent.loc1, scale=Agent.scale1) * float(Agent.size1) / Agent.x_good.size \
+                    + Agent.pdf(x_eval, loc=Agent.loc2, scale=Agent.scale2) * float(Agent.size2) / Agent.x_good.size
+        bimodal_pdf /= np.sum(bimodal_pdf)
+        return bimodal_pdf
 
-        # loc = mean, scale = stdev
-        # set 1
-        loc1, scale1, size1 = (0, 0.75*scale_factor_good, 110)
-        loc2, scale2, size2 = (2, 0.25*scale_factor_good, int(frac*size1))
-        loc3, scale3, size3 = (0, 0.25*scale_factor_evil, 50)
-        loc4, scale4, size4 = (2, 0.89*scale_factor_evil, int(size3/frac))
-                
-        # Evil pdf
-        x_evil = np.concatenate([np.random.normal(loc=loc3, scale=scale3, size=size3),
-                            np.random.normal(loc=loc4, scale=scale4, size=size4)])
-        bimodal_pdf = lambda x_eval: pdf(x_eval, loc=loc3, scale=scale3) * float(size3) / x_evil.size \
-                    + pdf(x_eval, loc=loc4, scale=scale4) * float(size4) / x_evil.size
-        self.bimodal_evil = bimodal_pdf
 
-        # Good pdf
-        x_good = np.concatenate([np.random.normal(loc=loc1, scale=scale1, size=size1),
-                            np.random.normal(loc=loc2, scale=scale2, size=size2)])
-        bimodal_pdf = lambda x_eval: pdf(x_eval, loc=loc1, scale=scale1) * float(size1) / x_good.size \
-                    + pdf(x_eval, loc=loc2, scale=scale2) * float(size2) / x_good.size
-        self.bimodal_good = bimodal_pdf
+    def intialize_bimodal_pdf(self):                
+        self.bimodal_evil = lambda x_eval: self.eval_evil_pdf(x_eval)
+        self.bimodal_good = lambda x_eval: self.eval_good_pdf(x_eval)
         
         # pick one bimodal distribution if the agent is evil, pick the other if the are good
         if self.evil:
             self.bimodal_pdf = self.bimodal_evil
-            self.scale_factor = scale_factor_evil
-            self.x = x_evil
+            self.scale_factor = Agent.scale_factor_evil
+            self.x = Agent.x_evil
         else:
             self.bimodal_pdf = self.bimodal_good
-            self.scale_factor = scale_factor_good
-            self.x = x_good
+            self.scale_factor = Agent.scale_factor_good
+            self.x = Agent.x_good
 
     def measure(self, t_idx):
         x_eval = np.linspace(self.x.min() - 1, self.x.max() + 1, len(self.x))
