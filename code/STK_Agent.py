@@ -74,22 +74,24 @@ class Agent:
         self.interval = Agent.intervals_near_zone[idx]
 
     def eval_evil_pdf(self, x_eval):
-        bimodal_pdf = Agent.pdf(x_eval, loc=Agent.loc3, scale=Agent.scale3) * float(Agent.size3) / Agent.x_evil.size \
-                    + Agent.pdf(x_eval, loc=Agent.loc4, scale=Agent.scale4) * float(Agent.size4) / Agent.x_evil.size
-        bimodal_pdf /= np.sum(bimodal_pdf)       
+        bimodal_pdf = Agent.pdf(x_eval, loc=Agent.loc3, scale=Agent.scale3)  \
+                    + Agent.pdf(x_eval, loc=Agent.loc4, scale=Agent.scale4)
+        # bimodal_pdf /= np.sum(bimodal_pdf)
         return bimodal_pdf
 
     def eval_good_pdf(self, x_eval):
-        bimodal_pdf = Agent.pdf(x_eval, loc=Agent.loc1, scale=Agent.scale1) * float(Agent.size1) / Agent.x_good.size \
-                    + Agent.pdf(x_eval, loc=Agent.loc2, scale=Agent.scale2) * float(Agent.size2) / Agent.x_good.size
-        bimodal_pdf /= np.sum(bimodal_pdf)
+        bimodal_pdf = Agent.pdf(x_eval, loc=Agent.loc1, scale=Agent.scale1)  \
+                    + Agent.pdf(x_eval, loc=Agent.loc2, scale=Agent.scale2)
+        # bimodal_pdf /= np.sum(bimodal_pdf)
         return bimodal_pdf
 
 
     def intialize_bimodal_pdf(self):                
         self.bimodal_evil = lambda x_eval: self.eval_evil_pdf(x_eval)
         self.bimodal_good = lambda x_eval: self.eval_good_pdf(x_eval)
-        
+        self.bimodal_evil_norm = sum([self.bimodal_evil(i) for i in np.linspace(-10,10,10000)])
+        self.bimodal_good_norm = sum([self.bimodal_good(i) for i in np.linspace(-10, 10, 10000)])
+
         # pick one bimodal distribution if the agent is evil, pick the other if the are good
         if self.evil:
             self.bimodal_pdf = self.bimodal_evil
@@ -315,8 +317,8 @@ class Agent:
         for o_s in observe_set:
             observed_diff = o_s.measured - o_s.expected_position
             noise_measure = np.sqrt(observed_diff[0]**2+observed_diff[1]**2)
-            probability_bad = o_s.bimodal_bad(noise_measure)
-            probability_good = o_s.bimodal_good(noise_measure)
+            probability_bad = o_s.bimodal_bad(noise_measure)/self.bimodal_evil_norm
+            probability_good = o_s.bimodal_good(noise_measure)/self.bimodal_good_norm
             obs_list.append((o_s.idx,probability_bad,probability_good))
         return obs_list
         #

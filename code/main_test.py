@@ -12,7 +12,7 @@ time_step = 0.033  # seconds
 num_timesteps_per_second = 1/time_step   # about 30 timesteps/sec
 time_multiplier = 1.5
 T = int(60*time_multiplier)    
-true_belief = (1,1,0,1,1)
+true_belief = (1,1,1,1,1)
 
 # create aircraft/sensor objects with corresponding agents
 aircraft = []
