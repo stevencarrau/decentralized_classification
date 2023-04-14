@@ -1,7 +1,11 @@
 import copy
 import random
-from agi.stk12.stkdesktop import STKDesktop
-from agi.stk12.stkobjects import *
+
+useSTK = True
+
+if useSTK:
+    from agi.stk12.stkdesktop import STKDesktop
+    from agi.stk12.stkobjects import *
 
 class Graph:
     def __init__(self):
