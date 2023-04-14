@@ -77,7 +77,7 @@ time_step = 0.033  # seconds
 num_timesteps_per_second = 1/time_step   # about 30 timesteps/sec
 time_multiplier = 1.5
 T = int(scenario.StopTime*time_multiplier)    
-true_belief = (1,1,0,1,1)
+true_belief = (1,1,1,1,0)
 
 # create aircraft/sensor objects with corresponding agents
 aircraft = []
@@ -124,7 +124,18 @@ graph = GraphVisual()
 graph.add_agents(subagents)
 
 
+def max_belief(belief):
+    bel = 0
+    max_bel = (0, 0, 0, 0, 0)
+    for b_i in belief:
+        if belief[b_i] >= bel:
+            bel = belief[b_i]
+            max_bel = b_i
+    return {max_bel: bel}
+
+
 ignore_sensors = []
+# print(sensors)
 graph.draw_graph(4)
 plt.ion()
 plt.show()
@@ -142,7 +153,7 @@ for t_idx, t in enumerate(range(T)):
                 continue
             new_vertices.update(sensor.query(agent_list, t_idx/time_multiplier))
         new_vertices = list(new_vertices)
-        
+        print(new_vertices)
         graph.add_vertices(a, new_vertices)
         ## TODO: Give as input the "Observation" function - i.e connected agents that are in their "observable" zone
         observations = Observe.get_observations(graph.agents, int(t_idx/time_multiplier))
@@ -154,8 +165,12 @@ for t_idx, t in enumerate(range(T)):
         a.shareBelief(belief_packet)
     local_belief = [a.local_belief[true_belief] for a in graph.agents]
     actual_belief = [a.actual_belief[true_belief] for a in graph.agents]
-    print(f"Local: {local_belief}")
-    print(f"Actual: {actual_belief}")
+    # print(f"Local: {local_belief}")
+    # print(f"Actual: {actual_belief}")
+    local_belief_print = [max_belief(a.local_belief) for a in graph.agents]
+    actual_belief_print = [max_belief(a.actual_belief) for a in graph.agents]
+    print(f"Local: {local_belief_print}")
+    print(f"Actual: {actual_belief_print}")
     plt.pause(1)
     graph.update_graph(actual_belief)
     plt.draw_all()

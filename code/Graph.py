@@ -66,6 +66,7 @@ class Sensor:
             for agent_idx, agent in enumerate(agent_list):
                 access = self.stk_ref.GetAccessToObject(agent.stk_ref)
                 accessIntervals = access.ComputedAccessIntervalTimes
+                print(accessIntervals.Count)
 
                 trueAccessInterval = []
                 noisyAccessInterval = []
@@ -88,9 +89,10 @@ class Sensor:
         for agent_idx, agent in enumerate(agent_list):
            for i in range(len(self.noisyAccessIntervals[agent_idx])):
                 times = self.noisyAccessIntervals[agent_idx][i]
+                print(f"Inteval: {self.noisyAccessIntervals[agent_idx][i]}    time:{t}" )
                 if t >= times[0] and t <= times[1]:
                     visible_agents.append(agent)
-
+        # print(visible_agents)
         return visible_agents
 
 

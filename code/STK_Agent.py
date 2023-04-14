@@ -37,7 +37,7 @@ class Observe:
 class Agent:
     # given x, y, and z from STK. noise from measurement added later
     # intervals_near_zone = [[0, 1], [0, 1], [5, 10], [10, 15], [5, 10]]
-    intervals_near_zone = [[0, 60], [0, 60], [5, 60], [10, 60], [0, 60]]
+    intervals_near_zone = [[0, 900], [0, 900], [5, 900], [10, 900], [0, 900]]
 
     # make noise follow bimodal distribution with a peak at 0 for the good agent and the peak on the right for the bad agent
     pdf = stats.norm.pdf
