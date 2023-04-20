@@ -111,6 +111,7 @@ subagents[-1].evil = True
 # initialize bimodal pdfs and intervals for each agent
 for craft_idx, craft in enumerate(aircraft):
     craft.intialize_bimodal_pdf()
+    craft.intialize_interval(craft_idx)
     craft.dumpcsv()
 
 
@@ -134,7 +135,6 @@ def max_belief(belief):
 
 
 ignore_sensors = []
-observable_sensors = []
 # print(sensors)
 graph.draw_graph(4)
 plt.ion()
@@ -151,13 +151,12 @@ for t_idx, t in enumerate(range(T)):
             # FIXME: change if you want to block sensor(s) for the duration of the experiment
             if sensor_idx in ignore_sensors:
                 continue
-            observable_sensors.append(sensor)
             new_vertices.update(sensor.query(agent_list, t_idx/time_multiplier))
         new_vertices = list(new_vertices)
         print(new_vertices)
         graph.add_vertices(a, new_vertices)
         ## TODO: Give as input the "Observation" function - i.e connected agents that are in their "observable" zone
-        observations = Observe.get_observations(graph.agents, sensors, int(t_idx/time_multiplier))
+        observations = Observe.get_observations(graph.agents, int(t_idx/time_multiplier))
         a.updateLocalBelief(observations)
     # Loop again to build sharing graphs
     for idx,a in enumerate(graph.agents):

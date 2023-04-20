@@ -1,7 +1,7 @@
 import copy
 import random
 
-useSTK = False
+useSTK = True
 
 if useSTK:
     from agi.stk12.stkdesktop import STKDesktop
@@ -55,19 +55,14 @@ class Sensor:
         self.name = name
         self.stk_ref = stk_ref
         self.initialized = False
-        self.trueAccessIntervals = {}   # indexed in same order as agent_list
-        self.noisyAccessIntervals = {}   # indexed in same order as agent_list
+        self.trueAccessIntervals = []   # indexed in same order as agent_list
+        self.noisyAccessIntervals = []   # indexed in same order as agent_list
 
 
     def get_visible_agents(self, agent_list, t):
         visible_agents = []
 
         if not self.initialized:
-            # initialize noisy/true access intervals
-            for agent_idx, agent in enumerate(agent_list):
-                self.trueAccessIntervals[agent_idx] = []
-                self.noisyAccessIntervals[agent_idx] = []
-
             for agent_idx, agent in enumerate(agent_list):
                 access = self.stk_ref.GetAccessToObject(agent.stk_ref)
                 accessIntervals = access.ComputedAccessIntervalTimes
@@ -86,8 +81,8 @@ class Sensor:
                     trueAccessInterval.append(interval)
                     noisyAccessInterval.append(noisy_interval)
 
-                self.trueAccessIntervals[agent_idx].append(trueAccessInterval)
-                self.noisyAccessIntervals[agent_idx].append(noisyAccessInterval)
+                self.trueAccessIntervals.append(trueAccessInterval)
+                self.noisyAccessIntervals.append(noisyAccessInterval)
 
             self.initialized = True
         
@@ -95,7 +90,7 @@ class Sensor:
            for i in range(len(self.noisyAccessIntervals[agent_idx])):
                 times = self.noisyAccessIntervals[agent_idx][i]
                 print(f"Inteval: {self.noisyAccessIntervals[agent_idx][i]}    time:{t}" )
-                if times[0] <= t <= times[1]:
+                if t >= times[0] and t <= times[1]:
                     visible_agents.append(agent)
         # print(visible_agents)
         return visible_agents
