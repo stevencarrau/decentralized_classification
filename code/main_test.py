@@ -52,39 +52,43 @@ subagents[-1].evil = True
 # initialize bimodal pdfs and intervals for each agent
 for craft_idx, craft in enumerate(aircraft):
     craft.intialize_bimodal_pdf()
-    craft.intialize_interval(craft_idx)
+    # craft.intialize_interval(craft_idx)
+
+drone_colors = ['yellow','blue','red','white','green']
 
 graph = GraphVisual()
 graph.add_agents(subagents)
 
 ignore_sensors = []
 graph.draw_graph(4)
+[a.draw_belief_graph(4,T,drone_colors[a_idx]) for a_idx,a in enumerate(graph.agents)]
 plt.ion()
 plt.show()
 for t_idx, t in enumerate(range(T)):
     graph.clear()
     # Loop once to update connections
     for idx, a in enumerate(graph.agents):
-        agent_list = copy.copy(graph.agents)
-        agent_list.pop(idx)
+        agent_list = {i: copy.copy(a_i) for i, a_i in enumerate(graph.agents) if i != idx}
 
         new_vertices = {}
         for sensor_idx, sensor in enumerate(sensors):
             # FIXME: change if you want to block sensor(s) for the duration of the experiment
-            if sensor_idx in ignore_sensors:
-                continue
-            new_vertices.update(sensor.query(agent_list, t_idx / time_multiplier))
+            if sensor_idx in ignore_sensors or not sensor.in_range(idx, t_idx / time_multiplier):
+                pass
+            else:
+                new_vertices.update(sensor.query(agent_list, t_idx / time_multiplier))
         new_vertices = list(new_vertices)
-
+        print(new_vertices)
         graph.add_vertices(a, new_vertices)
         ## TODO: Give as input the "Observation" function - i.e connected agents that are in their "observable" zone
-        observations = Observe.get_observations(graph.agents, int(t_idx / time_multiplier))
+        observations = Observe.get_observations(graph.agents, sensors, int(t_idx / time_multiplier))
         a.updateLocalBelief(observations)
     # Loop again to build sharing graphs
     for idx, a in enumerate(graph.agents):
         belief_packet = dict(
             [[v_a.name, v_a.actual_belief] for v_a in graph.vertices[a]])
         a.shareBelief(belief_packet)
+    local_belief = [a.local_belief[true_belief] for a in graph.agents]
     actual_belief = [a.actual_belief[true_belief] for a in graph.agents]
     local_belief_print = [max_belief(a.local_belief) for a in graph.agents]
     actual_belief_print = [max_belief(a.actual_belief) for a in graph.agents]
@@ -93,6 +97,8 @@ for t_idx, t in enumerate(range(T)):
     plt.pause(1)
     graph.update_graph(actual_belief)
     graph.save_graph(exp_name,t_idx)
+    [a.update_graph(t_idx,a.actual_belief[true_belief]) for a in graph.agents]
+    [a.save_belief(exp_name, a_idx, t_idx) for a_idx, a in enumerate(graph.agents)]
     plt.draw_all()
 
 print("Done!")

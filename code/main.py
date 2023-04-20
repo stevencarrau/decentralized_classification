@@ -135,10 +135,13 @@ def max_belief(belief):
             max_bel = b_i
     return {max_bel: bel}
 
+drone_colors = ['yellow','blue','red','white','green']
+
 
 ignore_sensors = []
 # print(sensors)
 graph.draw_graph(4)
+[a.draw_belief_graph(4,T,drone_colors[a_idx]) for a_idx,a in enumerate(graph.agents)]
 plt.ion()
 plt.show()
 for t_idx, t in enumerate(range(T)):
@@ -176,6 +179,8 @@ for t_idx, t in enumerate(range(T)):
     plt.pause(1)
     graph.update_graph(actual_belief)
     graph.save_graph(exp_name,t_idx)
+    [a.update_graph(t_idx, a.actual_belief[true_belief]) for a in graph.agents]
+    [a.save_belief(exp_name, a_idx, t_idx) for a_idx, a in enumerate(graph.agents)]
     plt.draw_all()
     for _ in range(int(num_timesteps_per_second/time_multiplier)):
         root.StepForward()

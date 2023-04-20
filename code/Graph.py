@@ -1,7 +1,7 @@
 import copy
 import random
 
-useSTK = True
+useSTK = False
 
 if useSTK:
     from agi.stk12.stkdesktop import STKDesktop

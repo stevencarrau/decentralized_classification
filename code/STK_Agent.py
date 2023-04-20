@@ -3,6 +3,7 @@ import numpy as np
 from copy import deepcopy
 import matplotlib.pyplot as plt
 from scipy import stats
+import os
 
 class ProbablilityNotOne(Exception):
 	pass
@@ -403,7 +404,7 @@ class Agent:
     def update_graph(self,i_no,belief):
         self.x_data.append(i_no)
         self.y_data.append(belief)
-        self.belief_line.set
+        self.belief_line[0].set_data(self.x_data,self.y_data)
 
-
-    # def save_belief(self):
+    def save_belief(self,exp_name,idx,i_no):
+        self.fig.savefig(os.path.join(os.getcwd(),'Images',f'{exp_name}','Belief_Graph',f'Agent_{idx}',f'Connection_{i_no}.png'),transparent=True)
