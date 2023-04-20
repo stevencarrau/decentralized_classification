@@ -396,9 +396,14 @@ class Agent:
         self.ax = plt.subplot(111)
         self.ax.set_xlim([0, run_length])
         self.ax.set_ylim([0,1.1])
+        self.ax.spines['top'].set_visible(False)
+        self.ax.spines['right'].set_visible(False)
         self.x_data = [0]
         self.y_data = [0.03125]
         self.belief_line = self.ax.plot(self.x_data,self.y_data, linewidth=5, color=color, zorder=1)
+        self.ax.set_xticks([0,int(run_length/2),run_length])
+        self.ax.set_yticks([0, 0.5,1])
+        self.ax.tick_params(axis='both', which='major', labelsize=18,direction="in")
 
 
     def update_graph(self,i_no,belief):
