@@ -1,3 +1,5 @@
+import os
+
 import matplotlib
 from Graph import Graph
 import matplotlib.pyplot as plt
@@ -10,12 +12,11 @@ c = ["lightcoral","white", "palegreen"]
 v = [0,.5,1.]
 l = list(zip(v,c))
 cmap=LinearSegmentedColormap.from_list('rg',l, N=256)
-
 # matplotlib.use('Qt5Agg')
 
 class GraphVisual(Graph):
     def draw_graph(self,fig_dim):
-        fig = plt.figure(figsize=(fig_dim,fig_dim))
+        self.fig = plt.figure(figsize=(fig_dim,fig_dim))
         no_agents = len(self.agents)
         angles = [n / float(no_agents) * 2 * math.pi for n in range(no_agents)]
         angles += angles[:1]
@@ -53,3 +54,6 @@ class GraphVisual(Graph):
         if belief_array:
             self.circles.set_array(np.array(belief_array))
             # self.circles.set_array(np.random.random(5))
+
+    def save_graph(self,exp_name,i_no):
+        self.fig.savefig(os.path.join(os.getcwd(),'Images',f'{exp_name}','Connection_Graph',f'Connection_{i_no}.png'),transparent=True)
