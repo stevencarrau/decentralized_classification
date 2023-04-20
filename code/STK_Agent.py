@@ -17,11 +17,13 @@ class Observation:
         self.bimodal_good = bimodal_good
 
 class Observe:
-    def get_observations(agents, t):
+    def get_observations(agents, sensors, t):
         observe_set = []
+        agent_observable = False
         for agent_idx, agent in enumerate(agents):
-            agent_observable_interval = Agent.intervals_near_zone[agent_idx]
-            agent_observable = agent_observable_interval[0] <= t <= agent_observable_interval[1]
+            for sensor in sensors:
+                observable_agents = sensor.get_visible_agents(agents, t)
+                agent_observable = agent_observable or agent in observable_agents
 
             if not agent_observable:
                 continue
@@ -36,7 +38,6 @@ class Observe:
 
 class Agent:
     # given x, y, and z from STK. noise from measurement added later
-    # intervals_near_zone = [[0, 1], [0, 1], [5, 10], [10, 15], [5, 10]]
     intervals_near_zone = [[0, 900], [0, 900], [5, 900], [10, 900], [0, 900]]
 
     # make noise follow bimodal distribution with a peak at 0 for the good agent and the peak on the right for the bad agent
@@ -69,10 +70,6 @@ class Agent:
         self.x_true = x_true
         self.y_true = y_true
         self.z_true = z_true
-
-    def intialize_interval(self, idx):
-        self.idx = idx
-        self.interval = Agent.intervals_near_zone[idx]
 
     def eval_evil_pdf(self, x_eval):
         bimodal_pdf = Agent.pdf(x_eval, loc=Agent.loc1, scale=Agent.scale1)  \
@@ -166,16 +163,7 @@ class Agent:
                             y_meas_good.append(self.y_true[t_idx] + y_meas_t)
                 self.evil = not self.evil
 
-                if self.evil:
-                    self.scale_factor = 5e-2
-                else:
-                    self.scale_factor = 2e-2
-
             self.evil = not self.evil
-            if self.evil:
-                    self.scale_factor = 5e-2
-            else:
-                self.scale_factor = 2e-2
 
             ax.plot(self.x_true, self.y_true, label="true trajectory", color = "blue")
             ax.plot(x_meas_good, y_meas_good, label="good noise", color = "green")
