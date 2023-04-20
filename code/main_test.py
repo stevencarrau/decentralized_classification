@@ -23,6 +23,7 @@ num_timesteps_per_second = 1 / time_step  # about 30 timesteps/sec
 time_multiplier = 1.5
 T = int(60 * time_multiplier)
 true_belief = (1, 1, 1, 1, 0)
+exp_name = 'Experiment1'
 
 # create aircraft/sensor objects with corresponding agents
 aircraft = []
@@ -92,6 +93,7 @@ for t_idx, t in enumerate(range(T)):
     print(f"Actual: {actual_belief_print}")
     plt.pause(1)
     graph.update_graph(actual_belief)
+    graph.save_graph(exp_name,t_idx)
     plt.draw_all()
 
 print("Done!")
