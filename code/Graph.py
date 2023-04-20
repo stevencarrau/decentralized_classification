@@ -54,46 +54,52 @@ class Sensor:
     def __init__(self, name, stk_ref):
         self.name = name
         self.stk_ref = stk_ref
-        self.initialized = False
-        self.trueAccessIntervals = []   # indexed in same order as agent_list
-        self.noisyAccessIntervals = []   # indexed in same order as agent_list
+        self.trueAccessIntervals = {}   # indexed in same order as agent_list
+        self.noisyAccessIntervals = {}   # indexed in same order as agent_list
 
+    def initialize(self,agent_list):
+        for agent_idx in agent_list:
+            self.trueAccessIntervals[agent_idx] = []
+            self.noisyAccessIntervals[agent_idx] = []
+
+        for agent_idx in agent_list:
+            access = self.stk_ref.GetAccessToObject(agent_list[agent_idx].stk_ref)
+            accessIntervals = access.ComputedAccessIntervalTimes
+
+            trueAccessInterval = []
+            noisyAccessInterval = []
+
+            for i in range(accessIntervals.Count):
+                times = accessIntervals.GetInterval(i)
+                rand1 = random.gauss(5, 5)
+                rand2 = random.gauss(5, 5)
+                interval = [times[0], times[1]]
+                noisy_interval = [times[0] + rand1, times[1] + rand2]
+                # interval = [times[0], times[1]]
+                trueAccessInterval.append(interval)
+                noisyAccessInterval.append(noisy_interval)
+
+            self.trueAccessIntervals[agent_idx].append(trueAccessInterval)
+            self.noisyAccessIntervals[agent_idx].append(noisyAccessInterval)
 
     def get_visible_agents(self, agent_list, t):
         visible_agents = []
-
-        if not self.initialized:
-            for agent_idx, agent in enumerate(agent_list):
-                access = self.stk_ref.GetAccessToObject(agent.stk_ref)
-                accessIntervals = access.ComputedAccessIntervalTimes
-                print(accessIntervals.Count)
-
-                trueAccessInterval = []
-                noisyAccessInterval = []
-
-                for i in range(accessIntervals.Count):
-                    times = accessIntervals.GetInterval(i)
-                    rand1 = random.gauss(5, 5)
-                    rand2 = random.gauss(5, 5)  
-                    interval = [times[0], times[1]]
-                    noisy_interval = [times[0] + rand1, times[1] + rand2]
-                    # interval = [times[0], times[1]]
-                    trueAccessInterval.append(interval)
-                    noisyAccessInterval.append(noisy_interval)
-
-                self.trueAccessIntervals.append(trueAccessInterval)
-                self.noisyAccessIntervals.append(noisyAccessInterval)
-
-            self.initialized = True
         
-        for agent_idx, agent in enumerate(agent_list):
-           for i in range(len(self.noisyAccessIntervals[agent_idx])):
-                times = self.noisyAccessIntervals[agent_idx][i]
-                print(f"Inteval: {self.noisyAccessIntervals[agent_idx][i]}    time:{t}" )
-                if t >= times[0] and t <= times[1]:
-                    visible_agents.append(agent)
-        # print(visible_agents)
+        for agent_idx in agent_list:
+            if self.in_range(agent_idx,t):
+                visible_agents.append(agent_list[agent_idx])
+
         return visible_agents
+
+    def in_range(self,agent_idx,t):
+        for i in range(len(self.trueAccessIntervals[agent_idx])):
+            times = self.trueAccessIntervals[agent_idx][i]
+            print(times)
+            for j in range(len(times)):
+                # print(f"Inteval: {self.noisyAccessIntervals[agent_idx][i]}    time:{t}" )
+                if t >= times[j][0] and t <= times[j][1]:
+                    return True
+        return False
 
 
     def query(self, agent_list, t):

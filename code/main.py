@@ -122,6 +122,8 @@ print("[INFO] Done with initialization")
 
 graph = GraphVisual()
 graph.add_agents(subagents)
+agent_list = {i:copy.copy(a_i) for i, a_i in  enumerate(graph.agents)}
+[s_i.initialize(agent_list) for s_i in sensors]
 
 
 def max_belief(belief):
@@ -143,15 +145,15 @@ for t_idx, t in enumerate(range(T)):
     graph.clear()
     # Loop once to update connections
     for idx, a in enumerate(graph.agents):
-        agent_list = copy.copy(graph.agents)
-        agent_list.pop(idx)
+        agent_list = {i:copy.copy(a_i) for i, a_i in  enumerate(graph.agents) if i !=idx}
         
         new_vertices = {}
         for sensor_idx, sensor in enumerate(sensors):
             # FIXME: change if you want to block sensor(s) for the duration of the experiment
-            if sensor_idx in ignore_sensors:
-                continue
-            new_vertices.update(sensor.query(agent_list, t_idx/time_multiplier))
+            if sensor_idx in ignore_sensors or not sensor.in_range(idx, t_idx/time_multiplier):
+                pass
+            else:
+                new_vertices.update(sensor.query(agent_list, t_idx/time_multiplier))
         new_vertices = list(new_vertices)
         print(new_vertices)
         graph.add_vertices(a, new_vertices)
