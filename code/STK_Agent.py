@@ -395,3 +395,21 @@ class Agent:
                 self.local_belief[b_i] = r_b
                 self.actual_belief[b_i] = r_b
     ##TODO: Realistic observation functions from STK
+
+    def draw_belief_graph(self,fig_dim,run_length,color):
+        self.fig = plt.figure(figsize=(1.6125*fig_dim, fig_dim))
+        self.ax = plt.subplot(111)
+        self.ax.set_xlim([0, run_length])
+        self.ax.set_ylim([0,1.1])
+        self.x_data = [0]
+        self.y_data = [0.03125]
+        self.belief_line = self.ax.plot(self.x_data,self.y_data, linewidth=5, color=color, zorder=1)
+
+
+    def update_graph(self,i_no,belief):
+        self.x_data.append(i_no)
+        self.y_data.append(belief)
+        self.belief_line.set
+
+
+    # def save_belief(self):
