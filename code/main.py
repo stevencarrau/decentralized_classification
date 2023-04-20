@@ -78,6 +78,7 @@ num_timesteps_per_second = 1/time_step   # about 30 timesteps/sec
 time_multiplier = 1.5
 T = int(scenario.StopTime*time_multiplier)    
 true_belief = (1,1,1,1,0)
+exp_name = 'Experiment1'
 
 # create aircraft/sensor objects with corresponding agents
 aircraft = []
@@ -111,7 +112,6 @@ subagents[-1].evil = True
 # initialize bimodal pdfs and intervals for each agent
 for craft_idx, craft in enumerate(aircraft):
     craft.intialize_bimodal_pdf()
-    craft.intialize_interval(craft_idx)
     craft.dumpcsv()
 
 
@@ -158,7 +158,7 @@ for t_idx, t in enumerate(range(T)):
         print(new_vertices)
         graph.add_vertices(a, new_vertices)
         ## TODO: Give as input the "Observation" function - i.e connected agents that are in their "observable" zone
-        observations = Observe.get_observations(graph.agents, int(t_idx/time_multiplier))
+        observations = Observe.get_observations(graph.agents, sensors, int(t_idx/time_multiplier))
         a.updateLocalBelief(observations)
     # Loop again to build sharing graphs
     for idx,a in enumerate(graph.agents):
@@ -175,6 +175,7 @@ for t_idx, t in enumerate(range(T)):
     print(f"Actual: {actual_belief_print}")
     plt.pause(1)
     graph.update_graph(actual_belief)
+    graph.save_graph(exp_name,t_idx)
     plt.draw_all()
     for _ in range(int(num_timesteps_per_second/time_multiplier)):
         root.StepForward()

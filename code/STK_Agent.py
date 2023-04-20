@@ -17,11 +17,12 @@ class Observation:
         self.bimodal_good = bimodal_good
 
 class Observe:
-    def get_observations(agents, t):
+    def get_observations(agents, sensors, t):
         observe_set = []
         for agent_idx, agent in enumerate(agents):
-            agent_observable_interval = Agent.intervals_near_zone[agent_idx]
-            agent_observable = agent_observable_interval[0] <= t <= agent_observable_interval[1]
+            agent_observable = False
+            for sensor in sensors:
+                agent_observable = agent_observable or sensor.in_range(agent_idx, t)
 
             if not agent_observable:
                 continue
@@ -35,10 +36,6 @@ class Observe:
         return observe_set
 
 class Agent:
-    # given x, y, and z from STK. noise from measurement added later
-    # intervals_near_zone = [[0, 1], [0, 1], [5, 10], [10, 15], [5, 10]]
-    intervals_near_zone = [[0, 900], [0, 900], [5, 900], [10, 900], [0, 900]]
-
     # make noise follow bimodal distribution with a peak at 0 for the good agent and the peak on the right for the bad agent
     pdf = stats.norm.pdf
     frac = 0.49
@@ -70,10 +67,6 @@ class Agent:
         self.y_true = y_true
         self.z_true = z_true
 
-    def intialize_interval(self, idx):
-        self.idx = idx
-        self.interval = Agent.intervals_near_zone[idx]
-
     def eval_evil_pdf(self, x_eval):
         bimodal_pdf = Agent.pdf(x_eval, loc=Agent.loc1, scale=Agent.scale1)  \
                     + Agent.pdf(x_eval, loc=Agent.loc2, scale=Agent.scale2)
@@ -99,6 +92,7 @@ class Agent:
         # x2 = np.concatenate([np.random.normal(loc=Agent.loc3, scale=Agent.scale3, size=Agent.size3),
         #                      np.random.normal(loc=Agent.loc4, scale=Agent.scale4, size=Agent.size4)])
         # x_eval_2 = np.linspace(x2.min() - 1, x2.max() + 1, len(x2))
+        # plt.axis('off')
         # plt.plot(x_eval_2, self.bimodal_good(x_eval_2), 'b--', label="Good Agent PDF")
         # plt.plot(x_eval_1, self.bimodal_evil(x_eval_1), 'r--', label="Bad Agent PDF")
         # plt.legend()
