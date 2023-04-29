@@ -279,11 +279,14 @@ class Agent:
         for n_s in neighbor_set:
             self.neighbor_set[n_s] = neighbor_set[n_s]
         if self.evil:
-            random_belief = np.random.rand(len(self.local_belief))
-            random_belief /= np.sum(random_belief)
-            for b_i, r_b in zip(self.local_belief, random_belief):
-                self.local_belief[b_i] = r_b
-                self.actual_belief[b_i] = r_b
+            # random_belief = np.random.rand(len(self.local_belief))
+            # random_belief /= np.sum(random_belief)
+            for b_i in self.local_belief:
+                self.local_belief[b_i] = 0
+                self.actual_belief[b_i] = 0
+            # new
+            self.local_belief[(1,0,1,1,0)] = 1
+            self.actual_belief[(1, 0, 1, 1, 0)] = 1
 
     def shareBelief(self, belief_arrays):
         actual_belief = {}
@@ -412,4 +415,4 @@ class Agent:
         self.belief_line[0].set_data(self.x_data,self.y_data)
 
     def save_belief(self,exp_name,idx,i_no):
-        self.fig.savefig(os.path.join(os.getcwd(),'Images',f'{exp_name}','Belief_Graph',f'Agent_{idx}',f'Connection_{i_no}.png'),transparent=True)
+        self.fig.savefig(os.path.join(os.getcwd(),'Images',f'{exp_name}','Belief_Graph',f'Agent_{idx}',f'Belief_{i_no}.png'),transparent=True)

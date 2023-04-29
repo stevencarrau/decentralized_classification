@@ -68,7 +68,7 @@ root.Rewind()
 root.AnimationOptions = 2  # eAsniOptionStop
 root.Mode = 32  # eAniXRealtime
 scenario = root.CurrentScenario
-scenario.Animation.AnimStepValue = 1  ;   # second
+# scenario.Animation.AnimStepValue = 1   # second
 # scenario.Animation.RefreshDelta = 5   # second
 
 
@@ -78,7 +78,7 @@ num_timesteps_per_second = 1/time_step   # about 30 timesteps/sec
 time_multiplier = 1.5
 T = int(scenario.StopTime*time_multiplier)    
 true_belief = (1,1,1,1,0)
-exp_name = 'Experiment1'
+exp_name = 'Experiment3'
 
 # create aircraft/sensor objects with corresponding agents
 aircraft = []
@@ -135,7 +135,7 @@ def max_belief(belief):
             max_bel = b_i
     return {max_bel: bel}
 
-drone_colors = ['yellow','blue','red','white','green']
+drone_colors = ['yellow','blue','green','white','red']
 
 
 ignore_sensors = []
@@ -144,6 +144,7 @@ graph.draw_graph(4)
 [a.draw_belief_graph(4,T,drone_colors[a_idx]) for a_idx,a in enumerate(graph.agents)]
 plt.ion()
 plt.show()
+print("lol")
 for t_idx, t in enumerate(range(T)):
     graph.clear()
     # Loop once to update connections
@@ -153,12 +154,12 @@ for t_idx, t in enumerate(range(T)):
         new_vertices = {}
         for sensor_idx, sensor in enumerate(sensors):
             # FIXME: change if you want to block sensor(s) for the duration of the experiment
-            if sensor_idx in ignore_sensors or not sensor.in_range(idx, t_idx/time_multiplier):
+            # ignore sensor if it's in the list to ignore or out of range
+            if any([str(i) in sensor.name for i in ignore_sensors]) or not sensor.in_range(idx, t_idx/time_multiplier):
                 pass
             else:
                 new_vertices.update(sensor.query(agent_list, t_idx/time_multiplier))
         new_vertices = list(new_vertices)
-        print(new_vertices)
         graph.add_vertices(a, new_vertices)
         ## TODO: Give as input the "Observation" function - i.e connected agents that are in their "observable" zone
         observations = Observe.get_observations(graph.agents, sensors, int(t_idx/time_multiplier))
@@ -186,5 +187,5 @@ for t_idx, t in enumerate(range(T)):
         root.StepForward()
 
 print("Done!")
-plt.ioff()
+plt.ion()
 plt.show()

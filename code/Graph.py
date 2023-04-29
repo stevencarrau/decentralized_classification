@@ -1,7 +1,7 @@
 import copy
 import random
 
-useSTK = False
+useSTK = True
 
 if useSTK:
     from agi.stk12.stkdesktop import STKDesktop
@@ -83,11 +83,16 @@ class Sensor:
             self.noisyAccessIntervals[agent_idx].append(noisyAccessInterval)
 
     def get_visible_agents(self, agent_list, t):
+        ignore_agents = []
         visible_agents = []
-        
+
         for agent_idx in agent_list:
             if self.in_range(agent_idx,t):
-                visible_agents.append(agent_list[agent_idx])
+                if not any([str(i) in agent_list[agent_idx].name for i in ignore_agents]):
+                    visible_agents.append(agent_list[agent_idx])
+                # else: # is in the blocked agent list
+                #     if random.randint(1, 100) <= 25:
+                #         visible_agents.append(agent_list[agent_idx])
 
         return visible_agents
 
